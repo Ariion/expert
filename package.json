@@ -1,0 +1,36 @@
+{
+  "name": "statuspulse",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous vendor-status aggregation & alerting micro-SaaS. Programmatic SEO acquisition, Stripe recurring revenue, zero human ops.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:push": "psql \"$DATABASE_URL\" -f supabase/schema.sql",
+    "db:seed": "tsx scripts/seed-services.ts",
+    "cron:local": "tsx scripts/run-cron-local.ts",
+    "selftest": "tsx scripts/selftest.ts"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.1",
+    "next": "^16.3.5",
+    "postgres": "^3.4.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "stripe": "^22.6.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
