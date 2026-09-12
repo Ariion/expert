@@ -6,18 +6,9 @@
  *   npm run cron:local -- rollup
  *   npm run cron:local -- reconcile
  */
-import { readFileSync } from "node:fs";
+import { loadEnvFiles } from "../src/lib/envfile";
 
-for (const file of [".env.local", ".env"]) {
-  try {
-    for (const line of readFileSync(file, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-    }
-  } catch {
-    /* ignoré */
-  }
-}
+loadEnvFiles();
 
 const job = process.argv[2] ?? "ingest";
 const base = process.env.APP_URL ?? "http://localhost:3000";

@@ -1,0 +1,79 @@
+# =============================================================================
+# Ordonnanceur gratuit — alternative au plan Vercel Pro.
+#
+# Vercel déclenche les crons de `vercel.json` à la minute uniquement sur le
+# plan Pro. Sur le plan Hobby (gratuit), ce workflow fait le même travail sans
+# rien coûter : GitHub Actions appelle les mêmes routes HTTP.
+#
+# MISE EN ROUTE (2 minutes, une seule fois) :
+#   Repo GitHub > Settings > Secrets and variables > Actions > New secret
+#     APP_URL      = https://votre-domaine
+#     CRON_SECRET  = la valeur générée dans .env.local par `npm run setup`
+#
+# Ne rien faire d'autre : le workflow tourne ensuite tout seul.
+# (GitHub peut décaler un déclenchement de quelques minutes en cas de charge —
+#  sans conséquence : chaque job est idempotent et rattrape son retard.)
+# =============================================================================
+name: StatusPulse — automatisation
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # collecte des incidents + envoi des alertes
+    - cron: "17 3 * * *"    # agrégats de disponibilité + digests quotidiens
+    - cron: "42 4 * * *"    # réconciliation Stripe, purge, watchdog
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Job à déclencher manuellement"
+        required: true
+        default: ingest
+        type: choice
+        options: [ingest, dispatch, rollup, reconcile]
+
+concurrency:
+  group: statuspulse-cron
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Vérifier la configuration
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Secrets APP_URL et CRON_SECRET à renseigner dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Déclencher les jobs
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SCHEDULE: ${{ github.event.schedule }}
+          MANUAL: ${{ inputs.job }}
+        run: |
+          set -u
+          case "$SCHEDULE" in
+            "17 3 * * *") JOBS="rollup" ;;
+            "42 4 * * *") JOBS="reconcile" ;;
+            "*/5 * * * *") JOBS="ingest dispatch" ;;
+            *) JOBS="${MANUAL:-ingest}" ;;
+          esac
+
+          FAILED=0
+          for JOB in $JOBS; do
+            echo "── $JOB"
+            CODE=$(curl -sS -o /tmp/out.json -w "%{http_code}" --max-time 300 \
+                    -H "authorization: Bearer $CRON_SECRET" \
+                    "$APP_URL/api/cron/$JOB" || echo "000")
+            echo "HTTP $CODE"
+            head -c 600 /tmp/out.json; echo
+            # Une erreur serveur est déjà signalée par l'alerting interne ;
+            # on fait quand même échouer le run pour qu'elle soit visible ici.
+            [ "$CODE" = "200" ] || FAILED=1
+          done
+          exit $FAILED

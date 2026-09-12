@@ -10,12 +10,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "setup": "tsx scripts/setup.mts",
+    "doctor": "tsx scripts/doctor.mts",
+    "selftest": "tsx scripts/selftest.ts",
     "typecheck": "tsc --noEmit",
-    "db:push": "psql \"$DATABASE_URL\" -f supabase/schema.sql",
     "db:seed": "tsx scripts/seed-services.ts",
-    "cron:local": "tsx scripts/run-cron-local.ts",
-    "selftest": "tsx scripts/selftest.ts"
+    "cron:local": "tsx scripts/run-cron-local.mts"
   },
   "dependencies": {
     "fast-xml-parser": "^4.5.1",

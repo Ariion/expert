@@ -5,23 +5,13 @@
  *   npm run db:seed -- --check -> vérifie en plus que chaque flux répond
  *
  * Idempotent : relancer le script après avoir ajouté des lignes dans
- * data/services.ts ne touche pas aux données d'ingestion existantes.
+ * src/data/services.ts ne touche pas aux données d'ingestion existantes.
  */
 import postgres from "postgres";
-import { readFileSync } from "node:fs";
-import { SEED_SERVICES } from "../data/services";
+import { SEED_SERVICES } from "../src/data/services";
+import { loadEnvFiles } from "../src/lib/envfile";
 
-// Petit chargeur .env (évite une dépendance de plus pour un script one-shot).
-for (const file of [".env.local", ".env"]) {
-  try {
-    for (const line of readFileSync(file, "utf8").split("\n")) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-    }
-  } catch {
-    /* fichier absent : les variables viennent de l'environnement */
-  }
-}
+loadEnvFiles();
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -83,7 +73,7 @@ async function main() {
       for (const b of broken) console.log("  -", b);
       console.log(
         "\nUn flux en échec est mis en backoff automatiquement et signalé après 6 tentatives ;\n" +
-          "corrigez l'URL dans data/services.ts puis relancez ce script.",
+          "corrigez l'URL dans src/data/services.ts puis relancez ce script.",
       );
     }
   }

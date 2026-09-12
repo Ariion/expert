@@ -52,7 +52,10 @@ export async function createCheckoutSession(
     line_items: [{ price: priceIdFor(plan), quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
-    automatic_tax: { enabled: true },
+    // Stripe Tax n'est pas actif par défaut sur un compte neuf, et l'activer
+    // sans inscription fiscale fait échouer le paiement. On l'allume par
+    // variable d'environnement, le jour où le seuil de TVA l'impose.
+    automatic_tax: { enabled: process.env.STRIPE_AUTOMATIC_TAX === "true" },
     customer_update: { address: "auto", name: "auto" },
     subscription_data: { metadata: { user_id: user.id, plan } },
     metadata: { user_id: user.id, plan },

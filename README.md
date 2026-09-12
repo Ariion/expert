@@ -7,6 +7,62 @@ et alerte humaine uniquement en cas de panne du système lui-même.
 
 ---
 
+## 0. Ce que vous avez à faire, en une page
+
+**Cinq actions, une vingtaine de minutes, une seule fois.** Tout le reste est
+exécuté par `npm run setup`, puis par le système lui-même.
+
+| # | Action | Durée | Pourquoi ça ne peut pas être automatisé |
+|---|---|---|---|
+| 1 | Créer 4 comptes gratuits : [Supabase](https://supabase.com), [Stripe](https://stripe.com), [Resend](https://resend.com), [Vercel](https://vercel.com) | 8 min | Ils vous sont nominatifs |
+| 2 | Dans Stripe, renseigner identité + IBAN (KYC) | 5 min | Obligation légale pour encaisser |
+| 3 | Publier les 2 enregistrements DNS que Resend affiche | 3 min | Accès à votre registrar |
+| 4 | Lancer `npm run setup` et coller 4 valeurs quand il les demande | 4 min | — |
+| 5 | Sur Vercel : « Import Git Repository » → sélectionner ce dépôt | 2 min | Autorisation GitHub ↔ Vercel |
+
+Ensuite : **plus rien**. Pas de contenu à écrire, pas de client à accueillir,
+pas de serveur à surveiller. Vous ne recevez un email que si le système
+lui-même tombe.
+
+### Ce que `npm run setup` fait à votre place
+
+- applique les 12 tables, index, triggers et fonctions SQL sur votre base ;
+- installe les 71 fournisseurs et teste leurs flux un par un (ceux qui ne
+  répondent pas sont désactivés pour ne pas publier de page vide) ;
+- crée les produits et tarifs Stripe (Pro 19 €/mois, Team 49 €/mois) ;
+- crée l'endpoint webhook Stripe **et récupère sa clé de signature** — aucun
+  copier-coller de `whsec_…` ;
+- configure le portail de facturation (résiliation et changement de plan en
+  self-service : c'est ce qui supprime tout support lié à l'abonnement) ;
+- génère les secrets applicatifs ;
+- vérifie que votre domaine d'envoi est validé chez Resend ;
+- pousse toutes les variables dans Vercel si vous lui donnez un token ;
+- lance la première collecte et affiche l'état du système.
+
+Le script est **idempotent** : relancez-le autant de fois que nécessaire, il
+complète ce qui manque sans rien dupliquer. `npm run doctor` donne à tout
+moment l'état complet (collecteur, file d'alertes, MRR Stripe, SEO).
+
+### « Je mets juste mon PayPal et l'argent rentre ? »
+
+Presque. Deux nuances, dites franchement :
+
+- **L'encaissement passe par Stripe, pas PayPal.** PayPal ne gère pas
+  proprement l'abonnement récurrent avec essai, changement de plan, relance
+  d'impayé et portail client — c'est précisément ce qui évite d'avoir à
+  s'occuper des clients. Stripe le fait, et c'est ce qui est intégré ici.
+- **Aucune plateforme, Stripe ou PayPal, ne verse d'argent sans vérifier
+  votre identité** (pièce d'identité + IBAN). C'est la loi anti-blanchiment,
+  pas un choix technique. Comptez 5 minutes de formulaire ; les fonds
+  arrivent ensuite automatiquement sur votre compte selon le calendrier de
+  virement Stripe.
+
+Si vous préférez ne pas gérer la TVA vous-même, l'alternative est un
+*merchant of record* (Paddle, Lemon Squeezy) qui facture à votre place et
+reverse un net : dites-le et je remplace l'intégration Stripe.
+
+---
+
 ## 1. Le concept et pourquoi il convertit
 
 ### Le problème payant
@@ -50,7 +106,7 @@ Chaque fournisseur du catalogue génère automatiquement :
 
 71 fournisseurs dans le catalogue de départ produisent déjà **267 URLs**
 indexables, dont le contenu se met à jour tout seul toutes les 2 à 5 minutes.
-Ajouter un fournisseur = ajouter une ligne dans `data/services.ts` : la page,
+Ajouter un fournisseur = ajouter une ligne dans `src/data/services.ts` : la page,
 le sitemap, l'ingestion et les alertes suivent, sans redéploiement.
 
 Ces requêtes (« slack down », « aws panne », « github status ») ont trois
@@ -109,17 +165,23 @@ jour de sécurité à subir — c'est un choix d'exploitation, pas d'esthétique
 
 ```
 statuspulse/
-├── data/
-│   └── services.ts              Catalogue des fournisseurs surveillés.
-│                                UNE LIGNE = UNE PAGE INDEXABLE + UN FLUX SUIVI.
 ├── supabase/
 │   └── schema.sql               Schéma complet, idempotent : tables, index,
 │                                triggers, fonctions de file (SKIP LOCKED), RLS.
+├── .github/workflows/
+│   └── cron.yml                 Ordonnanceur gratuit (alternative à Vercel Pro).
 ├── scripts/
-│   ├── seed-services.ts         Amorce/actualise le catalogue (`--check` teste les flux).
+│   ├── setup.mts                ★ INSTALLATION AUTOMATIQUE : schéma, catalogue,
+│   │                            produits/tarifs/webhook/portail Stripe, secrets,
+│   │                            variables Vercel, première collecte.
+│   ├── doctor.mts               Diagnostic complet en une commande.
 │   ├── selftest.ts              Auto-test des parseurs, sans base ni réseau externe.
-│   └── run-cron-local.ts        Déclenche un job cron en local.
+│   ├── seed-services.ts         Actualise le catalogue seul (`--check` teste les flux).
+│   └── run-cron-local.mts       Déclenche un job cron en local.
 ├── src/
+│   ├── data/
+│   │   └── services.ts          Catalogue des fournisseurs surveillés.
+│   │                            UNE LIGNE = UNE PAGE INDEXABLE + UN FLUX SUIVI.
 │   ├── lib/                     ── LOGIQUE MÉTIER (aucun rendu ici) ──
 │   │   ├── env.ts               Validation zod des variables, différée au runtime.
 │   │   ├── db.ts                Client Postgres paresseux (proxy) + retry/backoff.
@@ -130,6 +192,8 @@ statuspulse/
 │   │   ├── rollup.ts            Agrégats de disponibilité + digests quotidiens.
 │   │   ├── maintenance.ts       Purge, réconciliation Stripe, watchdog.
 │   │   ├── ops.ts               Journal opérationnel + alerte humaine dédupliquée.
+│   │   ├── bootstrap.ts         Auto-amorçage du catalogue si la base est vide.
+│   │   ├── envfile.ts           Lecture/écriture .env (scripts d'install et de diag).
 │   │   ├── stripe.ts            Client, checkout, portail, projection d'abonnement.
 │   │   ├── auth.ts              Connexion sans mot de passe (lien magique + session).
 │   │   ├── plans.ts             Grille tarifaire et limites produit (source unique).
@@ -205,118 +269,120 @@ statuspulse/
 
 ---
 
-## 3. Déploiement en moins de 30 minutes
+## 3. Déploiement détaillé
 
-Prérequis : un compte GitHub, Vercel, Supabase, Stripe et Resend (tous avec un
-palier gratuit suffisant pour démarrer), plus un nom de domaine.
+### Étape 1 — Base de données (3 min)
 
-### Étape 1 — Base de données (5 min)
+Créer un projet sur [supabase.com](https://supabase.com), région proche de vos
+utilisateurs. Puis *Project Settings → Database → Connection string →*
+**Transaction pooler** (port **6543**) : copier l'URL et remplacer
+`[YOUR-PASSWORD]` par le mot de passe choisi à la création.
 
-1. Créer un projet sur [supabase.com](https://supabase.com) (région proche de
-   vos utilisateurs).
-2. *Project Settings → Database → Connection string → **Transaction pooler***
-   (port **6543**). Copier l'URL, remplacer `[YOUR-PASSWORD]`.
-   > Le pooler est obligatoire en serverless : le port 5432 épuiserait les
-   > connexions en quelques minutes.
-3. Appliquer le schéma :
-   ```bash
-   psql "postgresql://postgres.xxx:MDP@aws-0-eu-west-3.pooler.supabase.com:6543/postgres" \
-        -f supabase/schema.sql
-   ```
-   (ou coller le contenu de `supabase/schema.sql` dans *SQL Editor → Run*).
+> Le pooler est obligatoire en serverless : le port 5432 épuiserait les
+> connexions en quelques minutes. C'est la seule subtilité de toute
+> l'installation.
 
-### Étape 2 — Stripe (6 min)
+Aucun SQL à exécuter : `npm run setup` applique le schéma (il n'a même pas
+besoin de `psql`).
 
-1. *Catalogue de produits → Ajouter un produit* :
-   - « StatusPulse Pro », tarif **récurrent mensuel 19 €** → noter l'ID `price_…`
-   - « StatusPulse Team », tarif **récurrent mensuel 49 €** → noter l'ID `price_…`
-2. *Paramètres → Facturation → Portail client* : activer le portail, autoriser
-   l'annulation et le changement de plan (c'est ce qui supprime tout support
-   lié à la facturation).
-3. *Développeurs → Clés API* : copier la clé secrète.
-4. Le webhook se configure à l'étape 5, une fois l'URL connue.
+### Étape 2 — Stripe (5 min)
 
-### Étape 3 — Email (4 min)
+Créer le compte, puis renseigner l'activité, l'identité et l'IBAN
+(vérification obligatoire pour recevoir des fonds). Copier ensuite la clé
+secrète dans *Développeurs → Clés API*.
 
-1. Créer un compte [resend.com](https://resend.com), ajouter votre domaine.
-2. Publier les enregistrements DNS proposés (SPF + DKIM). **Ne pas sauter
-   cette étape** : sans domaine vérifié, les alertes finissent en spam et le
-   produit ne vaut rien.
-3. Copier la clé API.
+Rien d'autre : produits, tarifs, webhook et portail client sont créés par le
+script.
 
-### Étape 4 — Déploiement (5 min)
+### Étape 3 — Email (3 min + propagation DNS)
+
+Créer un compte [resend.com](https://resend.com), ajouter votre domaine,
+publier les enregistrements SPF et DKIM proposés chez votre registrar, copier
+la clé API.
+
+> Ne sautez pas la vérification du domaine : sans elle, les alertes finissent
+> en spam et le produit ne vaut rien. `npm run setup` et `npm run doctor`
+> vérifient ce point et le signalent tant qu'il n'est pas réglé.
+
+### Étape 4 — Installation automatique (4 min)
 
 ```bash
 git clone <votre-repo> statuspulse && cd statuspulse
 npm install
-npx vercel --prod          # ou : importer le repo depuis le tableau de bord Vercel
+npm run setup
 ```
 
-Renseigner les variables d'environnement (section 4) dans
-*Vercel → Project → Settings → Environment Variables*, puis rattacher le
-domaine (*Settings → Domains*). `APP_URL` doit valoir exactement l'URL
-publique finale, sans slash final.
+Le script demande quatre valeurs (URL Postgres, URL publique du site, clé
+Stripe, clé Resend + expéditeur), puis fait tout le reste et écrit
+`.env.local`.
 
-> Les jobs cron de `vercel.json` s'exécutent à la minute sur un plan Vercel
-> **Pro**. Sur le plan Hobby, la fréquence est limitée à un déclenchement
-> quotidien : conservez les routes telles quelles et déclenchez-les depuis un
-> ordonnanceur externe gratuit (cron-job.org, GitHub Actions) en appelant
-> `https://votre-domaine/api/cron/ingest?key=$CRON_SECRET`.
+### Étape 5 — Mise en ligne (2 min)
 
-### Étape 5 — Webhook Stripe (3 min)
+Sur [vercel.com](https://vercel.com) : *Add New → Project → Import Git
+Repository* → sélectionner le dépôt → *Deploy*. Rattacher ensuite votre
+domaine dans *Settings → Domains*.
 
-1. *Développeurs → Webhooks → Ajouter un endpoint* :
-   `https://votre-domaine/api/stripe/webhook`
-2. Événements à écouter :
-   `checkout.session.completed`, `customer.subscription.created`,
-   `customer.subscription.updated`, `customer.subscription.deleted`,
-   `invoice.payment_failed`.
-3. Copier le *Signing secret* (`whsec_…`) dans `STRIPE_WEBHOOK_SECRET`, puis
-   redéployer.
+Pour les variables d'environnement, deux options :
 
-### Étape 6 — Amorçage et vérification (5 min)
+- **automatique** — créer un token dans *Vercel → Account Settings → Tokens*,
+  l'ajouter à `.env.local` avec l'identifiant du projet, puis relancer
+  `npm run setup` :
+  ```bash
+  VERCEL_TOKEN="…"        # Vercel > Account Settings > Tokens
+  VERCEL_PROJECT_ID="…"   # Project Settings > General > Project ID
+  VERCEL_TEAM_ID="…"      # uniquement si le projet appartient à une équipe
+  ```
+- **manuelle** — copier le contenu de `.env.local` dans *Settings →
+  Environment Variables*.
 
-```bash
-# Catalogue de 71 fournisseurs + vérification que chaque flux répond
-DATABASE_URL="..." npm run db:seed -- --check
+Puis relancer `npm run setup` une dernière fois : il détecte le site en ligne,
+déclenche la première collecte et confirme que tout tourne.
 
-# Première ingestion (ne déclenche aucune alerte : backfill silencieux)
-curl -H "authorization: Bearer $CRON_SECRET" https://votre-domaine/api/cron/ingest
+### Étape 6 — Ordonnanceur (0 ou 2 min)
 
-# Agrégats de disponibilité
-curl -H "authorization: Bearer $CRON_SECRET" https://votre-domaine/api/cron/rollup
+- **Plan Vercel Pro (20 $/mois)** : rien à faire, les crons de `vercel.json`
+  se déclenchent automatiquement à la minute.
+- **Plan Vercel Hobby (gratuit)** : le workflow
+  [`.github/workflows/cron.yml`](.github/workflows/cron.yml) fait le même
+  travail gratuitement. Ajoutez deux secrets dans *Repo GitHub → Settings →
+  Secrets and variables → Actions* : `APP_URL` et `CRON_SECRET` (valeur
+  générée dans `.env.local`). Rien d'autre.
 
-# Contrôles
-curl https://votre-domaine/api/health
-curl https://votre-domaine/sitemap/0.xml | grep -c "<url>"
-```
+### Étape 7 — Référencement (2 min, rentabilisé cent fois)
 
-Enfin : déclarer `https://votre-domaine/sitemap/0.xml` dans la Google Search
-Console, et brancher un moniteur externe gratuit sur `/api/health` — c'est le
-seul dispositif qui vous préviendra si la plateforme d'hébergement elle-même
-tombe.
+Déclarer `https://votre-domaine/sitemap/0.xml` dans la
+[Google Search Console](https://search.google.com/search-console). C'est le
+seul geste qui accélère réellement l'indexation des 267 pages.
+
+Facultatif mais recommandé : brancher un moniteur externe gratuit
+(UptimeRobot) sur `https://votre-domaine/api/health` — c'est le seul dispositif
+capable de vous prévenir si la plateforme d'hébergement elle-même tombe.
 
 ---
 
 ## 4. Variables d'environnement
 
-Toutes sont obligatoires sauf mention contraire. Modèle complet et commenté
-dans [`.env.example`](.env.example).
+**`npm run setup` en remplit 7 sur 13 tout seul** (les deux secrets, les deux
+identifiants de tarif Stripe, la clé de signature du webhook, la taxe
+automatique, et il écrit le fichier). Vous n'en saisissez que quatre.
+Modèle complet et commenté dans [`.env.example`](.env.example).
 
 | Variable | Où l'obtenir | Rôle |
 |---|---|---|
 | `DATABASE_URL` | Supabase → Database → **Transaction pooler** (port 6543) | Connexion Postgres |
 | `APP_URL` | votre domaine, sans slash final | Liens email, redirections Stripe, URL canoniques, sitemap |
 | `STRIPE_SECRET_KEY` | Stripe → Développeurs → Clés API | Appels API Stripe |
-| `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → Signing secret | Vérification de signature |
-| `STRIPE_PRICE_PRO` | Stripe → Catalogue → tarif Pro | Mappe le paiement au plan Pro |
-| `STRIPE_PRICE_TEAM` | Stripe → Catalogue → tarif Team | Mappe le paiement au plan Team |
+| `STRIPE_WEBHOOK_SECRET` | *rempli par `npm run setup`* | Vérification de signature |
+| `STRIPE_PRICE_PRO` | *rempli par `npm run setup`* | Mappe le paiement au plan Pro |
+| `STRIPE_PRICE_TEAM` | *rempli par `npm run setup`* | Mappe le paiement au plan Team |
+| `STRIPE_AUTOMATIC_TAX` | *(optionnel)* `true` une fois Stripe Tax activé | TVA calculée automatiquement |
 | `RESEND_API_KEY` | Resend → API Keys | Envoi des emails |
 | `EMAIL_FROM` | `Nom <alertes@votredomaine.com>` | Expéditeur (domaine vérifié obligatoire) |
-| `AUTH_SECRET` | `openssl rand -base64 48` | Hachage des tokens de session et signature HMAC des webhooks sortants |
-| `CRON_SECRET` | `openssl rand -base64 24` | Protège `/api/cron/*` |
+| `AUTH_SECRET` | *généré par `npm run setup`* | Hachage des tokens de session et signature HMAC des webhooks sortants |
+| `CRON_SECRET` | *généré par `npm run setup`* | Protège `/api/cron/*` |
 | `OPS_ALERT_EMAIL` | *(optionnel)* votre email | Destinataire des alertes système critiques |
 | `OPS_ALERT_WEBHOOK` | *(optionnel)* URL Slack entrante | Alertes système critiques sur Slack |
+| `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` | *(optionnel)* Vercel → Tokens / Project ID | Permet à `npm run setup` de pousser les variables tout seul |
 
 Les deux dernières sont optionnelles techniquement, **indispensables en
 pratique** : elles sont le seul canal par lequel le système vous réclame de
@@ -328,14 +394,20 @@ personne ne le sache.
 ## 5. Exploitation courante
 
 ```bash
-npm run dev                    # développement local
+npm run setup                  # installation / réparation automatique (idempotent)
+npm run doctor                 # état complet : collecteur, file, MRR Stripe, SEO
 npm run selftest               # auto-test des parseurs (15 vérifications, sans base)
+npm run dev                    # développement local
 npm run typecheck              # vérification TypeScript
-npm run db:seed -- --check     # catalogue + test de tous les flux
+npm run db:seed -- --check     # catalogue seul + test de tous les flux
 npm run cron:local -- ingest   # déclenche un job en local
 ```
 
-**Ajouter un fournisseur** — une ligne dans `data/services.ts`, puis
+Le catalogue s'installe aussi **tout seul** : si la table `services` est vide
+(première mise en ligne, base recréée), la première exécution du collecteur
+l'amorce. Il n'existe aucune étape d'installation qu'on puisse oublier.
+
+**Ajouter un fournisseur** — une ligne dans `src/data/services.ts`, puis
 `npm run db:seed`. La page, le sitemap, l'ingestion et les alertes suivent
 automatiquement. C'est le seul geste de « croissance » qui vaille la peine
 d'être fait à la main, et il prend trente secondes.
@@ -373,19 +445,30 @@ Ce qui a été exécuté et vérifié :
   rejet des crons non authentifiés (401), rejet du webhook Stripe non signé
   (400), redirection du tableau de bord non connecté, création de compte via
   le formulaire public.
+- `npm run setup` exécuté sur une base **vierge** : schéma appliqué sans
+  `psql`, 71 fournisseurs installés, flux testés un par un, garde-fou vérifié
+  (au-delà de 50 % d'échecs, aucune désactivation n'est appliquée — un taux
+  pareil trahit le réseau local, pas les fournisseurs), `.env.local` écrit,
+  relance idempotente sans doublon.
+- `npm run doctor` exécuté : rapport complet (catalogue, flux, comptes,
+  alertes, fraîcheur de chaque job, évènements système).
 
-Ce qui n'a **pas** pu être vérifié ici et doit l'être au déploiement :
+Ce qui n'a **pas** pu être vérifié ici (l'environnement de développement
+utilisé bloque tout appel sortant vers des domaines tiers) et doit l'être au
+déploiement :
 
-- **L'accessibilité réelle des 71 flux fournisseurs.** L'environnement de
-  développement utilisé bloque les requêtes sortantes vers les domaines
-  externes (403 sur toutes les status pages). Les URLs du catalogue ont été
-  construites à partir des conventions publiques (`/api/v2/summary.json` pour
-  Statuspage.io, flux Atom/RSS officiels pour les autres), mais certaines
-  peuvent avoir changé. **Exécutez `npm run db:seed -- --check` juste après le
-  déploiement** : la commande teste chaque flux et liste ceux à corriger. Un
-  flux en échec est de toute façon mis en backoff automatiquement et signalé
-  après six tentatives — il ne bloque jamais les autres.
-- Les appels réels à Stripe et Resend (clés de test indisponibles ici).
+- **L'accessibilité réelle des 71 flux fournisseurs.** Les URLs suivent les
+  conventions publiques (`/api/v2/summary.json` pour Statuspage.io, flux
+  Atom/RSS officiels pour les autres), mais certaines ont pu changer.
+  **Aucune action à prévoir : `npm run setup` les teste tous et désactive ceux
+  qui ne répondent pas.** Un flux qui casse plus tard est mis en backoff
+  automatiquement, signalé après six tentatives, et ne bloque jamais les
+  autres.
+- **Les appels réels aux API Stripe, Resend et Vercel.** Le code
+  d'installation est écrit contre leurs API documentées et chaque étape est
+  isolée : un échec n'interrompt pas les autres, il apparaît dans le rapport
+  final avec la marche à suivre, et la relance du script reprend là où ça a
+  coincé.
 
 ---
 
