@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { isAuthorizedCron } from "@/lib/http";
+import { isAuthorizedCron, runCron } from "@/lib/http";
 import { ensureCatalog } from "@/lib/bootstrap";
 import { runIngestion } from "@/lib/ingest";
-import { trackCron } from "@/lib/ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * Collecteur — le moteur du produit. Toutes les 5 minutes (vercel.json).
+ * Collecteur — le moteur du produit. Déclenché toutes les 5 minutes par le
+ * workflow « 3. Automatisation ».
  * Un lot de services « dus » est réclamé avec un bail : deux exécutions qui se
  * chevauchent ne traitent jamais le même fournisseur.
  */
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   // Budget de temps : on s'arrête avant que la plateforme ne coupe la fonction.
   const deadline = Date.now() + 50_000;
 
-  const stats = await trackCron("ingest", async () => {
+  return runCron("ingest", async () => {
     // Base vide (première exécution) : le catalogue s'installe tout seul.
     const seeded = await ensureCatalog();
     const first = await runIngestion(40, 8, deadline);
@@ -39,5 +39,4 @@ export async function GET(req: Request) {
     };
   });
 
-  return NextResponse.json({ ok: true, ...stats });
 }

@@ -3,6 +3,18 @@ import { env, APP_URL, SITE_NAME } from "./env";
 
 type Level = "info" | "warn" | "critical";
 
+/**
+ * Message d'erreur exploitable : `String(err)` perd la cause, qui est
+ * justement l'information utile pour une erreur réseau ou Postgres.
+ */
+export function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const cause = (err as { cause?: unknown }).cause;
+  const detail = cause instanceof Error ? ` — ${cause.message}` : cause ? ` — ${String(cause)}` : "";
+  const code = (err as { code?: string }).code;
+  return `${code ? `[${code}] ` : ""}${err.message}${detail}`;
+}
+
 /** Bucket horaire : une même panne ne spamme pas l'alerte plus d'une fois/heure. */
 function hourBucket(): string {
   return new Date().toISOString().slice(0, 13);

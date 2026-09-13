@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { isAuthorizedCron } from "@/lib/http";
+import { isAuthorizedCron, runCron } from "@/lib/http";
 import { cleanup, healthcheck, reconcileStripe } from "@/lib/maintenance";
-import { trackCron } from "@/lib/ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,12 +15,11 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) return new NextResponse("non autorisé", { status: 401 });
 
-  const stats = await trackCron("reconcile", async () => {
+  return runCron("reconcile", async () => {
     const cleaned = await cleanup();
     const stripeSync = await reconcileStripe();
     const health = await healthcheck();
     return { cleaned, stripeSync, health };
   });
 
-  return NextResponse.json({ ok: true, ...stats });
 }

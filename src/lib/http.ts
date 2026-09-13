@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { APP_URL } from "./env";
 import { sql } from "./db";
+import { describeError, trackCron } from "./ops";
 
 /** Redirection 303 : un POST suivi d'un GET (pattern POST-Redirect-GET). */
 export function redirectTo(path: string, params: Record<string, string> = {}): NextResponse {
@@ -41,4 +42,27 @@ export function isAuthorizedCron(req: Request): boolean {
   if (auth === `Bearer ${secret}`) return true;
   const url = new URL(req.url);
   return url.searchParams.get("key") === secret;
+}
+
+/**
+ * Exécution standard d'une tâche planifiée.
+ *
+ * Un échec renvoyait un 500 au corps vide : le planificateur voyait « HTTP 500 »
+ * sans jamais pouvoir dire pourquoi, et il fallait aller lire les logs de la
+ * plateforme d'hébergement. La raison est désormais dans la réponse, donc
+ * directement dans le journal du workflow qui a déclenché la tâche.
+ */
+export async function runCron(
+  job: string,
+  fn: () => Promise<Record<string, unknown>>,
+): Promise<NextResponse> {
+  try {
+    const stats = await trackCron(job, fn);
+    return NextResponse.json({ ok: true, job, ...stats });
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, job, error: describeError(err) },
+      { status: 500 },
+    );
+  }
 }
