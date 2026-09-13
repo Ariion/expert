@@ -415,25 +415,54 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
   } catch (err) {
     const message = describe(err);
     const authFailure = /password authentication failed|SASL|authentication/i.test(message);
-    const url = env.DATABASE_URL ?? "";
-    const looksDirect = /@db\.[^/]*supabase\.co/.test(url) || !url.includes("pooler.supabase.com");
-    const hasSpecialChars = /:\/\/[^:]+:[^@]*[#/?\[\]@%][^@]*@/.test(url);
+
+    // Autopsie de l'URL fournie. Rien de secret n'est affiché : ni le mot de
+    // passe, ni l'identifiant complet du projet — seulement de quoi voir
+    // immédiatement quelle chaîne de connexion a été copiée.
+    let shape = "URL illisible";
+    let isPooler = false;
+    let userHasRef = false;
+    let specialCharsInPassword = false;
+    try {
+      const u = new URL(env.DATABASE_URL ?? "");
+      isPooler = u.hostname.includes("pooler.supabase.com");
+      userHasRef = u.username.includes(".");
+      specialCharsInPassword = /[#/?\[\]@%:]/.test(decodeURIComponent(u.password || ""));
+      const maskedUser = userHasRef ? `${u.username.split(".")[0]}.****` : u.username;
+      shape = `utilisateur « ${maskedUser} », hôte ${isPooler ? "pooler.supabase.com" : u.hostname.replace(/^[^.]+/, "****")}, port ${u.port || "(défaut)"}`;
+    } catch {
+      /* URL non analysable : le message générique suffira */
+    }
+
+    // On n'accuse la mauvaise chaîne de connexion que si l'hôte est bien un
+    // hôte Supabase : sur une base auto-hébergée, « postgres » sans point est
+    // parfaitement normal.
+    let isSupabase = false;
+    try {
+      isSupabase = new URL(env.DATABASE_URL ?? "").hostname.includes("supabase");
+    } catch {
+      /* ignoré */
+    }
+    const wrongString = isSupabase && (!isPooler || !userHasRef);
 
     record({
       name: "Base de données",
       status: "err",
-      detail: message.slice(0, 160),
-      todo: authFailure
-        ? "Le serveur a répondu, mais a refusé le mot de passe. Trois causes, par ordre de fréquence : " +
-          (hasSpecialChars
-            ? "(1) votre mot de passe contient un caractère spécial (@ : / ? # [ ] %) qui casse l'URL — le plus probable ici ; "
-            : "(1) le mot de passe est erroné ; ") +
-          (looksDirect
-            ? "(2) vous avez copié l'onglet « Direct connection » au lieu de « Transaction pooler » — l'URL doit contenir pooler.supabase.com:6543 ; "
-            : "(2) l'URL semble correcte côté hôte ; ") +
-          "(3) le mot de passe a été changé depuis. Solution la plus sûre : Supabase > Settings > Database > Reset database password, " +
-          "choisissez un mot de passe composé uniquement de lettres et de chiffres, puis recomposez l'URL de l'onglet Transaction pooler."
-        : "Vérifier DATABASE_URL (chaîne « Transaction pooler », port 6543, mot de passe inclus).",
+      detail: `${message.slice(0, 110)} — ${shape}`,
+      todo: !authFailure
+        ? "Vérifier DATABASE_URL (chaîne « Transaction pooler », port 6543, mot de passe inclus)."
+        : wrongString
+          ? "Ce n'est pas la bonne chaîne de connexion. Une URL de Transaction pooler a TOUJOURS cette forme : " +
+            "postgresql://postgres.LEREFDUPROJET:MOTDEPASSE@aws-0-REGION.pooler.supabase.com:6543/postgres — " +
+            `l'utilisateur contient un point, l'hôte contient « pooler.supabase.com » et le port est 6543. La vôtre a ${shape}, ` +
+            "c'est donc l'onglet « Direct connection » (ou « Session pooler ») qui a été copié. " +
+            "Supabase > bouton Connect > onglet Transaction pooler > copier, puis remplacer [YOUR-PASSWORD]."
+          : specialCharsInPassword
+            ? "La chaîne est la bonne, mais le mot de passe contient un caractère spécial (@ : / ? # [ ] %) qui casse l'URL. " +
+              "Supabase > Settings > Database > Reset database password, avec un mot de passe composé uniquement de lettres et de chiffres, " +
+              "puis recomposez l'URL de l'onglet Transaction pooler."
+            : "La chaîne a la bonne forme : c'est donc le mot de passe qui ne correspond plus. " +
+              "Supabase > Settings > Database > Reset database password (lettres et chiffres uniquement), puis recomposez l'URL.",
     });
   } finally {
     await sql.end({ timeout: 5 });
