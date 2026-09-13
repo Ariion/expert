@@ -184,6 +184,11 @@ const xml = new XMLParser({
   attributeNamePrefix: "@_",
   textNodeName: "#text",
   trimValues: true,
+  // Les entités ne sont pas développées : certains flux en contiennent assez
+  // pour déclencher la protection anti-expansion du parseur et faire échouer
+  // la lecture (« Entity expansion limit exceeded »). Les quelques entités
+  // utiles sont traduites au nettoyage du HTML.
+  processEntities: false,
 });
 
 function asArray<T>(v: T | T[] | undefined): T[] {

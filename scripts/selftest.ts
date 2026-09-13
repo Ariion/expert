@@ -110,6 +110,12 @@ async function main() {
       res.writeHead(200, { "content-type": "application/rss+xml" });
       return res.end(RSS);
     }
+    if (req.url?.startsWith("/moved")) {
+      // Une status page qui a changé de plateforme : elle sert une page
+      // d'accueil en HTML, avec un code 200, à l'adresse du flux JSON.
+      res.writeHead(200, { "content-type": "text/html" });
+      return res.end("<!DOCTYPE html><html><body>Status page</body></html>");
+    }
     res.writeHead(500);
     res.end("boom");
   });
@@ -216,6 +222,23 @@ async function main() {
     ok(label, () => assert.equal(APP_URL(), expected));
   }
   for (const k of ["APP_URL", "VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL"]) delete process.env[k];
+
+  console.log("\nFlux trompeurs");
+  // Régression réelle : ces flux répondaient 200 avec du HTML. Un contrôle
+  // limité au code HTTP les déclarait valides, et la collecte échouait ensuite
+  // une fois par service et par heure — trois cents emails d'alerte.
+  await assert.rejects(
+    () =>
+      fetchFeed({
+        feed_url: `${base}/moved`,
+        feed_kind: "statuspage_v2",
+        http_etag: null,
+        http_last_modified: null,
+      }),
+    /JSON|token/i,
+  );
+  checks++;
+  console.log("  ✓ une page HTML servie en 200 à la place du JSON est rejetée");
 
   console.log("\nDécoupage SQL");
   // Régression réelle : le schéma envoyé d'un bloc était interrompu par le

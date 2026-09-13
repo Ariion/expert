@@ -101,6 +101,24 @@ async function record(
     `;
     // rows vide => déjà signalé dans la fenêtre courante, on ne renotifie pas.
     if (level === "critical" && rows.length > 0) {
+      // Plafond global : au plus six emails par heure, toutes causes
+      // confondues. La déduplication par clé ne protège que d'un message
+      // répété ; elle ne protège pas de cent causes distinctes survenant
+      // ensemble. Une boîte mail noyée ne surveille plus rien — c'est la
+      // panne que ce plafond empêche, et il vaut pour toute cause future.
+      const [{ n }] = await sql<{ n: number }[]>`
+        select count(*)::int as n from ops_events
+         where notified_at > now() - interval '1 hour'
+      `;
+      if (n >= 6) {
+        await sql`
+          update ops_events
+             set context = context || ${asJson({ suppressed: true, hourly_cap: 6 })}
+           where id = ${rows[0].id}
+        `.catch(() => {});
+        console.warn(`[ops] notification supprimée (plafond horaire atteint) : ${message}`);
+        return;
+      }
       await notifyHumans(message, context);
       await sql`update ops_events set notified_at = now() where id = ${rows[0].id}`;
     }

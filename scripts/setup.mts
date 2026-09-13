@@ -30,6 +30,7 @@ import Stripe from "stripe";
 import { SEED_SERVICES } from "../src/data/services";
 import { readEnvFile, writeEnvFile, type EnvMap } from "../src/lib/envfile";
 import { splitSqlStatements } from "../src/lib/sqlfile";
+import { fetchFeed } from "../src/lib/feeds";
 
 // Un rejet de promesse non intercepté fait tomber le processus Node et emporte
 // toutes les étapes suivantes. Une installation doit au contraire aller au bout
@@ -438,31 +439,37 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
     const broken: string[] = [];
     const recovered: string[] = [];
 
-    /** Un flux répond-il ? */
-    const probe = async (url: string): Promise<boolean> => {
+    /** Le format se déduit de l'URL : inutile de le maintenir à la main. */
+    const kindOf = (url: string) =>
+      /summary\.json|\/api\/v2\//.test(url) ? "statuspage_v2" : /\.atom(\?|$)/.test(url) ? "atom" : "rss";
+
+    /**
+     * Un flux est-il EXPLOITABLE ?
+     *
+     * Répondre 200 ne suffit pas : une status page qui a changé de plateforme
+     * sert une belle page HTML à l'adresse `/api/v2/summary.json`, avec un
+     * code 200. Un contrôle qui s'arrête au code HTTP la déclare valide, et
+     * c'est la collecte qui découvre le problème, des heures plus tard, flux
+     * par flux. On fait donc ici ce que fera la collecte : on lit et on
+     * analyse réellement le contenu.
+     */
+    const probe = async (url: string, kind: string): Promise<boolean> => {
       try {
-        const res = await fetch(url, {
-          headers: { "user-agent": "StatusPulseBot/1.0 (+setup check)" },
-          signal: AbortSignal.timeout(15000),
-        });
-        return res.ok;
+        await fetchFeed({ feed_url: url, feed_kind: kind, http_etag: null, http_last_modified: null });
+        return true;
       } catch {
         return false;
       }
     };
 
-    /** Le format se déduit de l'URL : inutile de le maintenir à la main. */
-    const kindOf = (url: string) =>
-      /summary\.json|\/api\/v2\//.test(url) ? "statuspage_v2" : /\.atom(\?|$)/.test(url) ? "atom" : "rss";
-
     await Promise.all(
       SEED_SERVICES.map(async (svc) => {
-        if (await probe(svc.feed_url)) return;
+        if (await probe(svc.feed_url, svc.feed_kind)) return;
 
         // L'adresse d'une status page change (rachat, migration, refonte).
         // On essaie les adresses de secours connues avant d'abandonner.
         for (const candidate of svc.alt_feeds ?? []) {
-          if (await probe(candidate)) {
+          if (await probe(candidate, kindOf(candidate))) {
             await sql`
               update services
                  set feed_url = ${candidate}, feed_kind = ${kindOf(candidate)},

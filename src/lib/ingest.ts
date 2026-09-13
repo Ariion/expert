@@ -159,17 +159,26 @@ export async function ingestService(service: ServiceRow): Promise<{
        where id = ${service.id}
     `.catch(() => {});
 
-    // Un flux qui casse ponctuellement, c'est la vie d'Internet. Six échecs
-    // consécutifs (~2 h), c'est une source morte : là, un humain doit voir.
-    if (failures >= 6) {
-      await ops.critical(
-        "ingest",
-        `Flux ${service.slug} indisponible depuis ${failures} tentatives : ${message}`,
-        { slug: service.slug, feed_url: service.feed_url },
-        `feed-down:${service.slug}`,
-      );
-    } else {
-      await ops.warn("ingest", `Échec ${service.slug} (${failures}) : ${message}`, {
+    // Un flux cassé n'est PAS un incident système : c'est de l'entretien de
+    // catalogue. Un fournisseur qui change de plateforme de statut n'empêche
+    // rien de fonctionner — les autres continuent, la page concernée est
+    // simplement désactivée. Alerter un humain par email pour chacun, c'est
+    // transformer une routine en avalanche : soixante fournisseurs qui migrent
+    // font soixante emails par heure, et l'alerte utile se noie dedans.
+    //
+    // Le signalement passe donc par le journal (visible dans le diagnostic), et
+    // par une seule alerte quotidienne quand le phénomène devient massif —
+    // c'est la surveillance qui s'en charge, avec le compte global.
+    await ops.warn("ingest", `Échec ${service.slug} (${failures}) : ${message}`, {
+      slug: service.slug,
+      feed_url: service.feed_url,
+    });
+
+    // Au-delà de douze échecs (~6 h de backoff), le flux est mort : on le
+    // désactive pour cesser de le solliciter et de publier une page vide.
+    if (failures >= 12) {
+      await sql`update services set is_active = false where id = ${service.id}`.catch(() => {});
+      await ops.warn("ingest", `Flux ${service.slug} désactivé après ${failures} échecs`, {
         slug: service.slug,
       });
     }
