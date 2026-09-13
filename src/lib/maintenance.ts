@@ -47,6 +47,33 @@ export async function cleanup(): Promise<Record<string, number>> {
 }
 
 /**
+ * Deuxième chance quotidienne pour les flux désactivés.
+ *
+ * Un fournisseur désactivé est une page qui se vide, puis que Google déclasse :
+ * la perte est permanente alors que la cause, elle, ne l'est presque jamais
+ * (migration de plateforme, panne longue, changement d'adresse). La collecte
+ * ne repasse jamais sur un service inactif — c'est donc ici, une fois par jour,
+ * qu'on le remet en file d'attente pour laisser la réparation automatique des
+ * adresses de secours retenter sa chance.
+ *
+ * Aucune sollicitation supplémentaire des fournisseurs : on ne fait que
+ * réarmer, la collecte décidera. Un flux réellement mort sera redésactivé au
+ * bout de douze échecs, soit une tentative par jour et par service au pire.
+ */
+export async function retryDisabledFeeds(): Promise<{ retried: number }> {
+  const res = await sql`
+    update services
+       set is_active = true, consecutive_failures = 0, next_fetch_at = now()
+     where not is_active
+       and (last_success_at is null or last_success_at < now() - interval '1 day')
+  `;
+  if (res.count > 0) {
+    await ops.info("maintenance", `${res.count} flux désactivés remis en file pour une nouvelle tentative`);
+  }
+  return { retried: res.count };
+}
+
+/**
  * Réconciliation Stripe : Stripe est la source de vérité, la base n'en est
  * qu'une projection. Si un webhook a été perdu, cette passe quotidienne
  * rattrape l'écart — un client qui a payé ne reste jamais bloqué en Free.

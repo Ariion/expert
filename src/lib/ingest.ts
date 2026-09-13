@@ -2,6 +2,7 @@ import { sql } from "./db";
 import { ops } from "./ops";
 import { fetchFeed, hashIncident, type RawIncident, type ServiceStatus } from "./feeds";
 import { PLANS } from "./plans";
+import { SEED_SERVICES } from "@/data/services";
 
 export interface ServiceRow {
   id: string;
@@ -22,6 +23,58 @@ type EventKind = "opened" | "updated" | "resolved";
 function nextDelayMinutes(status: ServiceStatus, failures: number): number {
   if (failures > 0) return Math.min(5 * 2 ** Math.min(failures, 4), 60); // 10,20,40,60…
   return status === "operational" || status === "unknown" ? 5 : 2;
+}
+
+/** Le format d'un flux se déduit de son adresse : rien à maintenir à la main. */
+function kindOfFeed(url: string): string {
+  if (/summary\.json|\/api\/v2\//.test(url)) return "statuspage_v2";
+  if (/\.atom(\?|$)/.test(url)) return "atom";
+  return "rss";
+}
+
+/**
+ * Réparation automatique d'un flux devenu injoignable.
+ *
+ * Un fournisseur qui migre de plateforme de statut ne prévient personne : son
+ * ancienne adresse tombe en 404, ou pire, renvoie une page HTML en 200. Sans
+ * rattrapage, la page correspondante se vide puis disparaît des résultats de
+ * recherche — c'est-à-dire qu'une panne d'outillage se transforme en perte de
+ * trafic permanente.
+ *
+ * On essaie donc les adresses de secours connues du catalogue, et on ne retient
+ * qu'une adresse qui s'analyse réellement : un code 200 ne prouve rien, la page
+ * d'erreur d'une status page migrée en renvoie un.
+ *
+ * Appelée après quelques échecs consécutifs seulement : inutile de sonder six
+ * adresses parce qu'un flux a hoqueté une fois.
+ */
+async function tryRecoverFeed(service: ServiceRow): Promise<string | null> {
+  const seed = SEED_SERVICES.find((s) => s.slug === service.slug);
+  const candidates = (seed?.alt_feeds ?? []).filter((u) => u !== service.feed_url);
+
+  for (const url of candidates) {
+    const kind = kindOfFeed(url);
+    try {
+      await fetchFeed({ feed_url: url, feed_kind: kind, http_etag: null, http_last_modified: null });
+    } catch {
+      continue;
+    }
+    await sql`
+      update services
+         set feed_url = ${url}, feed_kind = ${kind}, is_active = true,
+             consecutive_failures = 0, last_error = null,
+             http_etag = null, http_last_modified = null,
+             next_fetch_at = now()
+       where id = ${service.id}
+    `;
+    await ops.info("ingest", `Flux ${service.slug} récupéré sur une adresse de secours`, {
+      slug: service.slug,
+      from: service.feed_url,
+      to: url,
+    });
+    return url;
+  }
+  return null;
 }
 
 /**
@@ -173,6 +226,15 @@ export async function ingestService(service: ServiceRow): Promise<{
       slug: service.slug,
       feed_url: service.feed_url,
     });
+
+    // Trois échecs d'affilée ne sont plus un hoquet réseau : on cherche si le
+    // fournisseur a simplement déménagé sa status page. Une seule tentative de
+    // réparation, au troisième échec, puis on laisse le backoff faire son
+    // travail — sonder les adresses de secours à chaque tick coûterait plus
+    // cher que la collecte elle-même.
+    if (failures === 3 && (await tryRecoverFeed(service).catch(() => null))) {
+      return { slug: service.slug, changed: 0, queued: 0, skipped: false };
+    }
 
     // Au-delà de douze échecs (~6 h de backoff), le flux est mort : on le
     // désactive pour cesser de le solliciter et de publier une page vide.
