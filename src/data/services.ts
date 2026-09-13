@@ -21,6 +21,8 @@ export interface SeedService {
   feed_url: string;
   feed_kind: FeedKind;
   logo_domain: string;
+  /** Adresses à essayer si l'adresse principale ne répond plus. */
+  alt_feeds?: string[];
 }
 
 type Row = [slug: string, name: string, category: string, statusHost: string, domain: string, description: string];
@@ -112,7 +114,7 @@ const STATUSPAGE: Row[] = [
 ];
 
 /** Fournisseurs hors Statuspage : flux RSS/Atom officiels. */
-const FEEDS: Array<SeedService> = [
+const FEEDS: Array<Omit<SeedService, "alt_feeds">> = [
   {
     slug: "aws",
     name: "Amazon Web Services",
@@ -192,17 +194,64 @@ const FEEDS: Array<SeedService> = [
   },
 ];
 
+/**
+ * Adresses de secours connues, pour les fournisseurs qui ont migré ailleurs que
+ * sous leur propre domaine de statut.
+ */
+const EXPLICIT_ALTS: Record<string, string[]> = {
+  planetscale: [
+    "https://planetscale.statuspage.io/api/v2/summary.json",
+    "https://www.planetscalestatus.com/api/v2/summary.json",
+  ],
+  databricks: ["https://status.databricks.com/history.rss"],
+  postmark: ["https://postmark.statuspage.io/api/v2/summary.json"],
+  zendesk: ["https://zendesk.statuspage.io/api/v2/summary.json"],
+  mailchimp: ["https://mailchimp.statuspage.io/api/v2/summary.json"],
+  "new-relic": ["https://newrelic.statuspage.io/api/v2/summary.json"],
+  okta: ["https://okta.statuspage.io/api/v2/summary.json"],
+  snowflake: ["https://snowflake.statuspage.io/api/v2/summary.json"],
+  box: ["https://box.statuspage.io/api/v2/summary.json"],
+  dropbox: ["https://dropbox.statuspage.io/api/v2/summary.json"],
+};
+
+/**
+ * Chemins standards des status pages. Une adresse qui tombe en 404 signifie
+ * presque toujours que le fournisseur a changé de plateforme, pas qu'il a
+ * cessé de publier ses incidents : on essaie les conventions du marché avant
+ * de renoncer à la page (et donc au trafic qu'elle apporte).
+ */
+function conventionalFeeds(statusPageUrl: string): string[] {
+  const origin = statusPageUrl.replace(/\/+$/, "");
+  return [
+    `${origin}/api/v2/summary.json`,
+    `${origin}/history.rss`,
+    `${origin}/history.atom`,
+    `${origin}/feed.rss`,
+    `${origin}/feed`,
+    `${origin}/rss`,
+  ];
+}
+
+const withAlternates = (s: Omit<SeedService, "alt_feeds">): SeedService => ({
+  ...s,
+  alt_feeds: [...new Set([...(EXPLICIT_ALTS[s.slug] ?? []), ...conventionalFeeds(s.status_page_url)])].filter(
+    (u) => u !== s.feed_url,
+  ),
+});
+
 export const SEED_SERVICES: SeedService[] = [
-  ...STATUSPAGE.map(([slug, name, category, host, domain, description]) => ({
-    slug,
-    name,
-    category,
-    description,
-    homepage: `https://${domain}`,
-    status_page_url: `https://${host}`,
-    feed_url: `https://${host}/api/v2/summary.json`,
-    feed_kind: "statuspage_v2" as const,
-    logo_domain: domain,
-  })),
-  ...FEEDS,
+  ...STATUSPAGE.map(([slug, name, category, host, domain, description]) =>
+    withAlternates({
+      slug,
+      name,
+      category,
+      description,
+      homepage: `https://${domain}`,
+      status_page_url: `https://${host}`,
+      feed_url: `https://${host}/api/v2/summary.json`,
+      feed_kind: "statuspage_v2" as const,
+      logo_domain: domain,
+    }),
+  ),
+  ...FEEDS.map(withAlternates),
 ];

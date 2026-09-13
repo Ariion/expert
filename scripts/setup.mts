@@ -360,20 +360,47 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
     // Vérification des flux : ce qui ne répond pas est désactivé pour ne pas
     // publier une page vide, et signalé dans le rapport final.
     const broken: string[] = [];
+    const recovered: string[] = [];
+
+    /** Un flux répond-il ? */
+    const probe = async (url: string): Promise<boolean> => {
+      try {
+        const res = await fetch(url, {
+          headers: { "user-agent": "StatusPulseBot/1.0 (+setup check)" },
+          signal: AbortSignal.timeout(15000),
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    };
+
+    /** Le format se déduit de l'URL : inutile de le maintenir à la main. */
+    const kindOf = (url: string) =>
+      /summary\.json|\/api\/v2\//.test(url) ? "statuspage_v2" : /\.atom(\?|$)/.test(url) ? "atom" : "rss";
+
     await Promise.all(
-      SEED_SERVICES.map(async (s) => {
-        try {
-          const res = await fetch(s.feed_url, {
-            headers: { "user-agent": "StatusPulseBot/1.0 (+setup check)" },
-            signal: AbortSignal.timeout(15000),
-          });
-          if (!res.ok) broken.push(`${s.slug} (HTTP ${res.status})`);
-        } catch {
-          broken.push(`${s.slug} (injoignable)`);
+      SEED_SERVICES.map(async (svc) => {
+        if (await probe(svc.feed_url)) return;
+
+        // L'adresse d'une status page change (rachat, migration, refonte).
+        // On essaie les adresses de secours connues avant d'abandonner.
+        for (const candidate of svc.alt_feeds ?? []) {
+          if (await probe(candidate)) {
+            await sql`
+              update services
+                 set feed_url = ${candidate}, feed_kind = ${kindOf(candidate)},
+                     is_active = true, consecutive_failures = 0, last_error = null,
+                     http_etag = null, http_last_modified = null
+               where slug = ${svc.slug}`;
+            recovered.push(svc.slug);
+            return;
+          }
         }
+        broken.push(svc.slug);
       }),
     );
-    const brokenSlugs = broken.map((b) => b.split(" ")[0]);
+    const brokenSlugs = [...broken];
     const ratio = broken.length / SEED_SERVICES.length;
 
     if (ratio > 0.5) {
@@ -404,7 +431,7 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
         detail:
           broken.length === 0
             ? `${SEED_SERVICES.length}/${SEED_SERVICES.length} répondent`
-            : `${SEED_SERVICES.length - broken.length}/${SEED_SERVICES.length} OK · désactivés : ${broken.slice(0, 5).join(", ")}${broken.length > 5 ? "…" : ""}${revived.count ? ` · ${revived.count} réactivé(s)` : ""}`,
+            : `${SEED_SERVICES.length - broken.length}/${SEED_SERVICES.length} OK · désactivés : ${broken.join(", ")}${revived.count ? ` · ${revived.count} réactivé(s)` : ""}${recovered.length ? ` · récupérés via une URL de secours : ${recovered.join(", ")}` : ""}`,
         todo:
           broken.length > 0
             ? `Rien d'urgent : les ${broken.length} flux en échec sont désactivés et n'affectent pas les autres. ` +
