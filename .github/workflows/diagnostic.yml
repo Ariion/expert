@@ -1,0 +1,52 @@
+# =============================================================================
+# 2. DIAGNOSTIC — état complet du système, depuis le navigateur.
+#
+#   Onglet « Actions » > « 2. Diagnostic » > bouton « Run workflow ».
+#
+# Affiche : catalogue, flux en échec, comptes inscrits, abonnements payants et
+# MRR, file d'alertes, fraîcheur de chaque job automatique, domaine d'envoi,
+# santé du site et nombre d'URLs indexables.
+#
+# Note : sur un dépôt PUBLIC, ce rapport est visible de tous. Passez le dépôt
+# en privé (Settings > General > Danger Zone > Change visibility).
+# =============================================================================
+name: 2. Diagnostic
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 1" # rappel hebdomadaire, lundi 8 h UTC
+
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Diagnostic
+        id: doctor
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: |
+          set -o pipefail
+          npm run doctor 2>&1 | tee /tmp/doctor.txt
+      - name: Publier le rapport
+        if: always()
+        run: |
+          {
+            echo "# StatusPulse — diagnostic"
+            echo ""
+            echo '```'
+            sed -e 's/\x1b\[[0-9;]*m//g' /tmp/doctor.txt || echo "diagnostic indisponible"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

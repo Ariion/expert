@@ -7,59 +7,115 @@ et alerte humaine uniquement en cas de panne du système lui-même.
 
 ---
 
-## 0. Ce que vous avez à faire, en une page
+## 0. Ce que vous avez à faire — tout dans le navigateur
 
-**Cinq actions, une vingtaine de minutes, une seule fois.** Tout le reste est
-exécuté par `npm run setup`, puis par le système lui-même.
+**Aucune commande à taper. Aucun logiciel à installer. Rien sur votre
+ordinateur.** Quatre écrans, une quinzaine de minutes, une seule fois.
 
-| # | Action | Durée | Pourquoi ça ne peut pas être automatisé |
-|---|---|---|---|
-| 1 | Créer 4 comptes gratuits : [Supabase](https://supabase.com), [Stripe](https://stripe.com), [Resend](https://resend.com), [Vercel](https://vercel.com) | 8 min | Ils vous sont nominatifs |
-| 2 | Dans Stripe, renseigner identité + IBAN (KYC) | 5 min | Obligation légale pour encaisser |
-| 3 | Publier les 2 enregistrements DNS que Resend affiche | 3 min | Accès à votre registrar |
-| 4 | Lancer `npm run setup` et coller 4 valeurs quand il les demande | 4 min | — |
-| 5 | Sur Vercel : « Import Git Repository » → sélectionner ce dépôt | 2 min | Autorisation GitHub ↔ Vercel |
+### Étape 1 — Mettre le site en ligne (2 min)
 
-Ensuite : **plus rien**. Pas de contenu à écrire, pas de client à accueillir,
-pas de serveur à surveiller. Vous ne recevez un email que si le système
-lui-même tombe.
+[vercel.com](https://vercel.com) → **Add New → Project** → *Import Git
+Repository* → choisir `expert` → **Deploy**.
 
-### Ce que `npm run setup` fait à votre place
+Le site se construit sans configuration (il s'affiche vide, c'est normal).
+Notez l'URL obtenue, du type `https://expert.vercel.app`.
 
-- applique les 12 tables, index, triggers et fonctions SQL sur votre base ;
-- installe les 71 fournisseurs et teste leurs flux un par un (ceux qui ne
-  répondent pas sont désactivés pour ne pas publier de page vide) ;
-- crée les produits et tarifs Stripe (Pro 19 €/mois, Team 49 €/mois) ;
-- crée l'endpoint webhook Stripe **et récupère sa clé de signature** — aucun
-  copier-coller de `whsec_…` ;
-- configure le portail de facturation (résiliation et changement de plan en
-  self-service : c'est ce qui supprime tout support lié à l'abonnement) ;
-- génère les secrets applicatifs ;
-- vérifie que votre domaine d'envoi est validé chez Resend ;
-- pousse toutes les variables dans Vercel si vous lui donnez un token ;
-- lance la première collecte et affiche l'état du système.
+### Étape 2 — Récupérer 6 valeurs (8 min)
 
-Le script est **idempotent** : relancez-le autant de fois que nécessaire, il
-complète ce qui manque sans rien dupliquer. `npm run doctor` donne à tout
-moment l'état complet (collecteur, file d'alertes, MRR Stripe, SEO).
+| Valeur | Où la trouver, exactement |
+|---|---|
+| `DATABASE_URL` | [supabase.com](https://supabase.com) → votre projet → **Project Settings → Database → Connection string** → onglet **Transaction pooler** (port 6543). Remplacer `[YOUR-PASSWORD]` par le mot de passe du projet. |
+| `STRIPE_SECRET_KEY` | [dashboard.stripe.com](https://dashboard.stripe.com) → **Développeurs → Clés API** → bouton **« Reveal secret key »** → commence par `sk_`. ⚠️ Pas la clé publiable `pk_` affichée au-dessus. |
+| `RESEND_API_KEY` | [resend.com](https://resend.com) → **API Keys → Create API Key** → commence par `re_`. |
+| `EMAIL_FROM` | Vous l'écrivez vous-même : `StatusPulse <alertes@votredomaine.com>`. Le domaine doit être ajouté dans Resend → **Domains** et ses 2 enregistrements DNS publiés chez votre registrar. |
+| `VERCEL_TOKEN` | [vercel.com](https://vercel.com) → avatar → **Account Settings → Tokens → Create**. |
+| `CRON_SECRET` | Vous l'inventez : n'importe quelle suite d'une trentaine de caractères au hasard. Elle sert uniquement à empêcher un inconnu de déclencher vos tâches. |
+
+Facultatif mais recommandé : `OPS_ALERT_EMAIL`, votre adresse personnelle.
+C'est par là que le système vous préviendra — et il ne vous écrira que s'il
+tombe en panne.
+
+### Étape 3 — Coller ces valeurs dans GitHub (3 min)
+
+Dépôt GitHub → **Settings → Secrets and variables → Actions** → bouton
+**New repository secret**, une fois par valeur : le *Name* est le nom de la
+colonne de gauche, la *Secret* est la valeur.
+
+> Pensez aussi à passer le dépôt en privé : **Settings → General → Danger
+> Zone → Change visibility**. C'est votre produit commercial.
+
+### Étape 4 — Cliquer sur le bouton (1 min + 5 min d'attente)
+
+Dépôt GitHub → onglet **Actions** → dans la colonne de gauche,
+**« 1. Installation »** → bouton **« Run workflow »** → **Run workflow**.
+
+Le workflow fait alors, tout seul, sur les serveurs de GitHub :
+
+- application des 12 tables SQL sur votre base Supabase ;
+- installation des 71 fournisseurs et test de leurs flux un par un ;
+- création des produits et tarifs Stripe (Pro 19 €, Team 49 €) ;
+- création du webhook Stripe **et récupération de sa clé de signature** ;
+- configuration du portail de facturation (résiliation en self-service) ;
+- génération des secrets applicatifs ;
+- envoi de toutes les variables dans Vercel **et redéploiement du site** ;
+- attente de la mise en ligne, puis première collecte d'incidents.
+
+À la fin, le workflow affiche un rapport lisible : ce qui est en place,
+l'adresse de votre site, et s'il reste quoi que ce soit à faire. S'il manque
+un secret, il vous dit lequel et où le trouver. **Relancez-le autant de fois
+que nécessaire : il ne crée jamais de doublon.**
+
+### C'est fini
+
+À partir de là, tout tourne seul :
+
+| Ce qui se passe | Fréquence | Qui le fait |
+|---|---|---|
+| Collecte des incidents fournisseurs | toutes les 5 min | workflow « 3. Automatisation » |
+| Envoi des alertes aux clients | toutes les 5 min | idem |
+| Calcul des disponibilités + digests | chaque nuit | idem |
+| Réconciliation Stripe, purge, watchdog | chaque nuit | idem |
+| Encaissement des abonnements | en continu | Stripe |
+| Mise à jour des pages SEO | en continu | le site lui-même |
+
+Deux boutons restent à votre disposition dans l'onglet **Actions**, sans
+jamais ouvrir de terminal :
+
+- **« 2. Diagnostic »** — état complet : fournisseurs, incidents, clients
+  inscrits, abonnements payants et MRR, file d'alertes, santé de chaque tâche.
+  Il tourne aussi tout seul chaque lundi.
+- **« 1. Installation »** — à relancer après tout changement (nouvelle clé
+  Stripe, passage en mode live, nom de domaine).
+
+### Deux gestes qui rapportent, quand vous aurez cinq minutes
+
+1. **Google Search Console** ([search.google.com/search-console](https://search.google.com/search-console)) :
+   ajouter votre domaine, puis *Sitemaps* → coller `sitemap/0.xml`. C'est ce
+   qui déclenche l'indexation des 267 pages.
+2. **Stripe en mode réel** : tant que vous utilisez une clé `sk_test_`, aucun
+   euro n'est encaissé — c'est parfait pour tester le tunnel avec la carte
+   `4242 4242 4242 4242`. Pour encaisser réellement, terminez la vérification
+   d'identité Stripe (pièce d'identité + IBAN, obligation légale), remplacez
+   le secret `STRIPE_SECRET_KEY` par la clé `sk_live_…` et relancez
+   « 1. Installation ».
 
 ### « Je mets juste mon PayPal et l'argent rentre ? »
 
 Presque. Deux nuances, dites franchement :
 
 - **L'encaissement passe par Stripe, pas PayPal.** PayPal ne gère pas
-  proprement l'abonnement récurrent avec essai, changement de plan, relance
-  d'impayé et portail client — c'est précisément ce qui évite d'avoir à
-  s'occuper des clients. Stripe le fait, et c'est ce qui est intégré ici.
+  proprement l'abonnement récurrent avec changement de plan, relance d'impayé
+  et portail client — c'est précisément ce qui évite d'avoir à s'occuper des
+  clients. Stripe le fait, et c'est ce qui est intégré ici.
 - **Aucune plateforme, Stripe ou PayPal, ne verse d'argent sans vérifier
-  votre identité** (pièce d'identité + IBAN). C'est la loi anti-blanchiment,
-  pas un choix technique. Comptez 5 minutes de formulaire ; les fonds
-  arrivent ensuite automatiquement sur votre compte selon le calendrier de
-  virement Stripe.
+  votre identité** (pièce d'identité + IBAN). C'est la réglementation
+  anti-blanchiment, pas un choix technique. Cinq minutes de formulaire ; les
+  virements tombent ensuite automatiquement sur votre compte.
 
 Si vous préférez ne pas gérer la TVA vous-même, l'alternative est un
 *merchant of record* (Paddle, Lemon Squeezy) qui facture à votre place et
-reverse un net : dites-le et je remplace l'intégration Stripe.
+vous reverse un net : il suffit de le demander pour que l'intégration soit
+remplacée.
 
 ---
 
@@ -168,8 +224,10 @@ statuspulse/
 ├── supabase/
 │   └── schema.sql               Schéma complet, idempotent : tables, index,
 │                                triggers, fonctions de file (SKIP LOCKED), RLS.
-├── .github/workflows/
-│   └── cron.yml                 Ordonnanceur gratuit (alternative à Vercel Pro).
+├── .github/workflows/           ── TOUT SE PILOTE D'ICI, SANS TERMINAL ──
+│   ├── install.yml              « 1. Installation » : un bouton, tout est câblé.
+│   ├── diagnostic.yml           « 2. Diagnostic » : état complet du système.
+│   └── cron.yml                 « 3. Automatisation » : collecte et alertes.
 ├── scripts/
 │   ├── setup.mts                ★ INSTALLATION AUTOMATIQUE : schéma, catalogue,
 │   │                            produits/tarifs/webhook/portail Stripe, secrets,
@@ -269,100 +327,40 @@ statuspulse/
 
 ---
 
-## 3. Déploiement détaillé
+## 3. Variante : installation depuis un terminal
 
-### Étape 1 — Base de données (3 min)
-
-Créer un projet sur [supabase.com](https://supabase.com), région proche de vos
-utilisateurs. Puis *Project Settings → Database → Connection string →*
-**Transaction pooler** (port **6543**) : copier l'URL et remplacer
-`[YOUR-PASSWORD]` par le mot de passe choisi à la création.
-
-> Le pooler est obligatoire en serverless : le port 5432 épuiserait les
-> connexions en quelques minutes. C'est la seule subtilité de toute
-> l'installation.
-
-Aucun SQL à exécuter : `npm run setup` applique le schéma (il n'a même pas
-besoin de `psql`).
-
-### Étape 2 — Stripe (5 min)
-
-Créer le compte, puis renseigner l'activité, l'identité et l'IBAN
-(vérification obligatoire pour recevoir des fonds). Copier ensuite, dans
-*Développeurs → Clés API*, la **clé secrète** (`sk_…`, bouton « Reveal secret
-key ») — et non la clé publiable (`pk_…`) affichée juste au-dessus, qui ne
-sert qu'au navigateur. `npm run setup` refuse explicitement la mauvaise.
-
-Une clé `sk_test_…` permet de valider tout le tunnel de paiement avec les
-[cartes de test Stripe](https://stripe.com/docs/testing) sans encaisser un
-centime ; basculez sur `sk_live_…` une fois le compte validé.
-
-Rien d'autre : produits, tarifs, webhook et portail client sont créés par le
-script.
-
-### Étape 3 — Email (3 min + propagation DNS)
-
-Créer un compte [resend.com](https://resend.com), ajouter votre domaine,
-publier les enregistrements SPF et DKIM proposés chez votre registrar, copier
-la clé API.
-
-> Ne sautez pas la vérification du domaine : sans elle, les alertes finissent
-> en spam et le produit ne vaut rien. `npm run setup` et `npm run doctor`
-> vérifient ce point et le signalent tant qu'il n'est pas réglé.
-
-### Étape 4 — Installation automatique (4 min)
+La section 0 suffit et ne demande aucun terminal. Cette variante n'existe que
+si vous préférez travailler en local.
 
 ```bash
-git clone <votre-repo> statuspulse && cd statuspulse
+git clone https://github.com/Ariion/expert statuspulse && cd statuspulse
 npm install
-npm run setup
+npm run setup      # pose 4 questions, fait tout le reste, écrit .env.local
 ```
 
-Le script demande quatre valeurs (URL Postgres, URL publique du site, clé
-Stripe, clé Resend + expéditeur), puis fait tout le reste et écrit
-`.env.local`.
+Le script est le même que celui exécuté par le workflow « 1. Installation » :
+schéma SQL, catalogue, produits/tarifs/webhook/portail Stripe, secrets,
+variables Vercel, redéploiement, première collecte. En local il pose les
+questions manquantes ; en CI il lit les secrets du dépôt.
 
-### Étape 5 — Mise en ligne (2 min)
+Pour que `npm run setup` pousse lui-même les variables dans Vercel et
+redéploie, ajoutez à `.env.local` :
 
-Sur [vercel.com](https://vercel.com) : *Add New → Project → Import Git
-Repository* → sélectionner le dépôt → *Deploy*. Rattacher ensuite votre
-domaine dans *Settings → Domains*.
+```bash
+VERCEL_TOKEN="…"        # Vercel > Account Settings > Tokens
+VERCEL_TEAM_ID="…"      # uniquement si le projet appartient à une équipe
+```
 
-Pour les variables d'environnement, deux options :
+L'identifiant du projet et l'URL publique sont retrouvés automatiquement à
+partir du token et du dépôt lié.
 
-- **automatique** — créer un token dans *Vercel → Account Settings → Tokens*,
-  l'ajouter à `.env.local` avec l'identifiant du projet, puis relancer
-  `npm run setup` :
-  ```bash
-  VERCEL_TOKEN="…"        # Vercel > Account Settings > Tokens
-  VERCEL_PROJECT_ID="…"   # Project Settings > General > Project ID
-  VERCEL_TEAM_ID="…"      # uniquement si le projet appartient à une équipe
-  ```
-- **manuelle** — copier le contenu de `.env.local` dans *Settings →
-  Environment Variables*.
+### Ordonnanceur : gratuit ou natif
 
-Puis relancer `npm run setup` une dernière fois : il détecte le site en ligne,
-déclenche la première collecte et confirme que tout tourne.
-
-### Étape 6 — Ordonnanceur (0 ou 2 min)
-
-- **Plan Vercel Pro (20 $/mois)** : rien à faire, les crons de `vercel.json`
-  se déclenchent automatiquement à la minute.
-- **Plan Vercel Hobby (gratuit)** : le workflow
-  [`.github/workflows/cron.yml`](.github/workflows/cron.yml) fait le même
-  travail gratuitement. Ajoutez deux secrets dans *Repo GitHub → Settings →
-  Secrets and variables → Actions* : `APP_URL` et `CRON_SECRET` (valeur
-  générée dans `.env.local`). Rien d'autre.
-
-### Étape 7 — Référencement (2 min, rentabilisé cent fois)
-
-Déclarer `https://votre-domaine/sitemap/0.xml` dans la
-[Google Search Console](https://search.google.com/search-console). C'est le
-seul geste qui accélère réellement l'indexation des 267 pages.
-
-Facultatif mais recommandé : brancher un moniteur externe gratuit
-(UptimeRobot) sur `https://votre-domaine/api/health` — c'est le seul dispositif
-capable de vous prévenir si la plateforme d'hébergement elle-même tombe.
+- **Plan Vercel Hobby (gratuit)** — le workflow « 3. Automatisation » fait
+  tout, avec les secrets `APP_URL` et `CRON_SECRET`. Rien à payer.
+- **Plan Vercel Pro (20 $/mois)** — les crons de `vercel.json` se déclenchent
+  nativement à la minute ; vous pouvez alors désactiver le workflow
+  « 3. Automatisation » (Actions → ⋯ → *Disable workflow*).
 
 ---
 
@@ -399,6 +397,16 @@ personne ne le sache.
 
 ## 5. Exploitation courante
 
+**Depuis le navigateur (onglet Actions du dépôt) — le mode normal :**
+
+| Bouton | Ce qu'il fait | Quand |
+|---|---|---|
+| **1. Installation** | installe ou répare tout, idempotent | après tout changement de clé ou de domaine |
+| **2. Diagnostic** | état complet : fournisseurs, clients, MRR, file d'alertes, santé des tâches | au moindre doute (et chaque lundi, tout seul) |
+| **3. Automatisation** | collecte, alertes, agrégats, réconciliation | tout seul, toutes les 5 minutes |
+
+**Depuis un terminal, si vous en avez un :**
+
 ```bash
 npm run setup                  # installation / réparation automatique (idempotent)
 npm run doctor                 # état complet : collecteur, file, MRR Stripe, SEO
@@ -413,10 +421,11 @@ Le catalogue s'installe aussi **tout seul** : si la table `services` est vide
 (première mise en ligne, base recréée), la première exécution du collecteur
 l'amorce. Il n'existe aucune étape d'installation qu'on puisse oublier.
 
-**Ajouter un fournisseur** — une ligne dans `src/data/services.ts`, puis
-`npm run db:seed`. La page, le sitemap, l'ingestion et les alertes suivent
-automatiquement. C'est le seul geste de « croissance » qui vaille la peine
-d'être fait à la main, et il prend trente secondes.
+**Ajouter un fournisseur** — modifiez `src/data/services.ts` directement dans
+GitHub (bouton crayon, puis *Commit changes*) et relancez « 1. Installation ».
+Une ligne ajoutée = une page indexable de plus, un flux surveillé de plus.
+C'est le seul geste de « croissance » qui vaille la peine d'être fait à la
+main, et il prend trente secondes.
 
 **Coût d'exploitation** : nul jusqu'aux premiers clients (paliers gratuits
 Vercel/Supabase/Resend), puis de l'ordre de 45 €/mois tout compris (Vercel Pro

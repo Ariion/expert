@@ -65,12 +65,63 @@ for (const k of Object.keys(process.env)) {
   }
 }
 
+/**
+ * Découverte Vercel.
+ *
+ * Avec un simple token, on retrouve le projet lié à ce dépôt GitHub, son
+ * identifiant et son domaine de production. Conséquence : ni l'ID de projet ni
+ * l'URL publique n'ont à être saisis — deux valeurs de moins à aller chercher.
+ */
+let vercelRepoId: number | null = null;
+let vercelProjectName: string | null = null;
+
+async function discoverVercel(): Promise<void> {
+  if (!env.VERCEL_TOKEN) return;
+  const team = env.VERCEL_TEAM_ID ? `?teamId=${env.VERCEL_TEAM_ID}&limit=100` : "?limit=100";
+  try {
+    const res = await fetch(`https://api.vercel.com/v9/projects${team}`, {
+      headers: { authorization: `Bearer ${env.VERCEL_TOKEN}` },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return;
+    const { projects = [] } = (await res.json()) as { projects?: any[] };
+    const ghRepo = process.env.GITHUB_REPOSITORY ?? "";
+    const shortName = ghRepo.split("/")[1] ?? "";
+
+    const project =
+      projects.find((p) => p.id === env.VERCEL_PROJECT_ID || p.name === env.VERCEL_PROJECT_ID) ??
+      projects.find((p) => p.link?.org && p.link?.repo && `${p.link.org}/${p.link.repo}` === ghRepo) ??
+      projects.find((p) => p.name === shortName) ??
+      (projects.length === 1 ? projects[0] : null);
+
+    if (!project) return;
+    env.VERCEL_PROJECT_ID = project.id;
+    vercelRepoId = project.link?.repoId ? Number(project.link.repoId) : null;
+    vercelProjectName = project.name ?? null;
+
+    if (!env.APP_URL) {
+      const aliases: string[] = project.targets?.production?.alias ?? [];
+      const custom = aliases.filter((a) => !a.endsWith(".vercel.app")).sort((a, b) => a.length - b.length);
+      const domain = custom[0] ?? aliases.find((a) => a.endsWith(".vercel.app")) ?? `${project.name}.vercel.app`;
+      env.APP_URL = `https://${domain}`;
+    }
+  } catch {
+    /* pas de Vercel joignable : on retombe sur la saisie manuelle */
+  }
+}
+
+await discoverVercel();
+
 const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+
+const missingRequired: string[] = [];
 
 async function ask(key: string, label: string, opts: { required?: boolean; example?: string } = {}) {
   if (env[key]) return;
   if (!rl) {
-    if (opts.required) throw new Error(`${key} manquant (mode non interactif).`);
+    // Mode non interactif (GitHub Actions) : on collecte tout ce qui manque
+    // pour l'annoncer d'un coup, plutôt que d'échouer sur le premier.
+    if (opts.required) missingRequired.push(key);
     return;
   }
   const hint = opts.example ? C.dim(` (ex. ${opts.example})`) : "";
@@ -107,6 +158,36 @@ await ask("STRIPE_SECRET_KEY", "Clé secrète Stripe (Développeurs > Clés API)
 await ask("RESEND_API_KEY", "Clé API Resend", { example: "re_…" });
 await ask("EMAIL_FROM", "Expéditeur des emails", { example: "StatusPulse <alertes@votredomaine.com>" });
 await ask("OPS_ALERT_EMAIL", "Votre email personnel pour les alertes système (fortement conseillé)");
+
+// L'URL publique est indispensable (webhook Stripe, liens des emails). Elle est
+// normalement déduite de Vercel ; si elle manque encore, autant le dire tout de
+// suite plutôt que de créer un webhook sur une URL vide.
+if (!env.APP_URL) missingRequired.push("APP_URL");
+
+if (missingRequired.length) {
+  const unique = [...new Set(missingRequired)];
+  const help: Record<string, string> = {
+    DATABASE_URL: "Supabase > Project Settings > Database > Connection string > « Transaction pooler » (port 6543)",
+    APP_URL: "l'URL publique du site — normalement déduite automatiquement de Vercel ; vérifiez le secret VERCEL_TOKEN, ou ajoutez un secret APP_URL",
+    STRIPE_SECRET_KEY: "Stripe > Développeurs > Clés API > « Reveal secret key » (sk_…)",
+    RESEND_API_KEY: "Resend > API Keys",
+    EMAIL_FROM: "l'expéditeur des emails, ex. StatusPulse <alertes@votredomaine.com>",
+  };
+  console.log(`\n${C.err("Configuration incomplète.")}\n`);
+  for (const k of unique) console.log(`  ${C.err("✗")} ${C.b(k)} — ${help[k] ?? "valeur manquante"}`);
+  console.log("");
+
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const { appendFileSync } = await import("node:fs");
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      `# ❌ Configuration incomplète\n\nAjoutez ces secrets dans **Settings → Secrets and variables → Actions**, puis relancez :\n\n` +
+        unique.map((k) => `- \`${k}\` — ${help[k] ?? ""}`).join("\n") +
+        "\n",
+    );
+  }
+  process.exit(1);
+}
 
 // ---------------------------------------------------------------------------
 // Validation des saisies
@@ -212,6 +293,9 @@ for (const [key, bytes] of [["AUTH_SECRET", 48], ["CRON_SECRET", 24]] as const) 
   if (!env[key] || env[key].length < 16 || env[key].startsWith("remplacer")) {
     env[key] = randomBytes(bytes).toString("base64url");
     generated++;
+    // Dans GitHub Actions, les logs d'un dépôt public sont lisibles par tous :
+    // un secret fraîchement généré ne doit jamais y apparaître.
+    if (process.env.GITHUB_ACTIONS) console.log(`::add-mask::${env[key]}`);
   }
 }
 
@@ -288,10 +372,11 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
         name: "Vérification des flux",
         status: "err",
         detail: `${broken.length}/${SEED_SERVICES.length} injoignables — aucune désactivation appliquée`,
-        todo:
-          "Un taux d'échec aussi élevé vient presque toujours du réseau de la machine qui lance ce script " +
-          "(pare-feu ou proxy sortant), pas des fournisseurs. Relancez depuis une connexion sans filtrage : " +
-          "la production, elle, appelle ces flux depuis Vercel.",
+        todo: process.env.GITHUB_ACTIONS
+          ? "Taux d'échec anormal depuis un runner GitHub (réseau ouvert) : vérifiez qu'il ne s'agit pas d'une panne générale, puis relancez ce workflow."
+          : "Un taux d'échec aussi élevé vient presque toujours du réseau de la machine qui lance ce script " +
+            "(pare-feu ou proxy sortant), pas des fournisseurs. Relancez depuis une connexion sans filtrage : " +
+            "la production, elle, appelle ces flux depuis Vercel.",
       });
     } else {
       if (brokenSlugs.length) {
@@ -499,6 +584,7 @@ const VERCEL_KEYS = [
 ];
 
 if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
+  const teamQS = env.VERCEL_TEAM_ID ? `&teamId=${env.VERCEL_TEAM_ID}` : "";
   try {
     const team = env.VERCEL_TEAM_ID ? `?teamId=${env.VERCEL_TEAM_ID}&upsert=true` : "?upsert=true";
     let pushed = 0;
@@ -523,9 +609,41 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
     record({
       name: "Variables Vercel",
       status: pushed ? "ok" : "warn",
-      detail: `${pushed}/${VERCEL_KEYS.filter((k) => env[k]).length} poussées`,
-      todo: "Redéployer le projet pour que les nouvelles variables soient prises en compte.",
+      detail: `${pushed}/${VERCEL_KEYS.filter((k) => env[k]).length} poussées sur ${vercelProjectName ?? env.VERCEL_PROJECT_ID}`,
     });
+
+    // Un déploiement existant ne voit pas les nouvelles variables : il faut en
+    // relancer un. On le déclenche ici pour qu'aucun clic ne soit nécessaire.
+    if (pushed && vercelRepoId) {
+      const dep = await fetch(`https://api.vercel.com/v13/deployments?skipAutoDetectionConfirmation=1${teamQS}`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${env.VERCEL_TOKEN}`, "content-type": "application/json" },
+        body: JSON.stringify({
+          name: vercelProjectName,
+          project: env.VERCEL_PROJECT_ID,
+          target: "production",
+          gitSource: {
+            type: "github",
+            repoId: vercelRepoId,
+            ref: process.env.GITHUB_REF_NAME ?? "claude/relaxed-archimedes-gxpzpb",
+          },
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      record({
+        name: "Redéploiement",
+        status: dep.ok ? "ok" : "warn",
+        detail: dep.ok ? "déclenché avec les nouvelles variables" : `HTTP ${dep.status}`,
+        todo: dep.ok ? undefined : "Cliquer sur « Redeploy » dans Vercel pour appliquer les variables.",
+      });
+    } else if (pushed) {
+      record({
+        name: "Redéploiement",
+        status: "warn",
+        detail: "projet non lié à un dépôt Git",
+        todo: "Cliquer sur « Redeploy » dans Vercel pour appliquer les variables.",
+      });
+    }
   } catch (err) {
     record({ name: "Variables Vercel", status: "warn", detail: String(err).slice(0, 140) });
   }
@@ -533,21 +651,44 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
   record({
     name: "Variables Vercel",
     status: "skip",
-    detail: "VERCEL_TOKEN/VERCEL_PROJECT_ID absents",
-    todo: `Coller les variables de ${ENV_PATH} dans Vercel > Settings > Environment Variables (ou fournir VERCEL_TOKEN + VERCEL_PROJECT_ID et relancer).`,
+    detail: "VERCEL_TOKEN absent",
+    todo: process.env.GITHUB_ACTIONS
+      ? "Ajouter le secret `VERCEL_TOKEN` (Vercel > Account Settings > Tokens) dans Settings → Secrets and variables → Actions, puis relancer ce workflow : les variables seront poussées et le site redéployé automatiquement."
+      : `Coller les variables de ${ENV_PATH} dans Vercel > Settings > Environment Variables (ou fournir VERCEL_TOKEN et relancer).`,
   });
 }
 
 // ---------------------------------------------------------------------------
 // 9. Écriture de la configuration + vérification en ligne
 // ---------------------------------------------------------------------------
-writeEnvFile(ENV_PATH, env);
-record({ name: "Configuration écrite", status: "ok", detail: ENV_PATH });
+if (process.env.GITHUB_ACTIONS) {
+  // Sur un runner, écrire les secrets sur disque n'a aucune utilité : ils sont
+  // déjà dans les secrets du dépôt et poussés vers Vercel.
+  record({ name: "Configuration", status: "ok", detail: "conservée dans les secrets du dépôt et dans Vercel" });
+} else {
+  writeEnvFile(ENV_PATH, env);
+  record({ name: "Configuration écrite", status: "ok", detail: ENV_PATH });
+}
 
 if (env.APP_URL?.startsWith("https://")) {
   try {
-    const res = await fetch(`${env.APP_URL}/api/health`, { signal: AbortSignal.timeout(15000) });
-    const body = (await res.json()) as Record<string, unknown>;
+    // Un redéploiement prend une à trois minutes : on patiente plutôt que de
+    // conclure à tort que le site est cassé.
+    let res: Response | null = null;
+    const deadline = Date.now() + 5 * 60_000;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        res = await fetch(`${env.APP_URL}/api/health`, { signal: AbortSignal.timeout(15000) });
+        if (res.ok) break;
+      } catch {
+        res = null;
+      }
+      if (Date.now() > deadline) break;
+      if (attempt === 1) console.log(C.dim("    (attente de la fin du déploiement…)"));
+      await new Promise((r) => setTimeout(r, 15000));
+    }
+    if (!res) throw new Error("site injoignable après 5 minutes d'attente");
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     record({
       name: "Site en ligne",
       status: res.ok ? "ok" : "warn",
@@ -602,6 +743,37 @@ if (errors.length === 0 && todos.length === 0) {
     console.log("");
   }
   console.log(C.dim("  Relancez `npm run setup` après correction : le script est idempotent.\n"));
+}
+
+// ---------------------------------------------------------------------------
+// Résumé lisible dans l'interface GitHub Actions (aucun secret n'y figure :
+// sur un dépôt public, ce résumé est visible de tous).
+// ---------------------------------------------------------------------------
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const icon = (st: Step["status"]) => (st === "ok" ? "✅" : st === "warn" ? "⚠️" : st === "skip" ? "➖" : "❌");
+  const md = [
+    `# StatusPulse — installation`,
+    "",
+    errors.length === 0 && todos.length === 0
+      ? `## ✅ Terminé — le système tourne seul à partir de maintenant`
+      : `## ${errors.length ? "❌" : "⚠️"} Installation partielle`,
+    "",
+    env.APP_URL ? `**Votre site :** ${env.APP_URL}` : "",
+    env.APP_URL ? `**Fournisseurs surveillés :** ${env.APP_URL}/status` : "",
+    env.APP_URL ? `**Sitemap à déclarer dans Google Search Console :** \`${env.APP_URL}/sitemap/0.xml\`` : "",
+    "",
+    "| | Étape | Détail |",
+    "|---|---|---|",
+    ...steps.map((st) => `| ${icon(st.status)} | ${st.name} | ${st.detail.replace(/\|/g, "/")} |`),
+    "",
+    ...(warnings.length ? ["## À savoir", "", ...warnings.map((w) => `- ⚠️ ${w.replace(/\|/g, "/")}`), ""] : []),
+    ...(todos.length
+      ? ["## Il reste à faire", "", ...todos.map((t, i) => `${i + 1}. ${t.replace(/\|/g, "/")}`), ""]
+      : ["## Rien à faire de votre côté", "", "Relancez ce workflow après tout changement de configuration : il est idempotent.", ""]),
+  ].join("\n");
+  await import("node:fs").then(({ appendFileSync }) =>
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY!, md + "\n"),
+  );
 }
 
 process.exit(errors.length ? 1 : 0);

@@ -1,0 +1,82 @@
+# =============================================================================
+# 1. INSTALLATION — à lancer depuis le navigateur, aucune commande à taper.
+#
+#   Onglet « Actions » > « 1. Installation » > bouton « Run workflow ».
+#
+# Ce workflow exécute `npm run setup` sur les serveurs de GitHub avec les
+# secrets du dépôt. Il applique le schéma SQL, installe le catalogue, crée les
+# produits, tarifs, webhook et portail Stripe, pousse les variables dans
+# Vercel, redéploie et lance la première collecte.
+#
+# Il est idempotent : relancez-le autant de fois que nécessaire.
+# =============================================================================
+name: 1. Installation
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: statuspulse-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier les secrets du dépôt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          MISSING=""
+          for V in DATABASE_URL STRIPE_SECRET_KEY RESEND_API_KEY EMAIL_FROM VERCEL_TOKEN; do
+            [ -n "${!V}" ] || MISSING="$MISSING $V"
+          done
+          if [ -n "$MISSING" ]; then
+            {
+              echo "# ❌ Secrets manquants"
+              echo ""
+              echo "Ajoutez-les dans **Settings → Secrets and variables → Actions → New repository secret**, puis relancez ce workflow :"
+              echo ""
+              for V in $MISSING; do echo "- \`$V\`"; done
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Secrets manquants :$MISSING"
+            exit 1
+          fi
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::warning::CRON_SECRET absent : nécessaire si vous restez sur le plan Vercel gratuit."
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Installer StatusPulse
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          APP_URL: ${{ secrets.APP_URL }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+          OPS_ALERT_WEBHOOK: ${{ secrets.OPS_ALERT_WEBHOOK }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: npm run setup -- --non-interactive
+
+      - name: Nettoyer la configuration locale du runner
+        if: always()
+        run: rm -f .env.local

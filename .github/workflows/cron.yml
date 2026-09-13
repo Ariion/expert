@@ -7,14 +7,14 @@
 #
 # MISE EN ROUTE (2 minutes, une seule fois) :
 #   Repo GitHub > Settings > Secrets and variables > Actions > New secret
-#     APP_URL      = https://votre-domaine
-#     CRON_SECRET  = la valeur générée dans .env.local par `npm run setup`
+#     APP_URL      = l'URL publique de votre site (ex. https://expert.vercel.app)
+#     CRON_SECRET  = la même valeur que celle utilisée par « 1. Installation »
 #
 # Ne rien faire d'autre : le workflow tourne ensuite tout seul.
 # (GitHub peut décaler un déclenchement de quelques minutes en cas de charge —
 #  sans conséquence : chaque job est idempotent et rattrape son retard.)
 # =============================================================================
-name: StatusPulse — automatisation
+name: 3. Automatisation (collecte et alertes)
 
 on:
   schedule:
