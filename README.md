@@ -17,6 +17,12 @@ ordinateur.** Quatre écrans, une quinzaine de minutes, une seule fois.
 [vercel.com](https://vercel.com) → **Add New → Project** → *Import Git
 Repository* → choisir `expert` → **Deploy**.
 
+Si l'écran affiche une section **Environment Variables** pré-remplie (Vercel
+la devine à partir de `.env.example`), **retirez toutes les lignes avec le
+bouton « − »** — notamment `VERCEL_TOKEN`, dont le préfixe est réservé et
+bloque le déploiement. Aucune variable ne doit être saisie ici : le workflow
+« 1. Installation » les posera toutes, avec les bonnes valeurs.
+
 Le site se construit sans configuration (il s'affiche vide, c'est normal).
 Notez l'URL obtenue, du type `https://expert.vercel.app`.
 
