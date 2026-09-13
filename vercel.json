@@ -1,15 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    { "path": "/api/cron/ingest", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/dispatch", "schedule": "*/2 * * * *" },
-    { "path": "/api/cron/rollup", "schedule": "17 3 * * *" },
-    { "path": "/api/cron/reconcile", "schedule": "42 4 * * *" }
-  ],
   "functions": {
-    "src/app/api/cron/ingest/route.ts": { "maxDuration": 300 },
-    "src/app/api/cron/dispatch/route.ts": { "maxDuration": 120 },
-    "src/app/api/cron/rollup/route.ts": { "maxDuration": 300 },
-    "src/app/api/cron/reconcile/route.ts": { "maxDuration": 300 }
+    "src/app/api/cron/ingest/route.ts": { "maxDuration": 60 },
+    "src/app/api/cron/dispatch/route.ts": { "maxDuration": 60 },
+    "src/app/api/cron/rollup/route.ts": { "maxDuration": 60 },
+    "src/app/api/cron/reconcile/route.ts": { "maxDuration": 60 }
   }
 }

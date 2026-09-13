@@ -229,8 +229,20 @@ async function upsertIncident(
   return { kind, incident: updated, firstSeen: false };
 }
 
-/** Boucle d'ingestion : prend un lot de services dus et les traite en parallèle. */
-export async function runIngestion(batchSize = 40, concurrency = 8) {
+/**
+ * Boucle d'ingestion : prend un lot de services dus et les traite en parallèle.
+ *
+ * `deadline` borne le temps passé : une fonction serverless est tuée sans
+ * préavis à l'échéance de son budget (60 s sur les offres d'entrée). On
+ * s'arrête proprement avant, et surtout on **relibère les services non
+ * traités** pour que l'exécution suivante les reprenne immédiatement au lieu
+ * d'attendre l'expiration de leur bail.
+ */
+export async function runIngestion(
+  batchSize = 40,
+  concurrency = 8,
+  deadline = Date.now() + 50_000,
+) {
   const services = await sql<ServiceRow[]>`select * from claim_services_for_fetch(${batchSize})`;
 
   let changed = 0;
@@ -238,7 +250,7 @@ export async function runIngestion(batchSize = 40, concurrency = 8) {
   const queue = [...services];
 
   const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
-    for (let job = queue.shift(); job; job = queue.shift()) {
+    for (let job = queue.shift(); job && Date.now() < deadline; job = queue.shift()) {
       const r = await ingestService(job);
       changed += r.changed;
       queued += r.queued;
@@ -246,5 +258,11 @@ export async function runIngestion(batchSize = 40, concurrency = 8) {
   });
   await Promise.all(workers);
 
-  return { services: services.length, changed, queued };
+  if (queue.length > 0) {
+    await sql`
+      update services set next_fetch_at = now() where id in ${sql(queue.map((s) => s.id))}
+    `.catch(() => {});
+  }
+
+  return { services: services.length - queue.length, changed, queued, deferred: queue.length };
 }

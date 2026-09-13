@@ -1,0 +1,36 @@
+# =============================================================================
+# 4. MAINTIEN DE L'AUTOMATISATION
+#
+# GitHub désactive automatiquement les workflows planifiés d'un dépôt resté
+# 60 jours sans activité. Un produit qui tourne tout seul, par définition, ne
+# reçoit plus de commits : ses tâches s'arrêteraient donc au bout de deux mois,
+# en silence.
+#
+# Ce workflow écrit un horodatage une fois par mois. C'est tout — mais c'est ce
+# qui garantit que « 3. Automatisation » ne s'éteindra jamais tout seul.
+# =============================================================================
+name: 4. Maintien de l'automatisation
+
+on:
+  schedule:
+    - cron: "0 6 1 * *" # le 1er de chaque mois, 6 h UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Horodater
+        run: |
+          mkdir -p .github
+          date -u +"Dernière activité automatique : %Y-%m-%dT%H:%M:%SZ" > .github/heartbeat.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/heartbeat.txt
+          git diff --staged --quiet || git commit -m "Maintien de l'activité du dépôt [skip ci]"
+          git push

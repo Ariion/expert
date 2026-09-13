@@ -6,7 +6,7 @@ import { trackCron } from "@/lib/ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /**
  * Collecteur — le moteur du produit. Toutes les 5 minutes (vercel.json).
@@ -16,18 +16,26 @@ export const maxDuration = 300;
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) return new NextResponse("non autorisé", { status: 401 });
 
+  // Budget de temps : on s'arrête avant que la plateforme ne coupe la fonction.
+  const deadline = Date.now() + 50_000;
+
   const stats = await trackCron("ingest", async () => {
     // Base vide (première exécution) : le catalogue s'installe tout seul.
     const seeded = await ensureCatalog();
-    const first = await runIngestion(40, 8);
-    // Second lot si le premier était plein : on rattrape sans attendre le tick
-    // suivant (utile après une panne ou un ajout massif de services).
-    const second = first.services === 40 ? await runIngestion(40, 8) : { services: 0, changed: 0, queued: 0 };
+    const first = await runIngestion(40, 8, deadline);
+    // Second lot si le premier était plein et qu'il reste du temps : on
+    // rattrape sans attendre le tick suivant (utile après une panne ou un
+    // ajout massif de services).
+    const second =
+      first.services === 40 && Date.now() < deadline - 15_000
+        ? await runIngestion(40, 8, deadline)
+        : { services: 0, changed: 0, queued: 0, deferred: 0 };
     return {
       seeded,
       services: first.services + second.services,
       changed: first.changed + second.changed,
       queued: first.queued + second.queued,
+      deferred: first.deferred + second.deferred,
     };
   });
 

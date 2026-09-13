@@ -118,7 +118,11 @@ async function deliverEmail(d: Delivery): Promise<void> {
  * les emails des autres. Les échecs repartent en file avec backoff ; au bout de
  * 6 tentatives la livraison passe en `dead` et l'incident système est signalé.
  */
-export async function runDispatch(batchSize = 120, concurrency = 10) {
+export async function runDispatch(
+  batchSize = 120,
+  concurrency = 10,
+  deadline = Date.now() + 50_000,
+) {
   const claimed = await sql<Delivery[]>`
     with claimed as (
       select * from claim_alert_deliveries(${batchSize})
@@ -135,7 +139,7 @@ export async function runDispatch(batchSize = 120, concurrency = 10) {
   const queue = [...claimed];
 
   const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
-    for (let d = queue.shift(); d; d = queue.shift()) {
+    for (let d = queue.shift(); d && Date.now() < deadline; d = queue.shift()) {
       try {
         if (d.kind === "slack") await deliverSlack(d);
         else if (d.kind === "webhook") await deliverWebhook(d);
@@ -187,5 +191,16 @@ export async function runDispatch(batchSize = 120, concurrency = 10) {
   });
 
   await Promise.all(workers);
-  return { claimed: claimed.length, sent, failed };
+
+  // Budget de temps épuisé : les livraisons réservées mais non envoyées
+  // retournent en file sans consommer de tentative. Aucune alerte n'est perdue.
+  if (queue.length > 0) {
+    await sql`
+      update alert_deliveries
+         set status = 'pending', locked_at = null, attempts = greatest(attempts - 1, 0)
+       where id in ${sql(queue.map((d) => d.id))}
+    `.catch(() => {});
+  }
+
+  return { claimed: claimed.length - queue.length, sent, failed, deferred: queue.length };
 }

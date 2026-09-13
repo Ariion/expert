@@ -47,8 +47,11 @@ Dépôt GitHub → **Settings → Secrets and variables → Actions** → bouton
 **New repository secret**, une fois par valeur : le *Name* est le nom de la
 colonne de gauche, la *Secret* est la valeur.
 
-> Pensez aussi à passer le dépôt en privé : **Settings → General → Danger
-> Zone → Change visibility**. C'est votre produit commercial.
+> **Laissez le dépôt public pour l'instant.** Vos secrets restent privés dans
+> tous les cas (ils sont chiffrés et ne s'affichent nulle part), et les minutes
+> GitHub Actions — qui font tourner toute l'automatisation — ne sont gratuites
+> et illimitées que sur un dépôt public. Le passage en privé se paie : voir
+> « Le planificateur » plus bas.
 
 ### Étape 4 — Cliquer sur le bouton (1 min + 5 min d'attente)
 
@@ -83,6 +86,7 @@ que nécessaire : il ne crée jamais de doublon.**
 | Réconciliation Stripe, purge, watchdog | chaque nuit | idem |
 | Encaissement des abonnements | en continu | Stripe |
 | Mise à jour des pages SEO | en continu | le site lui-même |
+| Maintien des tâches planifiées | 1er du mois | workflow « 4. Maintien » |
 
 Deux boutons restent à votre disposition dans l'onglet **Actions**, sans
 jamais ouvrir de terminal :
@@ -92,6 +96,47 @@ jamais ouvrir de terminal :
   Il tourne aussi tout seul chaque lundi.
 - **« 1. Installation »** — à relancer après tout changement (nouvelle clé
   Stripe, passage en mode live, nom de domaine).
+
+### Le planificateur : pourquoi GitHub et pas Vercel
+
+`vercel.json` ne contient **aucune tâche planifiée**, volontairement : l'offre
+gratuite de Vercel refuse toute fréquence supérieure à une fois par jour, ce
+qui bloquerait le déploiement, et une collecte quotidienne ne servirait à rien
+pour un produit qui vend de la réactivité.
+
+C'est donc GitHub Actions qui déclenche tout, toutes les 5 minutes. Deux
+conséquences à connaître :
+
+| | Dépôt **public** (recommandé au départ) | Dépôt **privé** |
+|---|---|---|
+| Minutes GitHub Actions | gratuites et illimitées | 2 000/mois offertes — insuffisant pour une cadence de 5 min (~8 600 min nécessaires) |
+| Coût mensuel | 0 € | il faut soit le plan Vercel Pro (20 $), soit un planificateur externe gratuit (cron-job.org) |
+| Ce qui est visible | le code et les rapports des workflows | rien |
+| Ce qui reste secret | **vos clés, votre base, vos clients** — toujours | idem |
+
+Si vous passez le dépôt en privé plus tard, deux options, toutes deux sans
+terminal :
+
+1. **Vercel Pro (20 $/mois)** — remettez les tâches natives en ajoutant ce bloc
+   à `vercel.json` (édition directe dans GitHub, bouton crayon) :
+   ```json
+   "crons": [
+     { "path": "/api/cron/ingest",    "schedule": "*/5 * * * *" },
+     { "path": "/api/cron/dispatch",  "schedule": "*/5 * * * *" },
+     { "path": "/api/cron/rollup",    "schedule": "17 3 * * *" },
+     { "path": "/api/cron/reconcile", "schedule": "42 4 * * *" }
+   ]
+   ```
+   puis désactivez le workflow « 3. Automatisation » (Actions → ⋯ → *Disable*).
+2. **[cron-job.org](https://cron-job.org) (gratuit)** — créez 4 tâches qui
+   appellent `https://votre-domaine/api/cron/<job>` avec l'en-tête
+   `Authorization: Bearer <votre CRON_SECRET>`, aux mêmes fréquences que
+   ci-dessus.
+
+Dernier détail, invisible mais décisif : GitHub désactive les tâches
+planifiées d'un dépôt resté 60 jours sans activité — exactement le sort d'un
+produit qui tourne tout seul. Le workflow « 4. Maintien de l'automatisation »
+écrit un horodatage le 1er de chaque mois pour que cela n'arrive jamais.
 
 ### Deux gestes qui rapportent, quand vous aurez cinq minutes
 
@@ -233,7 +278,9 @@ statuspulse/
 ├── .github/workflows/           ── TOUT SE PILOTE D'ICI, SANS TERMINAL ──
 │   ├── install.yml              « 1. Installation » : un bouton, tout est câblé.
 │   ├── diagnostic.yml           « 2. Diagnostic » : état complet du système.
-│   └── cron.yml                 « 3. Automatisation » : collecte et alertes.
+│   ├── cron.yml                 « 3. Automatisation » : collecte et alertes.
+│   └── keepalive.yml            « 4. Maintien » : empêche GitHub de désactiver
+│                                les tâches planifiées après 60 jours de calme.
 ├── scripts/
 │   ├── setup.mts                ★ INSTALLATION AUTOMATIQUE : schéma, catalogue,
 │   │                            produits/tarifs/webhook/portail Stripe, secrets,
@@ -296,7 +343,7 @@ statuspulse/
 │ → diff par empreinte → upsert → mise en file des alertes concernées      │
 │ → cadence adaptée : 2 min si le service est dégradé, backoff si échec.   │
 └──────────────────────────────────────────────────────────────────────────┘
-┌── dispatch ── toutes les 2 min ──────────────────────────────────────────┐
+┌── dispatch ── toutes les 5 min ──────────────────────────────────────────┐
 │ claim_alert_deliveries() → envoi email/Slack/webhook → succès marqué,    │
 │ échec remis en file avec backoff quadratique (1,4,9,16,25 min),          │
 │ abandon après 6 tentatives → alerte humaine. Canal mort désactivé        │
@@ -360,13 +407,18 @@ VERCEL_TEAM_ID="…"      # uniquement si le projet appartient à une équipe
 L'identifiant du projet et l'URL publique sont retrouvés automatiquement à
 partir du token et du dépôt lié.
 
-### Ordonnanceur : gratuit ou natif
+### Ordonnanceur
 
-- **Plan Vercel Hobby (gratuit)** — le workflow « 3. Automatisation » fait
-  tout, avec les secrets `APP_URL` et `CRON_SECRET`. Rien à payer.
-- **Plan Vercel Pro (20 $/mois)** — les crons de `vercel.json` se déclenchent
-  nativement à la minute ; vous pouvez alors désactiver le workflow
-  « 3. Automatisation » (Actions → ⋯ → *Disable workflow*).
+`vercel.json` ne déclare aucune tâche planifiée : l'offre gratuite de Vercel
+les limite à une par jour et refuserait le déploiement. Le planificateur par
+défaut est le workflow « 3. Automatisation » (secrets `APP_URL` et
+`CRON_SECRET`). Les alternatives et leurs coûts sont détaillés en section 0,
+« Le planificateur ».
+
+Toutes les tâches sont **interruptibles** : elles se donnent un budget de
+50 secondes, relibèrent ce qu'elles n'ont pas eu le temps de traiter et
+reprennent au tick suivant. Aucune alerte n'est perdue si une fonction est
+coupée par la plateforme.
 
 ---
 

@@ -5,7 +5,7 @@ import { trackCron } from "@/lib/ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /** Agrégats de disponibilité + digests quotidiens (une fois par nuit). */
 export async function GET(req: Request) {
