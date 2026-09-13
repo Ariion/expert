@@ -9,5 +9,5 @@ export const maxDuration = 60;
 /** Vide la file d'alertes, à chaque passage du collecteur. */
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) return new NextResponse("non autorisé", { status: 401 });
-  return runCron("dispatch", () => runDispatch(120, 10, Date.now() + 50_000));
+  return runCron("dispatch", () => runDispatch(120, 12, Date.now() + 25_000));
 }
