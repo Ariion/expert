@@ -29,6 +29,14 @@ import postgres from "postgres";
 import Stripe from "stripe";
 import { SEED_SERVICES } from "../src/data/services";
 import { readEnvFile, writeEnvFile, type EnvMap } from "../src/lib/envfile";
+import { splitSqlStatements } from "../src/lib/sqlfile";
+
+// Un rejet de promesse non intercepté fait tomber le processus Node et emporte
+// toutes les étapes suivantes. Une installation doit au contraire aller au bout
+// et rapporter ce qui a échoué : on transforme l'accident en ligne de journal.
+process.on("unhandledRejection", (reason) => {
+  console.error("Rejet de promesse non géré (ignoré) :", reason);
+});
 
 const ENV_PATH = ".env.local";
 const args = new Set(process.argv.slice(2));
@@ -325,8 +333,26 @@ record({
 if (!args.has("--skip-db") && env.DATABASE_URL) {
   const sql = postgres(env.DATABASE_URL, { prepare: false, max: 2, connect_timeout: 15, onnotice: () => {} });
   try {
-    const schema = readFileSync("supabase/schema.sql", "utf8");
-    await sql.unsafe(schema).simple();
+    // Une par une, jamais en lot : un pooler en mode transaction interrompt un
+    // envoi multi-instructions, et le schéma ne serait appliqué qu'à moitié.
+    const statements = splitSqlStatements(readFileSync("supabase/schema.sql", "utf8"));
+    let applied = 0;
+    for (const statement of statements) {
+      try {
+        await sql.begin(async (tx) => {
+          // Le délai est fixé dans la transaction : en mode pooling, chaque
+          // instruction peut emprunter une connexion différente.
+          await tx.unsafe("set local statement_timeout = '120s'");
+          await tx.unsafe(statement);
+        });
+        applied++;
+      } catch (err) {
+        throw new Error(
+          `instruction ${applied + 1}/${statements.length} — ${describe(err)} — « ${statement.replace(/\s+/g, " ").slice(0, 110)} »`,
+        );
+      }
+    }
+
     const [{ n }] = await sql<{ n: number }[]>`
       select count(*)::int as n from information_schema.tables
        where table_schema = 'public'
@@ -334,7 +360,10 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
     record({
       name: "Schéma SQL",
       status: n === 4 ? "ok" : "err",
-      detail: n === 4 ? "12 tables, index, triggers et fonctions de file en place" : `${n}/4 tables critiques`,
+      detail:
+        n === 4
+          ? `${applied} instructions appliquées — 12 tables, index, triggers et fonctions de file en place`
+          : `${n}/4 tables critiques après ${applied} instructions`,
     });
 
     let inserted = 0;

@@ -13,6 +13,8 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { fetchFeed, hashIncident } from "../src/lib/feeds";
 import { APP_URL } from "../src/lib/env";
+import { splitSqlStatements } from "../src/lib/sqlfile";
+import { readFileSync } from "node:fs";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -214,6 +216,33 @@ async function main() {
     ok(label, () => assert.equal(APP_URL(), expected));
   }
   for (const k of ["APP_URL", "VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL"]) delete process.env[k];
+
+  console.log("\nDécoupage SQL");
+  // Régression réelle : le schéma envoyé d'un bloc était interrompu par le
+  // pooler Supabase (« statement timeout »), laissant la base à moitié créée.
+  const schema = readFileSync("supabase/schema.sql", "utf8");
+  const statements = splitSqlStatements(schema);
+  ok(`le schéma se découpe en instructions (${statements.length})`, () =>
+    assert.ok(statements.length > 30),
+  );
+  ok("aucun bloc dollar-quoté n'est coupé", () => {
+    for (const st of statements) assert.equal((st.match(/\$\$/g) ?? []).length % 2, 0);
+  });
+  ok("les corps de fonction restent entiers", () => {
+    const claim = statements.find((st) => st.includes("claim_alert_deliveries"));
+    assert.ok(claim?.includes("skip locked"));
+    assert.ok(claim?.includes("returning d.*"));
+  });
+  ok("point-virgule dans une chaîne, un commentaire ou un bloc", () => {
+    const tricky = splitSqlStatements(
+      `select ';' as a; -- commentaire ; ici\nselect 2; /* bloc ; ici */ do $x$ begin perform 1; end $x$;`,
+    );
+    assert.equal(tricky.length, 3);
+    assert.ok(tricky[2].includes("perform 1;"));
+  });
+  ok("les commentaires seuls ne produisent pas d'instruction vide", () =>
+    assert.equal(splitSqlStatements("-- rien du tout\n\n-- non plus\n").length, 0),
+  );
 
   console.log("\nErreurs");
   await assert.rejects(

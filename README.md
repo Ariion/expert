@@ -504,10 +504,12 @@ Ce qui a été exécuté et vérifié :
 - `npm run typecheck` — aucune erreur.
 - `npx next build` — build complet, **267 URLs** générées (71 pages
   fournisseur, 14 catégories, ~178 comparatifs), sitemap et robots inclus.
-- `npm run selftest` — **21 vérifications** : parseurs Statuspage v2, Atom et
+- `npm run selftest` — **26 vérifications** : parseurs Statuspage v2, Atom et
   RSS, en-têtes conditionnels 304, nettoyage HTML, empreintes de
-  déduplication, remontée d'erreur HTTP, et résolution de l'URL publique
-  (variable vide, blancs, valeur invalide, repli sur le domaine Vercel).
+  déduplication, remontée d'erreur HTTP, résolution de l'URL publique
+  (variable vide, blancs, valeur invalide, repli sur le domaine Vercel) et
+  découpage du schéma SQL (blocs dollar-quotés, chaînes et commentaires
+  contenant des points-virgules).
 - **Test d'intégration de bout en bout sur un PostgreSQL 16 réel** — 18
   vérifications : schéma appliqué, trigger de compteur, backfill silencieux,
   détection d'incident, exclusion des archives et des comptes non vérifiés,
