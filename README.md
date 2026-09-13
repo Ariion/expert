@@ -288,8 +288,14 @@ besoin de `psql`).
 ### Étape 2 — Stripe (5 min)
 
 Créer le compte, puis renseigner l'activité, l'identité et l'IBAN
-(vérification obligatoire pour recevoir des fonds). Copier ensuite la clé
-secrète dans *Développeurs → Clés API*.
+(vérification obligatoire pour recevoir des fonds). Copier ensuite, dans
+*Développeurs → Clés API*, la **clé secrète** (`sk_…`, bouton « Reveal secret
+key ») — et non la clé publiable (`pk_…`) affichée juste au-dessus, qui ne
+sert qu'au navigateur. `npm run setup` refuse explicitement la mauvaise.
+
+Une clé `sk_test_…` permet de valider tout le tunnel de paiement avec les
+[cartes de test Stripe](https://stripe.com/docs/testing) sans encaisser un
+centime ; basculez sur `sk_live_…` une fois le compte validé.
 
 Rien d'autre : produits, tarifs, webhook et portail client sont créés par le
 script.

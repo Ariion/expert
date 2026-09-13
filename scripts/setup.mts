@@ -107,6 +107,100 @@ await ask("STRIPE_SECRET_KEY", "Clé secrète Stripe (Développeurs > Clés API)
 await ask("RESEND_API_KEY", "Clé API Resend", { example: "re_…" });
 await ask("EMAIL_FROM", "Expéditeur des emails", { example: "StatusPulse <alertes@votredomaine.com>" });
 await ask("OPS_ALERT_EMAIL", "Votre email personnel pour les alertes système (fortement conseillé)");
+
+// ---------------------------------------------------------------------------
+// Validation des saisies
+//
+// Chaque règle correspond à une erreur réellement commise en conditions
+// réelles. Les détecter ici coûte une seconde ; les détecter en production
+// coûte un paiement perdu ou une base injoignable.
+// ---------------------------------------------------------------------------
+interface Rule {
+  key: string;
+  label: string;
+  fatal: (v: string) => string | null;
+  warn?: (v: string) => string | null;
+}
+
+const RULES: Rule[] = [
+  {
+    key: "DATABASE_URL",
+    label: "URL Postgres (Supabase > Database > Transaction pooler, port 6543)",
+    fatal: (v) => {
+      if (!/^postgres(ql)?:\/\//.test(v)) return "doit commencer par postgresql://";
+      if (/\[YOUR-PASSWORD\]|MOT_DE_PASSE|\[PASSWORD\]/i.test(v))
+        return "le mot de passe n'a pas été remplacé dans l'URL";
+      return null;
+    },
+    warn: (v) =>
+      v.includes(":6543")
+        ? null
+        : "port 5432 détecté : en serverless il faut la chaîne « Transaction pooler » (port 6543), sinon les connexions s'épuisent",
+  },
+  {
+    key: "APP_URL",
+    label: "URL publique du site, sans slash final",
+    fatal: (v) => (/^https?:\/\/.+/.test(v) ? null : "doit être une URL complète (https://…)"),
+    warn: (v) =>
+      v.startsWith("https://") || v.includes("localhost")
+        ? null
+        : "une URL en http:// cassera les cookies de session en production",
+  },
+  {
+    key: "STRIPE_SECRET_KEY",
+    label: "Clé SECRÈTE Stripe (Développeurs > Clés API > « Reveal secret key »)",
+    fatal: (v) => {
+      if (v.startsWith("pk_"))
+        return "c'est la clé PUBLIABLE (pk_…), qui ne sert qu'au navigateur. Il faut la clé secrète, juste en dessous dans le tableau de bord : « Reveal secret key » (sk_…)";
+      if (!/^(sk|rk)_(test|live)_/.test(v))
+        return "format inattendu : une clé secrète commence par sk_test_ ou sk_live_";
+      return null;
+    },
+    warn: (v) =>
+      v.startsWith("sk_test_")
+        ? "clé de TEST : parfait pour valider le tunnel de paiement, mais aucun euro réel ne sera encaissé. Repassez en clé live_ une fois le compte Stripe validé"
+        : null,
+  },
+  {
+    key: "RESEND_API_KEY",
+    label: "Clé API Resend",
+    fatal: (v) => (v.startsWith("re_") ? null : "une clé Resend commence par re_"),
+  },
+  {
+    key: "EMAIL_FROM",
+    label: "Expéditeur des emails",
+    fatal: (v) =>
+      /@[^@\s]+\.[^@\s]{2,}/.test(v)
+        ? null
+        : "doit contenir une adresse email valide, ex. StatusPulse <alertes@votredomaine.com>",
+  },
+];
+
+const warnings: string[] = [];
+
+for (let pass = 0; pass < 3; pass++) {
+  const bad = RULES.map((r) => ({ r, msg: env[r.key] ? r.fatal(env[r.key]) : null })).filter((x) => x.msg);
+  if (bad.length === 0) break;
+
+  console.log("");
+  for (const { r, msg } of bad) {
+    console.log(`  ${C.err("✗")} ${C.b(r.key)} — ${msg}`);
+    if (!rl) continue;
+    delete env[r.key];
+  }
+  if (!rl) {
+    console.log(C.err("\n  Corrigez ces valeurs et relancez.\n"));
+    process.exit(1);
+  }
+  console.log("");
+  for (const { r } of bad) await ask(r.key, r.label, { required: true });
+}
+
+for (const r of RULES) {
+  const w = env[r.key] && r.warn ? r.warn(env[r.key]) : null;
+  if (w) warnings.push(`${r.key} — ${w}`);
+}
+
 rl?.close();
 
 env.APP_URL = (env.APP_URL ?? "").replace(/\/$/, "");
@@ -485,6 +579,10 @@ if (env.APP_URL?.startsWith("https://")) {
 // Rapport final
 // ---------------------------------------------------------------------------
 const todos = steps.filter((s) => s.todo).map((s) => s.todo!);
+if (warnings.length) {
+  console.log(`\n${C.b("À savoir")}\n`);
+  for (const w of warnings) console.log(`  ${C.warn("!")} ${w}`);
+}
 const errors = steps.filter((s) => s.status === "err");
 
 console.log(`\n${C.b("Résultat")}\n`);
