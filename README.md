@@ -61,7 +61,7 @@ Dépôt GitHub → onglet **Actions** → dans la colonne de gauche,
 Le workflow fait alors, tout seul, sur les serveurs de GitHub :
 
 - application des 12 tables SQL sur votre base Supabase ;
-- installation des 71 fournisseurs et test de leurs flux un par un ;
+- installation des 145 fournisseurs et test de leurs flux un par un ;
 - création des produits et tarifs Stripe (Pro 19 €, Team 49 €) ;
 - création du webhook Stripe **et récupération de sa clé de signature** ;
 - configuration du portail de facturation (résiliation en self-service) ;
@@ -227,10 +227,12 @@ Chaque fournisseur du catalogue génère automatiquement :
 - `/categories/<catégorie>` — page d'agrégation par maillon d'infrastructure ;
 - `/compare/<a>-vs-<b>` — comparatif de fiabilité, à intention commerciale.
 
-71 fournisseurs dans le catalogue de départ produisent déjà **267 URLs**
-indexables, dont le contenu se met à jour tout seul toutes les 2 à 5 minutes.
-Ajouter un fournisseur = ajouter une ligne dans `src/data/services.ts` : la page,
-le sitemap, l'ingestion et les alertes suivent, sans redéploiement.
+145 fournisseurs dans le catalogue produisent **575 URLs** indexables, dont le
+contenu se met à jour tout seul toutes les 2 à 5 minutes. Ajouter un fournisseur
+= ajouter une ligne dans `src/data/services.ts` : la page, le sitemap,
+l'ingestion et les alertes suivent. La collecte insère d'elle-même les
+fournisseurs présents dans le code et absents de la base, donc aucune commande
+n'est à lancer pour qu'une nouvelle page existe.
 
 Ces requêtes (« slack down », « aws panne », « github status ») ont trois
 propriétés rares réunies : volume élevé, intention immédiate, et un visiteur
@@ -248,6 +250,11 @@ Recherche « stripe down »
                   └─> compte Free actif : 3 fournisseurs, alertes différées 15 min
                        └─> l'utilisateur ajoute un 4ᵉ fournisseur  ──> mur payant
                             └─> Stripe Checkout ──> Pro 19 €/mois
+
+Le raccourci existe aussi : un visiteur peut aller droit au paiement sans
+compte. Stripe collecte l'email, le webhook crée le compte et envoie le lien de
+connexion. Chaque écran placé avant le formulaire de carte se paie en
+conversions perdues ; il n'en reste aucun.
 ```
 
 Les deux limites du plan Free sont choisies pour faire mal exactement là où la
@@ -531,9 +538,11 @@ bloquée, webhook Stripe en échec répété, flux fournisseurs massivement cass
 Ce qui a été exécuté et vérifié :
 
 - `npm run typecheck` — aucune erreur.
-- `npx next build` — build complet, **267 URLs** générées (71 pages
-  fournisseur, 14 catégories, ~178 comparatifs), sitemap et robots inclus.
-- `npm run selftest` — **26 vérifications** : parseurs Statuspage v2, Atom et
+- `npx next build` — build complet ; le sitemap publie **575 URLs** (145 pages
+  fournisseur, 14 catégories, 411 comparatifs), robots inclus. Le build lui-même
+  n'interroge pas la base : les pages sont rendues à la demande puis mises en
+  cache, ce qui garde le déploiement sous la barre des vingt secondes.
+- `npm run selftest` — **27 vérifications** : parseurs Statuspage v2, Atom et
   RSS, en-têtes conditionnels 304, nettoyage HTML, empreintes de
   déduplication, remontée d'erreur HTTP, résolution de l'URL publique
   (variable vide, blancs, valeur invalide, repli sur le domaine Vercel) et
@@ -546,12 +555,12 @@ Ce qui a été exécuté et vérifié :
   notification de résolution, remise en file avec backoff après échec d'envoi,
   calcul de disponibilité au prorata, purge, watchdog, backoff sur flux mort.
 - Routes HTTP vérifiées sur un serveur de production local : pages, sitemap
-  (267 URLs), `robots.txt`, JSON-LD `FAQPage`/`BreadcrumbList`, `/api/health`,
+  (575 URLs), `robots.txt`, JSON-LD `FAQPage`/`BreadcrumbList`, `/api/health`,
   rejet des crons non authentifiés (401), rejet du webhook Stripe non signé
   (400), redirection du tableau de bord non connecté, création de compte via
   le formulaire public.
 - `npm run setup` exécuté sur une base **vierge** : schéma appliqué sans
-  `psql`, 71 fournisseurs installés, flux testés un par un, garde-fou vérifié
+  `psql`, 145 fournisseurs installés, flux testés un par un, garde-fou vérifié
   (au-delà de 50 % d'échecs, aucune désactivation n'est appliquée — un taux
   pareil trahit le réseau local, pas les fournisseurs), `.env.local` écrit,
   relance idempotente sans doublon.
@@ -562,7 +571,7 @@ Ce qui n'a **pas** pu être vérifié ici (l'environnement de développement
 utilisé bloque tout appel sortant vers des domaines tiers) et doit l'être au
 déploiement :
 
-- **L'accessibilité réelle des 71 flux fournisseurs.** Les URLs suivent les
+- **L'accessibilité réelle des 145 flux fournisseurs.** Les URLs suivent les
   conventions publiques (`/api/v2/summary.json` pour Statuspage.io, flux
   Atom/RSS officiels pour les autres), mais certaines ont pu changer.
   **Aucune action à prévoir : `npm run setup` les teste tous et désactive ceux
