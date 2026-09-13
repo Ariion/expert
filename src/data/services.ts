@@ -111,6 +111,104 @@ const STATUSPAGE: Row[] = [
   // --- IA ------------------------------------------------------------------
   ["openai", "OpenAI", "ia", "status.openai.com", "openai.com", "API de modèles de langage et d'images."],
   ["anthropic", "Anthropic", "ia", "status.anthropic.com", "anthropic.com", "API Claude et services associés."],
+
+  // --- Cloud & infrastructure (suite) -------------------------------------
+  ["ovhcloud", "OVHcloud", "cloud", "status.ovhcloud.com", "ovhcloud.com", "Hébergeur européen : serveurs, cloud public et domaines."],
+  ["scaleway", "Scaleway", "cloud", "status.scaleway.com", "scaleway.com", "Cloud français : instances, stockage objet et Kubernetes."],
+  ["clever-cloud", "Clever Cloud", "cloud", "status.clever-cloud.com", "clever-cloud.com", "PaaS français pour applications et bases managées."],
+  ["linode", "Akamai Linode", "cloud", "status.linode.com", "linode.com", "Serveurs virtuels et stockage."],
+  ["vultr", "Vultr", "cloud", "status.vultr.com", "vultr.com", "Instances cloud et bare metal."],
+  ["hetzner", "Hetzner", "cloud", "status.hetzner.com", "hetzner.com", "Serveurs dédiés et cloud à bas coût."],
+  ["bunny-net", "Bunny.net", "cloud", "status.bunny.net", "bunny.net", "CDN, stockage et streaming vidéo."],
+  ["deno-deploy", "Deno Deploy", "cloud", "status.deno.com", "deno.com", "Exécution JavaScript à la périphérie."],
+  ["koyeb", "Koyeb", "cloud", "status.koyeb.com", "koyeb.com", "Plateforme serverless européenne."],
+  ["upcloud", "UpCloud", "cloud", "status.upcloud.com", "upcloud.com", "Serveurs cloud à stockage rapide."],
+
+  // --- Données -------------------------------------------------------------
+  ["mongodb-cloud", "MongoDB Cloud", "donnees", "status.cloud.mongodb.com", "mongodb.com", "Services cloud MongoDB."],
+  ["cockroachdb", "CockroachDB Cloud", "donnees", "status.cockroachlabs.cloud", "cockroachlabs.com", "Base SQL distribuée managée."],
+  ["clickhouse", "ClickHouse Cloud", "donnees", "status.clickhouse.com", "clickhouse.com", "Entrepôt analytique en colonnes."],
+  ["fivetran", "Fivetran", "donnees", "status.fivetran.com", "fivetran.com", "Pipelines de données managés."],
+  ["dbt-cloud", "dbt Cloud", "donnees", "status.getdbt.com", "getdbt.com", "Transformation de données analytiques."],
+  ["meilisearch", "Meilisearch Cloud", "donnees", "status.meilisearch.com", "meilisearch.com", "Moteur de recherche français hébergé."],
+  ["typesense", "Typesense Cloud", "donnees", "status.typesense.org", "typesense.org", "Moteur de recherche open source hébergé."],
+
+  // --- Paiement et finance -------------------------------------------------
+  ["mollie", "Mollie", "paiement", "status.mollie.com", "mollie.com", "Paiements en ligne européens."],
+  ["gocardless", "GoCardless", "paiement", "status.gocardless.com", "gocardless.com", "Prélèvements SEPA et récurrents."],
+  ["checkout-com", "Checkout.com", "paiement", "status.checkout.com", "checkout.com", "Passerelle de paiement internationale."],
+  ["paddle", "Paddle", "paiement", "status.paddle.com", "paddle.com", "Vendeur de référence pour éditeurs de logiciels."],
+  ["square", "Square", "paiement", "status.squareup.com", "squareup.com", "Encaissement en ligne et en boutique."],
+  ["wise", "Wise", "paiement", "status.wise.com", "wise.com", "Transferts et comptes multidevises."],
+  ["qonto", "Qonto", "paiement", "status.qonto.com", "qonto.com", "Compte professionnel français."],
+  ["revolut-business", "Revolut Business", "paiement", "status.revolut.com", "revolut.com", "Compte professionnel et cartes."],
+
+  // --- Développement -------------------------------------------------------
+  ["gitlab", "GitLab", "developpement", "status.gitlab.com", "gitlab.com", "Hébergement Git, CI/CD et registre."],
+  ["docker-hub", "Docker Hub", "developpement", "status.docker.com", "docker.com", "Registre d'images de conteneurs."],
+  ["hashicorp", "HashiCorp Cloud", "developpement", "status.hashicorp.com", "hashicorp.com", "Terraform Cloud, Vault et Consul."],
+  ["sonarcloud", "SonarCloud", "developpement", "status.sonarsource.com", "sonarsource.com", "Analyse de qualité de code."],
+  ["codecov", "Codecov", "developpement", "status.codecov.io", "codecov.io", "Couverture de tests."],
+  ["pypi", "PyPI", "developpement", "status.python.org", "pypi.org", "Registre de paquets Python."],
+  ["jfrog", "JFrog", "developpement", "status.jfrog.io", "jfrog.com", "Gestion d'artefacts logiciels."],
+
+  // --- Communication et support -------------------------------------------
+  ["vonage", "Vonage", "communication", "status.vonage.com", "vonage.com", "API voix, SMS et vidéo."],
+  ["ringcentral", "RingCentral", "communication", "status.ringcentral.com", "ringcentral.com", "Téléphonie et visioconférence d'entreprise."],
+  ["crisp", "Crisp", "support", "status.crisp.chat", "crisp.chat", "Messagerie client française."],
+  ["freshworks", "Freshworks", "support", "status.freshworks.com", "freshworks.com", "Helpdesk et CRM."],
+  ["pipedrive", "Pipedrive", "support", "status.pipedrive.com", "pipedrive.com", "CRM commercial."],
+
+  // --- Email ---------------------------------------------------------------
+  ["mailgun", "Mailgun", "email", "status.mailgun.com", "mailgun.com", "API d'envoi d'emails transactionnels."],
+  ["brevo", "Brevo", "email", "status.brevo.com", "brevo.com", "Emailing et automatisation, éditeur français."],
+  ["mailjet", "Mailjet", "email", "status.mailjet.com", "mailjet.com", "Emailing transactionnel et marketing français."],
+  ["resend", "Resend", "email", "status.resend.com", "resend.com", "API d'envoi d'emails pour développeurs."],
+  ["customer-io", "Customer.io", "email", "status.customer.io", "customer.io", "Messagerie comportementale."],
+
+  // --- Observabilité -------------------------------------------------------
+  ["betterstack", "Better Stack", "observabilite", "status.betterstack.com", "betterstack.com", "Surveillance de disponibilité et logs."],
+  ["logrocket", "LogRocket", "observabilite", "status.logrocket.com", "logrocket.com", "Rejeu de sessions et suivi d'erreurs."],
+  ["honeycomb", "Honeycomb", "observabilite", "status.honeycomb.io", "honeycomb.io", "Observabilité de systèmes distribués."],
+  ["opsgenie", "Opsgenie", "observabilite", "opsgenie.status.atlassian.com", "atlassian.com", "Astreinte et alerting."],
+
+  // --- Sécurité et identité ------------------------------------------------
+  ["clerk", "Clerk", "securite", "status.clerk.com", "clerk.com", "Authentification et gestion d'utilisateurs."],
+  ["workos", "WorkOS", "securite", "status.workos.com", "workos.com", "SSO et annuaire pour applications B2B."],
+  ["1password", "1Password", "securite", "status.1password.com", "1password.com", "Gestionnaire de mots de passe d'équipe."],
+  ["bitwarden", "Bitwarden", "securite", "status.bitwarden.com", "bitwarden.com", "Gestionnaire de mots de passe open source."],
+  ["dashlane", "Dashlane", "securite", "status.dashlane.com", "dashlane.com", "Gestionnaire de mots de passe français."],
+  ["cloudflare-zero-trust", "Cloudflare Zero Trust", "securite", "www.cloudflarestatus.com", "cloudflare.com", "Accès réseau sans confiance implicite."],
+
+  // --- Productivité --------------------------------------------------------
+  ["monday", "monday.com", "productivite", "status.monday.com", "monday.com", "Gestion de projet visuelle."],
+  ["clickup", "ClickUp", "productivite", "status.clickup.com", "clickup.com", "Gestion de tâches et de documents."],
+  ["asana", "Asana", "productivite", "status.asana.com", "asana.com", "Gestion de projet d'équipe."],
+  ["canva", "Canva", "productivite", "status.canva.com", "canva.com", "Création graphique en ligne."],
+  ["cal-com", "Cal.com", "productivite", "status.cal.com", "cal.com", "Prise de rendez-vous open source."],
+  ["framer", "Framer", "productivite", "status.framer.com", "framer.com", "Création de sites pour designers."],
+  ["webflow-status", "Webflow Cloud", "productivite", "status.webflow.com", "webflow.com", "Hébergement des sites Webflow."],
+
+  // --- Ressources humaines et finance (France) -----------------------------
+  ["payfit", "PayFit", "productivite", "status.payfit.com", "payfit.com", "Paie et RH, éditeur français."],
+  ["pennylane", "Pennylane", "productivite", "status.pennylane.com", "pennylane.com", "Comptabilité et pilotage financier français."],
+  ["spendesk", "Spendesk", "paiement", "status.spendesk.com", "spendesk.com", "Gestion des dépenses professionnelles."],
+  ["lucca", "Lucca", "productivite", "status.lucca.fr", "lucca.fr", "Logiciels RH français."],
+
+  // --- IA ------------------------------------------------------------------
+  ["mistral-ai", "Mistral AI", "ia", "status.mistral.ai", "mistral.ai", "Modèles de langage européens."],
+  ["hugging-face", "Hugging Face", "ia", "status.huggingface.co", "huggingface.co", "Modèles, jeux de données et inférence."],
+  ["replicate", "Replicate", "ia", "status.replicate.com", "replicate.com", "Exécution de modèles à la demande."],
+  ["elevenlabs", "ElevenLabs", "ia", "status.elevenlabs.io", "elevenlabs.io", "Synthèse vocale."],
+  ["pinecone", "Pinecone", "ia", "status.pinecone.io", "pinecone.io", "Base vectorielle managée."],
+  ["groq", "Groq", "ia", "status.groq.com", "groq.com", "Inférence de modèles à très faible latence."],
+
+  // --- E-commerce et marketing --------------------------------------------
+  ["bigcommerce", "BigCommerce", "ecommerce", "status.bigcommerce.com", "bigcommerce.com", "Plateforme e-commerce hébergée."],
+  ["lemonsqueezy", "Lemon Squeezy", "ecommerce", "status.lemonsqueezy.com", "lemonsqueezy.com", "Vente de produits numériques, vendeur de référence."],
+  ["imgix", "imgix", "marketing", "status.imgix.com", "imgix.com", "Traitement et diffusion d'images."],
+  ["amplitude", "Amplitude", "marketing", "status.amplitude.com", "amplitude.com", "Analyse de produit."],
+  ["posthog", "PostHog", "marketing", "status.posthog.com", "posthog.com", "Analyse de produit open source."],
 ];
 
 /** Fournisseurs hors Statuspage : flux RSS/Atom officiels. */
@@ -203,12 +301,28 @@ const EXPLICIT_ALTS: Record<string, string[]> = {
     "https://planetscale.statuspage.io/api/v2/summary.json",
     "https://www.planetscalestatus.com/api/v2/summary.json",
   ],
-  databricks: ["https://status.databricks.com/history.rss"],
+  databricks: [
+    "https://status.databricks.com/api/v2/summary.json",
+    "https://databricks.statuspage.io/api/v2/summary.json",
+    "https://status.databricks.com/history.rss",
+  ],
   postmark: ["https://postmark.statuspage.io/api/v2/summary.json"],
-  zendesk: ["https://zendesk.statuspage.io/api/v2/summary.json"],
-  mailchimp: ["https://mailchimp.statuspage.io/api/v2/summary.json"],
+  zendesk: [
+    "https://zendesk.statuspage.io/api/v2/summary.json",
+    "https://support.zendesk.com/api/v2/summary.json",
+    "https://status.zendesk.com/history.rss",
+  ],
+  mailchimp: ["https://mailchimp.statuspage.io/api/v2/summary.json", "https://status.mailchimp.com/history.rss"],
+  okta: [
+    "https://trust.okta.com/api/v2/summary.json",
+    "https://status.okta.com/api/v2/summary.json",
+    "https://okta.statuspage.io/api/v2/summary.json",
+  ],
+  neon: ["https://neonstatus.com/api/v2/summary.json", "https://neon-status.statuspage.io/api/v2/summary.json"],
+  auth0: ["https://status.auth0.com/api/v2/summary.json", "https://auth0.statuspage.io/api/v2/summary.json"],
+  algolia: ["https://status.algolia.com/api/v2/summary.json", "https://algolia.statuspage.io/api/v2/summary.json"],
+  fastly: ["https://www.fastlystatus.com/api/v2/summary.json", "https://status.fastly.com/index.json"],
   "new-relic": ["https://newrelic.statuspage.io/api/v2/summary.json"],
-  okta: ["https://okta.statuspage.io/api/v2/summary.json"],
   snowflake: ["https://snowflake.statuspage.io/api/v2/summary.json"],
   box: ["https://box.statuspage.io/api/v2/summary.json"],
   dropbox: ["https://dropbox.statuspage.io/api/v2/summary.json"],
