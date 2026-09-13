@@ -86,6 +86,7 @@ for (const k of Object.keys(process.env)) {
  */
 let vercelRepoId: number | null = null;
 let vercelProjectName: string | null = null;
+let deploymentId: string | null = null;
 
 async function discoverVercel(): Promise<void> {
   if (!env.VERCEL_TOKEN) return;
@@ -727,6 +728,76 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
           : "Relancez « 1. Installation » : les variables manquantes seront repoussées (et les secrets régénérés si besoin).",
     });
 
+    // -----------------------------------------------------------------------
+    // Vérification par relecture.
+    //
+    // Une écriture acceptée n'est pas une écriture appliquée : un doublon de
+    // clé, une entrée créée pour une autre cible ou une valeur restée vide
+    // suffisent à faire tourner le site en production avec l'ancienne
+    // configuration, sans qu'aucune étape ne signale quoi que ce soit. On
+    // relit donc ce que la plateforme a réellement enregistré.
+    // -----------------------------------------------------------------------
+    try {
+      const res = await fetch(
+        `https://api.vercel.com/v9/projects/${env.VERCEL_PROJECT_ID}/env?decrypt=true${teamQS}`,
+        { headers: { authorization: `Bearer ${env.VERCEL_TOKEN}` }, signal: AbortSignal.timeout(20000) },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { envs = [] } = (await res.json()) as {
+        envs?: Array<{ id: string; key: string; value?: string | null; target?: string[] }>;
+      };
+
+      const wrong: string[] = [];
+      const duplicates: string[] = [];
+      let undecryptable = 0;
+
+      for (const key of wanted) {
+        const entries = envs.filter((e) => e.key === key && (e.target ?? []).includes("production"));
+        if (entries.length === 0) {
+          wrong.push(`${key} (absente en production)`);
+          continue;
+        }
+        if (entries.length > 1) duplicates.push(key);
+
+        // Un doublon laissé en place rend le comportement imprévisible :
+        // on ne garde que l'entrée conforme.
+        for (const entry of entries) {
+          if (typeof entry.value !== "string") {
+            undecryptable++;
+            continue;
+          }
+          if (entry.value === env[key]) continue;
+          if (entries.length > 1) {
+            await fetch(
+              `https://api.vercel.com/v9/projects/${env.VERCEL_PROJECT_ID}/env/${entry.id}?${teamQS.slice(1)}`,
+              { method: "DELETE", headers: { authorization: `Bearer ${env.VERCEL_TOKEN}` }, signal: AbortSignal.timeout(20000) },
+            ).catch(() => {});
+          } else {
+            wrong.push(`${key} (valeur différente de celle envoyée)`);
+          }
+        }
+      }
+
+      record({
+        name: "Vérification des variables",
+        status: wrong.length === 0 ? "ok" : "err",
+        detail:
+          wrong.length === 0
+            ? `${wanted.length} relues et conformes${duplicates.length ? ` · ${duplicates.length} doublon(s) supprimé(s) : ${duplicates.join(", ")}` : ""}${undecryptable ? ` · ${undecryptable} non déchiffrable(s)` : ""}`
+            : `non conformes : ${wrong.join(", ")}`,
+        todo:
+          wrong.length === 0
+            ? undefined
+            : "Ces variables ne portent pas la valeur envoyée. Corrigez-les à la main dans Vercel > Settings > Environment Variables, puis relancez.",
+      });
+    } catch (err) {
+      record({
+        name: "Vérification des variables",
+        status: "warn",
+        detail: `relecture impossible : ${describe(err).slice(0, 100)}`,
+      });
+    }
+
     // Un déploiement existant ne voit pas les nouvelles variables : il faut en
     // relancer un. On le déclenche ici pour qu'aucun clic ne soit nécessaire.
     if (pushed && vercelRepoId) {
@@ -745,6 +816,10 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
         }),
         signal: AbortSignal.timeout(30000),
       });
+      if (dep.ok) {
+        const body = (await dep.json().catch(() => ({}))) as { id?: string; url?: string };
+        deploymentId = body.id ?? null;
+      }
       record({
         name: "Redéploiement",
         status: dep.ok ? "ok" : "warn",
@@ -796,10 +871,44 @@ if (process.env.GITHUB_ACTIONS) {
   record({ name: "Configuration écrite", status: "ok", detail: ENV_PATH });
 }
 
+// Un déploiement Vercel fige les variables d'environnement au moment où il est
+// créé : tant que le nouveau n'est pas promu, le site répond avec l'ancienne
+// configuration. Interroger sa santé avant cette bascule ne mesure rien.
+if (deploymentId && env.VERCEL_TOKEN) {
+  const teamQS = env.VERCEL_TEAM_ID ? `?teamId=${env.VERCEL_TEAM_ID}` : "";
+  const deadline = Date.now() + 8 * 60_000;
+  let state = "QUEUED";
+  console.log(C.dim("    (construction du nouveau déploiement…)"));
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(`https://api.vercel.com/v13/deployments/${deploymentId}${teamQS}`, {
+        headers: { authorization: `Bearer ${env.VERCEL_TOKEN}` },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { readyState?: string; status?: string };
+        state = body.readyState ?? body.status ?? state;
+        if (["READY", "ERROR", "CANCELED"].includes(state)) break;
+      }
+    } catch {
+      /* on retente */
+    }
+    await new Promise((r) => setTimeout(r, 10000));
+  }
+  record({
+    name: "Déploiement",
+    status: state === "READY" ? "ok" : "err",
+    detail: `état final : ${state}`,
+    todo:
+      state === "READY"
+        ? undefined
+        : "Le déploiement n'a pas abouti. Ouvrez l'onglet Deployments de Vercel pour lire le journal de build.",
+  });
+}
+
 if (env.APP_URL?.startsWith("https://")) {
   try {
-    // Un redéploiement prend une à trois minutes : on patiente plutôt que de
-    // conclure à tort que le site est cassé.
+    // Même une fois le déploiement prêt, la promotion prend quelques secondes.
     let res: Response | null = null;
     const deadline = Date.now() + 5 * 60_000;
     for (let attempt = 1; ; attempt++) {
