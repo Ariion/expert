@@ -48,6 +48,18 @@ interface Step {
   detail: string;
   todo?: string;
 }
+/**
+ * `String(err)` sur une erreur de fetch donne « TypeError: fetch failed » et
+ * perd la vraie raison, qui vit dans `cause`. On la fait remonter.
+ */
+function describe(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const cause = (err as { cause?: unknown }).cause;
+  const detail =
+    cause instanceof Error ? ` — ${cause.message}` : cause ? ` — ${String(cause)}` : "";
+  return `${err.message}${detail}`;
+}
+
 const steps: Step[] = [];
 const record = (s: Step) => {
   steps.push(s);
@@ -401,11 +413,27 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
       });
     }
   } catch (err) {
+    const message = describe(err);
+    const authFailure = /password authentication failed|SASL|authentication/i.test(message);
+    const url = env.DATABASE_URL ?? "";
+    const looksDirect = /@db\.[^/]*supabase\.co/.test(url) || !url.includes("pooler.supabase.com");
+    const hasSpecialChars = /:\/\/[^:]+:[^@]*[#/?\[\]@%][^@]*@/.test(url);
+
     record({
       name: "Base de données",
       status: "err",
-      detail: String(err).slice(0, 160),
-      todo: "Vérifier DATABASE_URL (chaîne « Transaction pooler », port 6543, mot de passe inclus).",
+      detail: message.slice(0, 160),
+      todo: authFailure
+        ? "Le serveur a répondu, mais a refusé le mot de passe. Trois causes, par ordre de fréquence : " +
+          (hasSpecialChars
+            ? "(1) votre mot de passe contient un caractère spécial (@ : / ? # [ ] %) qui casse l'URL — le plus probable ici ; "
+            : "(1) le mot de passe est erroné ; ") +
+          (looksDirect
+            ? "(2) vous avez copié l'onglet « Direct connection » au lieu de « Transaction pooler » — l'URL doit contenir pooler.supabase.com:6543 ; "
+            : "(2) l'URL semble correcte côté hôte ; ") +
+          "(3) le mot de passe a été changé depuis. Solution la plus sûre : Supabase > Settings > Database > Reset database password, " +
+          "choisissez un mot de passe composé uniquement de lettres et de chiffres, puis recomposez l'URL de l'onglet Transaction pooler."
+        : "Vérifier DATABASE_URL (chaîne « Transaction pooler », port 6543, mot de passe inclus).",
     });
   } finally {
     await sql.end({ timeout: 5 });
@@ -457,7 +485,7 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
       detail: `Pro 19 €/mois et Team 49 €/mois prêts (${env.STRIPE_PRICE_PRO}, ${env.STRIPE_PRICE_TEAM})`,
     });
   } catch (err) {
-    record({ name: "Produits et tarifs Stripe", status: "err", detail: String(err).slice(0, 160) });
+    record({ name: "Produits et tarifs Stripe", status: "err", detail: describe(err).slice(0, 160) });
   }
 
   // --- Webhook -------------------------------------------------------------
@@ -493,7 +521,7 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
       });
     }
   } catch (err) {
-    record({ name: "Webhook Stripe", status: "err", detail: String(err).slice(0, 160) });
+    record({ name: "Webhook Stripe", status: "err", detail: describe(err).slice(0, 160) });
   }
 
   // --- Portail de facturation ---------------------------------------------
@@ -531,7 +559,7 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
     record({
       name: "Portail de facturation",
       status: "warn",
-      detail: String(err).slice(0, 140),
+      detail: describe(err).slice(0, 140),
       todo: "Activer le portail client dans Stripe > Paramètres > Facturation > Portail client.",
     });
   }
@@ -567,7 +595,7 @@ if (env.RESEND_API_KEY) {
           : "Ajouter votre domaine dans Resend et publier les DNS (SPF + DKIM) : sans cela les alertes partent en spam.",
     });
   } catch (err) {
-    record({ name: "Domaine d'envoi Resend", status: "warn", detail: String(err).slice(0, 140) });
+    record({ name: "Domaine d'envoi Resend", status: "warn", detail: describe(err).slice(0, 140) });
   }
 } else {
   record({ name: "Resend", status: "skip", detail: "clé absente" });
@@ -585,14 +613,19 @@ const VERCEL_KEYS = [
 
 if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
   const teamQS = env.VERCEL_TEAM_ID ? `&teamId=${env.VERCEL_TEAM_ID}` : "";
-  try {
-    const team = env.VERCEL_TEAM_ID ? `?teamId=${env.VERCEL_TEAM_ID}&upsert=true` : "?upsert=true";
-    let pushed = 0;
-    for (const key of VERCEL_KEYS) {
-      if (!env[key]) continue;
-      const res = await fetch(
-        `https://api.vercel.com/v10/projects/${env.VERCEL_PROJECT_ID}/env${team}`,
-        {
+
+  /**
+   * Un appel réseau isolé échoue de temps en temps ; onze appels d'affilée,
+   * régulièrement. Chaque variable est donc réessayée séparément, et l'échec de
+   * l'une n'empêche pas les autres : c'est toute la configuration du site en
+   * production qui dépend de cette étape.
+   */
+  async function pushEnv(key: string): Promise<string | null> {
+    const url = `https://api.vercel.com/v10/projects/${env.VERCEL_PROJECT_ID}/env?upsert=true${teamQS}`;
+    let last = "";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(url, {
           method: "POST",
           headers: { authorization: `Bearer ${env.VERCEL_TOKEN}`, "content-type": "application/json" },
           body: JSON.stringify({
@@ -602,14 +635,40 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
             target: ["production", "preview", "development"],
           }),
           signal: AbortSignal.timeout(20000),
-        },
-      );
-      if (res.ok) pushed++;
+        });
+        if (res.ok) return null;
+        last = `HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 90)}`;
+        if (res.status < 500 && res.status !== 429) return last; // erreur définitive
+      } catch (err) {
+        last = describe(err);
+      }
+      await new Promise((r) => setTimeout(r, 800 * 2 ** attempt));
     }
+    return last;
+  }
+
+  try {
+    const wanted = VERCEL_KEYS.filter((k) => env[k]);
+    const failures: string[] = [];
+    let pushed = 0;
+
+    for (const key of wanted) {
+      const failure = await pushEnv(key);
+      if (failure) failures.push(`${key} : ${failure}`);
+      else pushed++;
+    }
+
     record({
       name: "Variables Vercel",
-      status: pushed ? "ok" : "warn",
-      detail: `${pushed}/${VERCEL_KEYS.filter((k) => env[k]).length} poussées sur ${vercelProjectName ?? env.VERCEL_PROJECT_ID}`,
+      status: failures.length === 0 ? "ok" : pushed > 0 ? "warn" : "err",
+      detail:
+        failures.length === 0
+          ? `${pushed}/${wanted.length} poussées sur ${vercelProjectName ?? env.VERCEL_PROJECT_ID}`
+          : `${pushed}/${wanted.length} poussées · échecs : ${failures.slice(0, 3).join(" | ")}`,
+      todo:
+        failures.length === 0
+          ? undefined
+          : "Relancez « 1. Installation » : les variables manquantes seront repoussées (et les secrets régénérés si besoin).",
     });
 
     // Un déploiement existant ne voit pas les nouvelles variables : il faut en
@@ -645,7 +704,7 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
       });
     }
   } catch (err) {
-    record({ name: "Variables Vercel", status: "warn", detail: String(err).slice(0, 140) });
+    record({ name: "Variables Vercel", status: "err", detail: describe(err).slice(0, 140) });
   }
 } else {
   record({
@@ -664,7 +723,7 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
 if (process.env.GITHUB_ACTIONS) {
   // Sur un runner, écrire les secrets sur disque n'a aucune utilité : ils sont
   // déjà dans les secrets du dépôt et poussés vers Vercel.
-  record({ name: "Configuration", status: "ok", detail: "conservée dans les secrets du dépôt et dans Vercel" });
+  record({ name: "Configuration", status: "ok", detail: "conservée dans les secrets du dépôt (aucun fichier écrit sur le runner)" });
 } else {
   writeEnvFile(ENV_PATH, env);
   record({ name: "Configuration écrite", status: "ok", detail: ENV_PATH });
@@ -710,7 +769,7 @@ if (env.APP_URL?.startsWith("https://")) {
     record({
       name: "Site en ligne",
       status: "warn",
-      detail: String(err).slice(0, 120),
+      detail: describe(err).slice(0, 120),
       todo: "Déployer le site (Vercel) puis relancer `npm run setup` pour lancer la première collecte.",
     });
   }
