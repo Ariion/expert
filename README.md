@@ -104,8 +104,24 @@ gratuite de Vercel refuse toute fréquence supérieure à une fois par jour, ce
 qui bloquerait le déploiement, et une collecte quotidienne ne servirait à rien
 pour un produit qui vend de la réactivité.
 
-C'est donc GitHub Actions qui déclenche tout, toutes les 5 minutes. Deux
-conséquences à connaître :
+C'est donc GitHub Actions qui déclenche tout, toutes les 5 minutes — **mais
+sans garantie**, et c'est le point à connaître avant tout le reste.
+
+> ⚠️ **GitHub n'honore pas les planifications rapprochées.** Sa documentation
+> prévient que l'évènement `schedule` « peut être retardé en période de forte
+> charge » ; en pratique, sur un dépôt gratuit, la plupart des déclenchements
+> aux 5 minutes sont purement abandonnés. Mesuré ici : **deux exécutions en
+> treize heures**. Pour un produit dont la promesse est une détection en moins
+> de cinq minutes, c'est disqualifiant.
+>
+> Le workflow reste utile comme filet, mais le planificateur réel doit être
+> soit **[cron-job.org](https://cron-job.org)** (gratuit, à la minute près,
+> quatre tâches à créer), soit **Vercel Pro** (20 $/mois, tâches natives).
+> Les deux sont détaillés plus bas. Les tâches se bornent volontairement à
+> 25 secondes de travail pour tenir sous la limite de 30 secondes imposée par
+> les planificateurs gratuits ; ce qui n'est pas traité repart en tête de file.
+
+Deux conséquences à connaître également sur la visibilité du dépôt :
 
 | | Dépôt **public** (recommandé au départ) | Dépôt **privé** |
 |---|---|---|
