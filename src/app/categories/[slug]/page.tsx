@@ -3,19 +3,21 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { StatusBadge } from "@/components/StatusBadge";
 import { WatchForm } from "@/components/WatchForm";
-import { getCategories, getServicesByCategory } from "@/lib/queries";
+import { getServicesByCategory } from "@/lib/queries";
 import { faviconFor, timeAgo } from "@/lib/format";
 
 export const revalidate = 600;
 export const dynamicParams = true;
 
+/**
+ * Aucune page n'est pré-rendue au build : `dynamicParams` les génère à la
+ * première visite, puis l'ISR les maintient à jour. Pré-rendre des centaines de
+ * pages exigeait autant d'allers-retours vers la base pendant la compilation —
+ * un déploiement en est mort — pour un résultat que la revalidation remplace
+ * quelques minutes plus tard de toute façon.
+ */
 export async function generateStaticParams() {
-  try {
-    const cats = await getCategories();
-    return cats.map((c) => ({ slug: c.category }));
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({

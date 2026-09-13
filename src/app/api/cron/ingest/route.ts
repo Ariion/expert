@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { isAuthorizedCron, runCron } from "@/lib/http";
 import { ensureCatalog } from "@/lib/bootstrap";
 import { runIngestion } from "@/lib/ingest";
@@ -30,6 +31,19 @@ export async function GET(req: Request) {
       first.services === 40 && Date.now() < deadline - 15_000
         ? await runIngestion(40, 8, deadline)
         : { services: 0, changed: 0, queued: 0, deferred: 0 };
+    // Les pages d'ensemble sortent vides du build (aucune requête pendant la
+    // compilation) et ne se rafraîchiraient qu'à l'expiration de leur fenêtre
+    // de revalidation — jusqu'à une heure pour le sitemap. La collecte, qui
+    // connaît l'état réel, les rafraîchit elle-même : le site est juste dans
+    // les minutes qui suivent un déploiement, pas dans l'heure.
+    for (const path of ["/", "/status", "/categories", "/sitemap/0.xml"]) {
+      try {
+        revalidatePath(path);
+      } catch {
+        /* une revalidation qui échoue ne doit pas faire échouer la collecte */
+      }
+    }
+
     return {
       seeded,
       services: first.services + second.services,

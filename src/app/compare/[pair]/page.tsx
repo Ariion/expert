@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UptimeBar } from "@/components/UptimeBar";
 import { WatchForm } from "@/components/WatchForm";
-import { getAllServices, getDailyUptime, getServiceBySlug, type Service } from "@/lib/queries";
+import { getDailyUptime, getServiceBySlug } from "@/lib/queries";
 import { STATUS_LABEL, timeAgo } from "@/lib/format";
 
 /**
@@ -24,29 +24,15 @@ function splitPair(pair: string): [string, string] | null {
   return [pair.slice(0, idx), pair.slice(idx + 4)];
 }
 
+/**
+ * Aucune page n'est pré-rendue au build : `dynamicParams` les génère à la
+ * première visite, puis l'ISR les maintient à jour. Pré-rendre des centaines de
+ * pages exigeait autant d'allers-retours vers la base pendant la compilation —
+ * un déploiement en est mort — pour un résultat que la revalidation remplace
+ * quelques minutes plus tard de toute façon.
+ */
 export async function generateStaticParams() {
-  try {
-    const services = await getAllServices();
-    const byCat = new Map<string, Service[]>();
-    for (const s of services) {
-      if (!byCat.has(s.category)) byCat.set(s.category, []);
-      byCat.get(s.category)!.push(s);
-    }
-    const params: { pair: string }[] = [];
-    for (const list of byCat.values()) {
-      // On pré-génère les paires des services les plus suivis ; le reste est
-      // rendu à la demande puis mis en cache (dynamicParams).
-      const top = list.slice(0, 6);
-      for (let i = 0; i < top.length; i++) {
-        for (let j = i + 1; j < top.length; j++) {
-          params.push({ pair: `${top[i].slug}-vs-${top[j].slug}` });
-        }
-      }
-    }
-    return params;
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export async function generateMetadata({

@@ -2,6 +2,26 @@ import { cache } from "react";
 import { sql } from "./db";
 import type { ServiceStatus } from "./feeds";
 
+/**
+ * Le build ne doit jamais interroger la base.
+ *
+ * Les pages sont revalidées en continu (ISR) : les pré-rendre avec des données
+ * fraîches n'apporte rien, puisqu'elles seront de toute façon régénérées dans
+ * les minutes qui suivent. En revanche, faire traverser l'Atlantique à
+ * plusieurs centaines de requêtes pendant la compilation rend le déploiement
+ * lent, fragile, et dépendant de la disponibilité d'un service tiers — un
+ * déploiement a échoué exactement là-dessus.
+ *
+ * Pendant la phase de build, les lectures renvoient donc du vide. Les pages
+ * sortent instantanément, et se remplissent à la première visite.
+ */
+// La clé est assemblée à l'exécution : écrite en clair, `process.env.NEXT_PHASE`
+// serait remplacée par sa valeur au moment de la compilation, et le garde
+// resterait actif en production — les pages seraient servies vides pour
+// toujours. Un accès par clé calculée ne peut pas être remplacé.
+const PHASE_KEY = ["NEXT", "PHASE"].join("_");
+const isBuildPhase = () => process.env[PHASE_KEY] === "phase-production-build";
+
 export interface Service {
   id: string;
   slug: string;
@@ -41,6 +61,7 @@ const serviceCols = () => sql`
 
 /** `cache` déduplique les appels au sein d'un même rendu (layout + page + metadata). */
 export const getServiceBySlug = cache(async (slug: string): Promise<Service | null> => {
+  if (isBuildPhase()) return null;
   const [row] = await sql<Service[]>`
     select ${serviceCols()} from services where slug = ${slug} and is_active limit 1
   `;
@@ -48,18 +69,21 @@ export const getServiceBySlug = cache(async (slug: string): Promise<Service | nu
 });
 
 export const getAllServices = cache(async (): Promise<Service[]> => {
+  if (isBuildPhase()) return [];
   return sql<Service[]>`
     select ${serviceCols()} from services where is_active order by watcher_count desc, name asc
   `;
 });
 
 export async function getServiceSlugs(): Promise<{ slug: string; updated_at: Date }[]> {
+  if (isBuildPhase()) return [];
   return sql<{ slug: string; updated_at: Date }[]>`
     select slug, updated_at from services where is_active order by slug
   `;
 }
 
 export async function getIncidents(serviceId: string, limit = 25): Promise<Incident[]> {
+  if (isBuildPhase()) return [];
   return sql<Incident[]>`
     select id, service_id, title, body, url, impact, state, is_resolved, started_at, resolved_at
       from incidents
@@ -73,6 +97,7 @@ export async function getDailyUptime(
   serviceId: string,
   days = 90,
 ): Promise<{ day: string; uptime_pct: number; incident_count: number; downtime_minutes: number }[]> {
+  if (isBuildPhase()) return [];
   const rows = await sql<
     { day: Date; uptime_pct: number; incident_count: number; downtime_minutes: number }[]
   >`
@@ -87,6 +112,7 @@ export async function getDailyUptime(
 export async function getCategories(): Promise<
   { category: string; count: number; degraded: number }[]
 > {
+  if (isBuildPhase()) return [];
   return sql`
     select category,
            count(*)::int as count,
@@ -99,6 +125,7 @@ export async function getCategories(): Promise<
 }
 
 export async function getServicesByCategory(category: string): Promise<Service[]> {
+  if (isBuildPhase()) return [];
   return sql<Service[]>`
     select ${serviceCols()} from services
      where is_active and lower(category) = lower(${category})
@@ -109,6 +136,7 @@ export async function getServicesByCategory(category: string): Promise<Service[]
 export async function getRecentIncidents(limit = 12): Promise<
   (Incident & { service_name: string; service_slug: string; logo_domain: string | null })[]
 > {
+  if (isBuildPhase()) return [];
   return sql`
     select i.id, i.service_id, i.title, i.body, i.url, i.impact, i.state, i.is_resolved,
            i.started_at, i.resolved_at,
@@ -127,6 +155,7 @@ export async function getGlobalStats(): Promise<{
   degraded_now: number;
   watchers: number;
 }> {
+  if (isBuildPhase()) return { services: 0, incidents_30d: 0, degraded_now: 0, watchers: 0 };
   const [row] = await sql<any[]>`
     select (select count(*)::int from services where is_active) as services,
            (select count(*)::int from incidents where started_at > now() - interval '30 days') as incidents_30d,
@@ -142,6 +171,7 @@ export async function getRelatedServices(
   excludeId: string,
   limit = 8,
 ): Promise<Service[]> {
+  if (isBuildPhase()) return [];
   return sql<Service[]>`
     select ${serviceCols()} from services
      where is_active and category = ${category} and id <> ${excludeId}

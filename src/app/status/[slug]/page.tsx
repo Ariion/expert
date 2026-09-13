@@ -9,7 +9,6 @@ import {
   getIncidents,
   getRelatedServices,
   getServiceBySlug,
-  getServiceSlugs,
 } from "@/lib/queries";
 import { APP_URL, SITE_NAME } from "@/lib/env";
 import { IMPACT_LABEL, STATUS_LABEL, fmtDate, fmtDuration, faviconFor, timeAgo } from "@/lib/format";
@@ -24,13 +23,15 @@ import { IMPACT_LABEL, STATUS_LABEL, fmtDate, fmtDuration, faviconFor, timeAgo }
 export const revalidate = 120;
 export const dynamicParams = true;
 
+/**
+ * Aucune page n'est pré-rendue au build : `dynamicParams` les génère à la
+ * première visite, puis l'ISR les maintient à jour. Pré-rendre des centaines de
+ * pages exigeait autant d'allers-retours vers la base pendant la compilation —
+ * un déploiement en est mort — pour un résultat que la revalidation remplace
+ * quelques minutes plus tard de toute façon.
+ */
 export async function generateStaticParams() {
-  try {
-    const slugs = await getServiceSlugs();
-    return slugs.map((s) => ({ slug: s.slug }));
-  } catch {
-    return []; // pas de base au build : les pages seront générées à la demande
-  }
+  return [];
 }
 
 export async function generateMetadata({

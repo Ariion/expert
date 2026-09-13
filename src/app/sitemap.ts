@@ -14,6 +14,11 @@ import { getAllServices, getCategories, type Service } from "@/lib/queries";
  */
 const CHUNK = 5000;
 
+// Le sitemap sort vide du build (aucune requête pendant la compilation) puis se
+// remplit à la première revalidation : au plus une heure après le déploiement,
+// sans rien à déclencher.
+export const revalidate = 3600;
+
 async function buildUrls(): Promise<MetadataRoute.Sitemap> {
   const base = APP_URL();
   const now = new Date();

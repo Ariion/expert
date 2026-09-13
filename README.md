@@ -256,7 +256,7 @@ et crédible — mais il devient insuffisant dès que le produit sert vraiment.
 
 | Brique | Techno | Pourquoi |
 |---|---|---|
-| Application | Next.js 16 (App Router) | Pages SEO pré-rendues + ISR : le trafic ne touche jamais la base |
+| Application | Next.js 16 (App Router) | Pages SEO en cache + ISR : le trafic ne touche jamais la base |
 | Exécution | Vercel (serverless) | Zéro serveur à maintenir, mise à l'échelle automatique, coût nul à faible trafic |
 | Base | Postgres (Supabase) | Relationnel, transactionnel, fonctions de file `SKIP LOCKED` |
 | Paiement | Stripe Checkout + Billing Portal | Aucune page de paiement à écrire, aucune donnée bancaire chez nous, résiliation en self-service |
@@ -360,6 +360,19 @@ statuspulse/
 │ perdu) → watchdog : alerte si l'ingestion s'est arrêtée en silence.      │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Un build qui n'interroge jamais la base
+
+Aucune page n'est pré-rendue au moment de la compilation : elles sont générées
+à la première visite, puis maintenues à jour par revalidation. Pré-rendre les
+~260 pages exigeait autant d'allers-retours vers la base pendant le build —
+depuis un serveur de compilation qui n'est pas dans la même région que la base,
+chaque page dépassait la minute et le déploiement échouait.
+
+Le déploiement est ainsi **indépendant de la disponibilité de la base** et dure
+une quinzaine de secondes au lieu de plusieurs minutes. Les pages d'ensemble
+(accueil, liste, catégories, sitemap) sortent vides du build ; la première
+collecte, qui suit de quelques minutes, les rafraîchit elle-même.
 
 ### Ce qui garantit qu'on ne perd ni un paiement ni une alerte
 
