@@ -12,6 +12,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { fetchFeed, hashIncident } from "../src/lib/feeds";
+import { APP_URL } from "../src/lib/env";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -194,6 +195,25 @@ async function main() {
     const mutated = { ...sp.incidents[0], state: "resolved" as const };
     assert.notEqual(hashIncident(sp.incidents[0]), hashIncident(mutated));
   });
+
+  console.log("\nURL publique");
+  // Régression réelle : une variable déclarée mais VIDE (l'écran d'import de
+  // Vercel crée les clés sans valeur) faisait échouer le build sur
+  // « new URL('') ». Ces cas verrouillent le comportement.
+  const urlCases: Array<[Record<string, string>, string, string]> = [
+    [{ APP_URL: "https://statuspulse.app" }, "https://statuspulse.app", "valeur explicite"],
+    [{ APP_URL: "https://statuspulse.app/" }, "https://statuspulse.app", "slash final retiré"],
+    [{ APP_URL: "", VERCEL_PROJECT_PRODUCTION_URL: "expert.vercel.app" }, "https://expert.vercel.app", "vide -> domaine de production Vercel"],
+    [{ APP_URL: "   ", VERCEL_URL: "expert-abc.vercel.app" }, "https://expert-abc.vercel.app", "blancs -> URL de déploiement Vercel"],
+    [{ APP_URL: "pas-une-url", VERCEL_URL: "expert.vercel.app" }, "https://expert.vercel.app", "valeur invalide ignorée"],
+    [{}, "http://localhost:3000", "rien de défini -> développement local"],
+  ];
+  for (const [vars, expected, label] of urlCases) {
+    for (const k of ["APP_URL", "VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL"]) delete process.env[k];
+    Object.assign(process.env, vars);
+    ok(label, () => assert.equal(APP_URL(), expected));
+  }
+  for (const k of ["APP_URL", "VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL"]) delete process.env[k];
 
   console.log("\nErreurs");
   await assert.rejects(

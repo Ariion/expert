@@ -432,7 +432,7 @@ Modèle complet et commenté dans [`.env.example`](.env.example).
 | Variable | Où l'obtenir | Rôle |
 |---|---|---|
 | `DATABASE_URL` | Supabase → Database → **Transaction pooler** (port 6543) | Connexion Postgres |
-| `APP_URL` | votre domaine, sans slash final | Liens email, redirections Stripe, URL canoniques, sitemap |
+| `APP_URL` | *déduite du domaine Vercel si absente* | Liens email, redirections Stripe, URL canoniques, sitemap |
 | `STRIPE_SECRET_KEY` | Stripe → Développeurs → Clés API | Appels API Stripe |
 | `STRIPE_WEBHOOK_SECRET` | *rempli par `npm run setup`* | Vérification de signature |
 | `STRIPE_PRICE_PRO` | *rempli par `npm run setup`* | Mappe le paiement au plan Pro |
@@ -504,9 +504,10 @@ Ce qui a été exécuté et vérifié :
 - `npm run typecheck` — aucune erreur.
 - `npx next build` — build complet, **267 URLs** générées (71 pages
   fournisseur, 14 catégories, ~178 comparatifs), sitemap et robots inclus.
-- `npm run selftest` — **15 vérifications** sur les parseurs : Statuspage v2,
-  Atom, RSS, en-têtes conditionnels 304, nettoyage HTML, empreintes de
-  déduplication, remontée d'erreur HTTP.
+- `npm run selftest` — **21 vérifications** : parseurs Statuspage v2, Atom et
+  RSS, en-têtes conditionnels 304, nettoyage HTML, empreintes de
+  déduplication, remontée d'erreur HTTP, et résolution de l'URL publique
+  (variable vide, blancs, valeur invalide, repli sur le domaine Vercel).
 - **Test d'intégration de bout en bout sur un PostgreSQL 16 réel** — 18
   vérifications : schéma appliqué, trigger de compteur, backfill silencieux,
   détection d'incident, exclusion des archives et des comptes non vérifiés,
