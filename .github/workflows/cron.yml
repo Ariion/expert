@@ -7,8 +7,11 @@
 #
 # MISE EN ROUTE (2 minutes, une seule fois) :
 #   Repo GitHub > Settings > Secrets and variables > Actions > New secret
-#     APP_URL      = l'URL publique de votre site (ex. https://expert.vercel.app)
 #     CRON_SECRET  = la même valeur que celle utilisée par « 1. Installation »
+#
+# L'adresse du site n'a pas à être renseignée : « 1. Installation » la publie
+# dans .github/app-url.txt. Un secret APP_URL, s'il existe, reste prioritaire
+# (utile le jour où vous branchez un nom de domaine personnalisé).
 #
 # Ne rien faire d'autre : le workflow tourne ensuite tout seul.
 # (GitHub peut décaler un déclenchement de quelques minutes en cas de charge —
@@ -39,19 +42,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Vérifier la configuration
+      - uses: actions/checkout@v4
+
+      - name: Déterminer l'adresse du site
+        id: target
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "::error::Secrets APP_URL et CRON_SECRET à renseigner dans Settings > Secrets and variables > Actions."
+          URL="$APP_URL"
+          if [ -z "$URL" ] && [ -f .github/app-url.txt ]; then
+            URL="$(tr -d '[:space:]' < .github/app-url.txt)"
+          fi
+          if [ -z "$URL" ]; then
+            echo "::error::Adresse du site introuvable. Lancez « 1. Installation », ou ajoutez un secret APP_URL."
             exit 1
           fi
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Secret CRON_SECRET à renseigner dans Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Cible : $URL"
 
       - name: Déclencher les jobs
         env:
-          APP_URL: ${{ secrets.APP_URL }}
+          APP_URL: ${{ steps.target.outputs.url }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SCHEDULE: ${{ github.event.schedule }}
           MANUAL: ${{ inputs.job }}

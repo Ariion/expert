@@ -779,7 +779,18 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
 if (process.env.GITHUB_ACTIONS) {
   // Sur un runner, écrire les secrets sur disque n'a aucune utilité : ils sont
   // déjà dans les secrets du dépôt et poussés vers Vercel.
-  record({ name: "Configuration", status: "ok", detail: "conservée dans les secrets du dépôt (aucun fichier écrit sur le runner)" });
+  //
+  // L'URL publique, elle, est publiée dans le dépôt : ce n'est pas un secret,
+  // et c'est ainsi que le workflow d'automatisation sait quel site appeler,
+  // sans qu'on ait à la recopier nulle part.
+  const { writeFileSync, mkdirSync } = await import("node:fs");
+  mkdirSync(".github", { recursive: true });
+  writeFileSync(".github/app-url.txt", `${env.APP_URL}\n`);
+  record({
+    name: "Configuration",
+    status: "ok",
+    detail: `secrets conservés dans le dépôt · URL publiée (${env.APP_URL})`,
+  });
 } else {
   writeEnvFile(ENV_PATH, env);
   record({ name: "Configuration écrite", status: "ok", detail: ENV_PATH });

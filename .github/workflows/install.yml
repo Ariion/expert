@@ -15,6 +15,9 @@ name: 1. Installation
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: statuspulse-install
   cancel-in-progress: false
@@ -77,6 +80,14 @@ jobs:
           VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
         run: npm run setup -- --non-interactive
 
-      - name: Nettoyer la configuration locale du runner
+      - name: Publier l'URL du site pour l'automatisation
         if: always()
-        run: rm -f .env.local
+        run: |
+          rm -f .env.local
+          if [ -f .github/app-url.txt ] && ! git diff --quiet -- .github/app-url.txt; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .github/app-url.txt
+            git commit -m "Publie l'URL du site pour les tâches planifiées [skip ci]"
+            git push
+          fi
