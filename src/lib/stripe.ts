@@ -67,6 +67,34 @@ export async function createCheckoutSession(
   return session.url;
 }
 
+/**
+ * Paiement sans compte préalable.
+ *
+ * Exiger une inscription avant de payer coûte la majorité des conversions :
+ * on inverse l'ordre. Stripe collecte l'email au moment du paiement, crée le
+ * customer, et le webhook `checkout.session.completed` fabrique le compte puis
+ * envoie un lien de connexion. L'acheteur ne saisit qu'une seule fois son
+ * email, et jamais de mot de passe.
+ */
+export async function createAnonymousCheckoutSession(plan: PlanId, email?: string): Promise<string> {
+  const session = await stripe().checkout.sessions.create({
+    mode: "subscription",
+    // Pas de `customer` : Stripe en crée un à partir de l'email saisi. Les
+    // paramètres `customer_update` ne sont donc pas applicables ici.
+    customer_email: email && email.includes("@") ? email : undefined,
+    line_items: [{ price: priceIdFor(plan), quantity: 1 }],
+    allow_promotion_codes: true,
+    billing_address_collection: "auto",
+    automatic_tax: { enabled: process.env.STRIPE_AUTOMATIC_TAX === "true" },
+    subscription_data: { metadata: { plan, signup: "checkout_first" } },
+    metadata: { plan, signup: "checkout_first" },
+    success_url: `${APP_URL()}/bienvenue?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${APP_URL()}/pricing?canceled=1`,
+  });
+  if (!session.url) throw new Error("Stripe n'a pas renvoyé d'URL de checkout.");
+  return session.url;
+}
+
 export async function createPortalSession(customerId: string): Promise<string> {
   const session = await stripe().billingPortal.sessions.create({
     customer: customerId,

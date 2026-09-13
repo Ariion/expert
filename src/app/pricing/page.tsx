@@ -17,7 +17,8 @@ export default function PricingPage() {
         <p className="lead">
           Le prix d&apos;une heure de panne non détectée dépasse largement celui d&apos;une année
           d&apos;abonnement. Sans engagement, résiliable en un clic depuis le portail de
-          facturation.
+          facturation. <strong>Aucun compte à créer avant de payer</strong> : il se crée tout seul
+          à partir de votre email de facturation.
         </p>
       </section>
 
@@ -71,6 +72,10 @@ export default function PricingPage() {
             [
               "Puis-je résilier à tout moment ?",
               "Oui. Le portail de facturation Stripe est accessible depuis votre tableau de bord : résiliation, changement de plan, factures, moyens de paiement.",
+            ],
+            [
+              "Dois-je créer un compte avant de payer ?",
+              "Non. Vous entrez directement dans le paiement Stripe ; le compte est créé à partir de l'adresse de facturation et un lien de connexion vous est envoyé dans la foulée. Aucun mot de passe à retenir, ici ni ailleurs.",
             ],
             [
               "Que se passe-t-il si je dépasse la limite ?",

@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { ops } from "@/lib/ops";
 import { stripe, syncSubscriptionToUser } from "@/lib/stripe";
 import { sendEmail } from "@/lib/mail";
+import { findOrCreateUser, isValidEmail, sendLoginLink } from "@/lib/auth";
 import { APP_URL } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -44,9 +45,36 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.client_reference_id ?? session.metadata?.user_id ?? null;
+        let userId = session.client_reference_id ?? session.metadata?.user_id ?? null;
         const customerId =
           typeof session.customer === "string" ? session.customer : session.customer?.id;
+
+        // Paiement sans compte préalable : c'est ici que le compte naît, à
+        // partir de l'email vérifié par Stripe. Il n'existe pas d'autre
+        // chemin — un encaissement sans compte rattaché serait un client qui
+        // paie sans rien recevoir.
+        if (!userId) {
+          const email = session.customer_details?.email ?? session.customer_email ?? null;
+          if (!email || !isValidEmail(email)) {
+            await ops.critical(
+              "stripe-webhook",
+              "Paiement encaissé sans email exploitable : compte impossible à créer",
+              { session: session.id, customer: customerId ?? null },
+            );
+            break;
+          }
+          const account = await findOrCreateUser(email, { source: "checkout" });
+          userId = account.id;
+          // Lien de connexion immédiat : l'acheteur n'a saisi aucun mot de
+          // passe et doit pouvoir configurer ses alertes dans la minute.
+          await sendLoginLink(account.id, account.email, "/dashboard").catch(async (err) => {
+            await ops.critical(
+              "stripe-webhook",
+              `Lien de connexion non envoyé après paiement : ${String(err)}`,
+              { user_id: account.id },
+            );
+          });
+        }
 
         // Filet de sécurité : si le customer n'était pas encore rattaché
         // (checkout créé hors de notre tunnel), on le rattache maintenant.
