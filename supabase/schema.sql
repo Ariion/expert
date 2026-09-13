@@ -15,6 +15,10 @@ create extension if not exists pgcrypto;
 -- ---------------------------------------------------------------------------
 -- Utilitaires
 -- ---------------------------------------------------------------------------
+-- Les triggers sont créés sous condition d'absence, jamais par DROP puis
+-- CREATE : DROP TRIGGER exige un verrou exclusif sur la table, qu'une base en
+-- service peut refuser pendant de longues secondes. Rejouer ce fichier sur une
+-- base déjà installée ne doit poser aucun verrou.
 create or replace function set_updated_at() returns trigger language plpgsql as $$
 begin
   new.updated_at = now();
@@ -66,9 +70,15 @@ create index if not exists services_category_idx on services (category, name);
 create index if not exists services_status_idx   on services (current_status) where is_active;
 create index if not exists services_watchers_idx on services (watcher_count desc);
 
-drop trigger if exists services_updated_at on services;
-create trigger services_updated_at before update on services
-  for each row execute function set_updated_at();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'services_updated_at' and not tgisinternal
+  ) then
+    create trigger services_updated_at before update on services
+      for each row execute function set_updated_at();
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- INCIDENTS normalisés (toutes sources confondues)
@@ -98,9 +108,15 @@ create index if not exists incidents_service_time_idx on incidents (service_id, 
 create index if not exists incidents_open_idx         on incidents (started_at desc) where not is_resolved;
 create index if not exists incidents_recent_idx       on incidents (started_at desc);
 
-drop trigger if exists incidents_updated_at on incidents;
-create trigger incidents_updated_at before update on incidents
-  for each row execute function set_updated_at();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'incidents_updated_at' and not tgisinternal
+  ) then
+    create trigger incidents_updated_at before update on incidents
+      for each row execute function set_updated_at();
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- UTILISATEURS  (un lead = un user non vérifié : même table, un seul funnel)
@@ -129,9 +145,15 @@ create table if not exists users (
 create unique index if not exists users_email_key on users (lower(email));
 create index if not exists users_plan_idx on users (plan, plan_status);
 
-drop trigger if exists users_updated_at on users;
-create trigger users_updated_at before update on users
-  for each row execute function set_updated_at();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'users_updated_at' and not tgisinternal
+  ) then
+    create trigger users_updated_at before update on users
+      for each row execute function set_updated_at();
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- AUTH sans mot de passe : tokens à usage unique + sessions cookie
@@ -196,9 +218,15 @@ begin
   return null;
 end $$;
 
-drop trigger if exists watch_items_counter on watch_items;
-create trigger watch_items_counter after insert or delete on watch_items
-  for each row execute function sync_watcher_count();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'watch_items_counter' and not tgisinternal
+  ) then
+    create trigger watch_items_counter after insert or delete on watch_items
+      for each row execute function sync_watcher_count();
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- OUTBOX D'ALERTES : découple la détection de l'envoi (retry + idempotence)

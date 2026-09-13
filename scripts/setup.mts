@@ -68,6 +68,11 @@ function describe(err: unknown): string {
   return `${err.message}${detail}`;
 }
 
+const notes: string[] = [];
+const ops_note = async (message: string) => {
+  notes.push(message);
+};
+
 const steps: Step[] = [];
 const record = (s: Step) => {
   steps.push(s);
@@ -121,10 +126,22 @@ async function discoverVercel(): Promise<void> {
     vercelProjectName = project.name ?? null;
 
     if (!env.APP_URL) {
+      // Un projet a plusieurs adresses de production. Le choix doit être
+      // DÉTERMINISTE : il fixe l'URL du webhook Stripe, les liens des emails et
+      // les URL canoniques du référencement. En changer d'une exécution à
+      // l'autre casserait tout cela en silence.
+      //
+      // Ordre : domaine personnalisé d'abord, puis l'adresse courte du projet.
+      // Les adresses contenant le nom du compte (« …-xyz-projects.vercel.app »)
+      // passent en dernier : ce sont celles que la protection d'accès Vercel
+      // place derrière une authentification.
       const aliases: string[] = project.targets?.production?.alias ?? [];
-      const custom = aliases.filter((a) => !a.endsWith(".vercel.app")).sort((a, b) => a.length - b.length);
-      const domain = custom[0] ?? aliases.find((a) => a.endsWith(".vercel.app")) ?? `${project.name}.vercel.app`;
-      env.APP_URL = `https://${domain}`;
+      const rank = (a: string) =>
+        (a.endsWith(".vercel.app") ? 10 : 0) + (/-projects\.vercel\.app$/.test(a) ? 10 : 0);
+      const sorted = [...aliases].sort(
+        (a, b) => rank(a) - rank(b) || a.length - b.length || a.localeCompare(b),
+      );
+      env.APP_URL = `https://${sorted[0] ?? `${project.name}.vercel.app`}`;
     }
   } catch {
     /* pas de Vercel joignable : on retombe sur la saisie manuelle */
@@ -333,24 +350,53 @@ record({
 if (!args.has("--skip-db") && env.DATABASE_URL) {
   const sql = postgres(env.DATABASE_URL, { prepare: false, max: 2, connect_timeout: 15, onnotice: () => {} });
   try {
+    // Une exécution précédente interrompue peut laisser une session ouverte qui
+    // retient des verrous : toute instruction de structure attendrait alors
+    // derrière un fantôme. On fait le ménage avant de commencer.
+    const ghosts = await sql<{ pid: number }[]>`
+      select pg_terminate_backend(pid) as pid
+        from pg_stat_activity
+       where datname = current_database()
+         and pid <> pg_backend_pid()
+         and state in ('idle in transaction', 'idle in transaction (aborted)')
+         and state_change < now() - interval '30 seconds'
+    `.catch(() => [] as { pid: number }[]);
+
     // Une par une, jamais en lot : un pooler en mode transaction interrompt un
     // envoi multi-instructions, et le schéma ne serait appliqué qu'à moitié.
     const statements = splitSqlStatements(readFileSync("supabase/schema.sql", "utf8"));
     let applied = 0;
+
     for (const statement of statements) {
-      try {
-        await sql.begin(async (tx) => {
-          // Le délai est fixé dans la transaction : en mode pooling, chaque
-          // instruction peut emprunter une connexion différente.
-          await tx.unsafe("set local statement_timeout = '120s'");
-          await tx.unsafe(statement);
-        });
-        applied++;
-      } catch (err) {
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await sql.begin(async (tx) => {
+            // Délais fixés dans la transaction : en mode pooling, chaque
+            // instruction peut emprunter une connexion différente.
+            // `lock_timeout` court fait échouer vite plutôt que d'attendre un
+            // verrou jusqu'à l'expiration de la requête — et permet de
+            // réessayer, la contention étant presque toujours passagère.
+            await tx.unsafe("set local lock_timeout = '5s'");
+            await tx.unsafe("set local statement_timeout = '90s'");
+            await tx.unsafe(statement);
+          });
+          lastError = null;
+          break;
+        } catch (err) {
+          lastError = err;
+          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+        }
+      }
+      if (lastError) {
         throw new Error(
-          `instruction ${applied + 1}/${statements.length} — ${describe(err)} — « ${statement.replace(/\s+/g, " ").slice(0, 110)} »`,
+          `instruction ${applied + 1}/${statements.length} après 3 tentatives — ${describe(lastError)} — « ${statement.replace(/\s+/g, " ").slice(0, 110)} »`,
         );
       }
+      applied++;
+    }
+    if (ghosts.length) {
+      await ops_note(`${ghosts.length} session(s) bloquée(s) terminée(s) avant l'application du schéma`);
     }
 
     const [{ n }] = await sql<{ n: number }[]>`
@@ -362,7 +408,7 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
       status: n === 4 ? "ok" : "err",
       detail:
         n === 4
-          ? `${applied} instructions appliquées — 12 tables, index, triggers et fonctions de file en place`
+          ? `${applied} instructions appliquées${notes.length ? ` (${notes.join(", ")})` : ""} — 12 tables, index, triggers et fonctions de file en place`
           : `${n}/4 tables critiques après ${applied} instructions`,
     });
 
@@ -776,6 +822,24 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
         envs?: Array<{ id: string; key: string; value?: string | null; target?: string[] }>;
       };
 
+      // Une valeur chiffrée que le jeton ne peut pas déchiffrer revient telle
+      // quelle : elle « diffère » toujours. Si AUCUNE ne correspond, c'est la
+      // lecture qui est aveugle, pas l'écriture qui a échoué — et il serait
+      // catastrophique de supprimer des entrées sur la foi d'une comparaison
+      // qui ne compare rien.
+      const readable = wanted.some((key) =>
+        envs.some((e) => e.key === key && e.value === env[key]),
+      );
+
+      if (!readable) {
+        record({
+          name: "Vérification des variables",
+          status: "warn",
+          detail:
+            "valeurs non lisibles par ce jeton (chiffrées côté Vercel) — écriture non vérifiable, présence des clés contrôlée uniquement",
+        });
+      }
+
       const wrong: string[] = [];
       const duplicates: string[] = [];
       let undecryptable = 0;
@@ -787,6 +851,7 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
           continue;
         }
         if (entries.length > 1) duplicates.push(key);
+        if (!readable) continue;
 
         // Un doublon laissé en place rend le comportement imprévisible :
         // on ne garde que l'entrée conforme.
@@ -807,7 +872,7 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
         }
       }
 
-      record({
+      if (readable) record({
         name: "Vérification des variables",
         status: wrong.length === 0 ? "ok" : "err",
         detail:
@@ -907,6 +972,7 @@ if (deploymentId && env.VERCEL_TOKEN) {
   const teamQS = env.VERCEL_TEAM_ID ? `?teamId=${env.VERCEL_TEAM_ID}` : "";
   const deadline = Date.now() + 8 * 60_000;
   let state = "QUEUED";
+  let failureReason: string | null = null;
   console.log(C.dim("    (construction du nouveau déploiement…)"));
   while (Date.now() < deadline) {
     try {
@@ -915,8 +981,17 @@ if (deploymentId && env.VERCEL_TOKEN) {
         signal: AbortSignal.timeout(20000),
       });
       if (res.ok) {
-        const body = (await res.json()) as { readyState?: string; status?: string };
+        const body = (await res.json()) as {
+          readyState?: string;
+          status?: string;
+          errorMessage?: string;
+          errorCode?: string;
+        };
         state = body.readyState ?? body.status ?? state;
+        if (state === "ERROR") {
+          // Le motif exact évite un aller-retour dans l'interface Vercel.
+          failureReason = [body.errorCode, body.errorMessage].filter(Boolean).join(" — ") || null;
+        }
         if (["READY", "ERROR", "CANCELED"].includes(state)) break;
       }
     } catch {
@@ -927,7 +1002,7 @@ if (deploymentId && env.VERCEL_TOKEN) {
   record({
     name: "Déploiement",
     status: state === "READY" ? "ok" : "err",
-    detail: `état final : ${state}`,
+    detail: `état final : ${state}${failureReason ? ` — ${failureReason.slice(0, 160)}` : ""}`,
     todo:
       state === "READY"
         ? undefined
