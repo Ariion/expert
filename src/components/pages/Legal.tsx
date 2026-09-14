@@ -50,6 +50,10 @@ export function Legal({ locale }: { locale: Locale }) {
           <p style={{ fontSize: 14 }}>{t.dataBody}</p>
         </div>
         <div className="card">
+          <h3>{t.analyticsTitle}</h3>
+          <p style={{ fontSize: 14 }}>{t.analyticsBody}</p>
+        </div>
+        <div className="card">
           <h3>{t.liabilityTitle}</h3>
           <p style={{ fontSize: 14 }}>{t.liabilityBody(SITE_NAME)}</p>
         </div>

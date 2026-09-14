@@ -528,6 +528,7 @@ Modèle complet et commenté dans [`.env.example`](.env.example).
 | `OPS_ALERT_EMAIL` | *(optionnel)* votre email | Destinataire des alertes système critiques |
 | `OPS_ALERT_WEBHOOK` | *(optionnel)* URL Slack entrante | Alertes système critiques sur Slack |
 | `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID` | *(optionnel)* Vercel → Tokens / Project ID | Permet à `npm run setup` de pousser les variables tout seul |
+| `ADMIN_PASSWORD` | *(optionnel)* choisi par vous, 8+ caractères | Active `/admin` — statistiques de visites en direct, décrit ci-dessous |
 
 Les deux dernières sont optionnelles techniquement, **indispensables en
 pratique** : elles sont le seul canal par lequel le système vous réclame de
@@ -577,6 +578,15 @@ rentabilité.
 `OPS_ALERT_*` n'arrive. Les alertes critiques sont dédupliquées à l'heure et
 ne concernent que quatre situations : collecteur arrêté, file d'alertes
 bloquée, webhook Stripe en échec répété, flux fournisseurs massivement cassés.
+
+**Statistiques de visites (`/admin`)** — panneau interne, réservé à vous
+seul : visiteurs en direct, vues et visiteurs des 7/30 derniers jours, temps
+moyen passé, pages et provenances les plus vues. Mesure sans cookie (voir la
+page légale) ; désactivé tant que `ADMIN_PASSWORD` n'est pas renseignée.
+Après l'avoir ajoutée à `.env.local` et relancé `npm run setup` (ou saisie
+directement dans Vercel), rejouez `supabase/schema.sql` une fois — il ajoute
+la table `page_views`, le reste du schéma étant déjà en place — puis ouvrez
+`/admin`.
 
 ---
 

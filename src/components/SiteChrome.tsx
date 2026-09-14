@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SITE_NAME } from "@/lib/env";
 import { dict, href, type Locale } from "@/lib/i18n";
 import { LocaleSwitch } from "./LocaleSwitch";
+import { Analytics } from "./Analytics";
 
 /**
  * En-tête et pied de page communs aux deux langues.
@@ -17,6 +18,7 @@ export function SiteChrome({ locale, children }: { locale: Locale; children: Rea
 
   return (
     <>
+      <Analytics locale={locale} />
       <nav className="nav">
         <div className="wrap nav-inner">
           <Link href={L("/")} className="brand">

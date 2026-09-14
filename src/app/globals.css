@@ -125,7 +125,7 @@ p { color: var(--muted); }
 .incident p { font-size: 13.5px; margin: 6px 0 0; }
 
 /* ----- Formulaires ----- */
-input[type="email"], input[type="url"], input[type="text"], input[type="search"], select {
+input[type="email"], input[type="url"], input[type="text"], input[type="search"], input[type="password"], select {
   width: 100%; padding: 11px 13px; border-radius: 10px; font: inherit; font-size: 14px;
   background: var(--bg-soft); border: 1px solid var(--line); color: var(--text);
 }
@@ -302,6 +302,8 @@ footer a { color: var(--muted); }
 .chart-col.warn > i { background: var(--warn); }
 .chart-col.bad  > i { background: var(--bad); }
 .chart-col.none > i { background: var(--line); }
+/* Magnitude simple (ex. visites/jour) : une seule teinte, pas de sémantique de statut. */
+.chart-col.magnitude > i { background: var(--brand-soft); }
 .chart-col:hover > i,
 .chart-col.on > i { filter: brightness(1.45); }
 .chart-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }

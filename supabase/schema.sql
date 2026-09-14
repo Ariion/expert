@@ -309,6 +309,35 @@ create table if not exists stripe_events (
 );
 
 -- ---------------------------------------------------------------------------
+-- ANALYTIQUE : visites anonymes, sans cookie
+--
+-- `visitor_hash` est un hachage à sens unique (adresse IP + agent utilisateur
+-- + sel quotidien) : il ne permet jamais de remonter à une personne, et
+-- change chaque jour — deux visites à un jour d'écart ne se recoupent pas.
+-- Aucune adresse IP n'est stockée, nulle part. C'est ce qui permet à la page
+-- légale de dire honnêtement « aucun cookie hors session » : ce compteur n'en
+-- pose aucun.
+--
+-- Une ligne = une page vue. `last_seen_at` est mise à jour par le signal de
+-- présence envoyé pendant que l'onglet reste ouvert ; la différence entre les
+-- deux bornes donne le temps passé sur la page. Une ligne jamais mise à jour
+-- après sa création est un rebond (temps passé nul), une donnée en soi.
+-- ---------------------------------------------------------------------------
+create table if not exists page_views (
+  id            uuid primary key default gen_random_uuid(),
+  visitor_hash  text not null,
+  path          text not null,
+  locale        text not null default 'fr',
+  referrer_host text,
+  country       text,
+  created_at    timestamptz not null default now(),
+  last_seen_at  timestamptz not null default now()
+);
+create index if not exists page_views_created_idx on page_views (created_at desc);
+create index if not exists page_views_live_idx on page_views (last_seen_at desc);
+create index if not exists page_views_visitor_idx on page_views (visitor_hash, created_at desc);
+
+-- ---------------------------------------------------------------------------
 -- Échelle de gravité : comparable en SQL (filtrage des alertes par seuil)
 -- ---------------------------------------------------------------------------
 create or replace function impact_rank(impact text) returns integer
@@ -371,7 +400,8 @@ declare t text;
 begin
   foreach t in array array['services','incidents','users','auth_tokens','sessions',
                            'watch_items','alert_channels','alert_deliveries',
-                           'service_daily_uptime','cron_runs','ops_events','stripe_events']
+                           'service_daily_uptime','cron_runs','ops_events','stripe_events',
+                           'page_views']
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

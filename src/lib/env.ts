@@ -33,6 +33,12 @@ const schema = z.object({
   LEGAL_REGISTRATION: z.string().min(4).optional(),
   LEGAL_CONTACT_EMAIL: z.string().email().optional(),
   LEGAL_ADDRESS: z.string().min(4).optional(),
+
+  // Panneau /admin (un seul opérateur, pas de compte). Volontairement
+  // optionnelle : tant qu'elle n'est pas renseignée, /admin répond « non
+  // configuré » plutôt que de faire échouer la validation de tout le site —
+  // la même leçon que pour LEGAL_* ci-dessus, apprise à ses dépens ailleurs.
+  ADMIN_PASSWORD: z.string().min(8).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

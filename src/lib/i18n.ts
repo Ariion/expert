@@ -449,6 +449,9 @@ const fr = {
     dataTitle: "Données personnelles",
     dataBody:
       "Les seules données collectées sont l'adresse email nécessaire à l'envoi des alertes, la liste des fournisseurs surveillés et les identifiants de facturation gérés par Stripe. Aucune revente, aucun traceur publicitaire, aucun cookie autre que le cookie de session. Suppression du compte et de toutes les données associées sur simple demande par email.",
+    analyticsTitle: "Mesure d'audience",
+    analyticsBody:
+      "Le nombre de visites est mesuré sans cookie : chaque visiteur reçoit une empreinte à sens unique, dérivée de son adresse IP et de son navigateur, qui change chaque jour et ne permet pas de remonter jusqu'à lui. Aucune adresse IP n'est conservée.",
     liabilityTitle: "Limitation de responsabilité",
     liabilityBody: (site: string) =>
       `Le service est fourni « en l'état ». Les alertes dépendent de la publication d'incidents par les fournisseurs eux-mêmes : ${site} ne peut garantir la détection d'une panne qui n'aurait pas été publiée sur la page de statut officielle.`,
@@ -903,6 +906,9 @@ const en: typeof fr = {
     dataTitle: "Personal data",
     dataBody:
       "The only data collected is the email address needed to send alerts, the list of providers you watch, and the billing identifiers held by Stripe. Nothing is resold, there are no advertising trackers, and no cookie other than the session cookie. Account and data deletion on request by email.",
+    analyticsTitle: "Audience measurement",
+    analyticsBody:
+      "Visit counts are measured without cookies: each visitor gets a one-way fingerprint derived from their IP address and browser, which changes every day and cannot be traced back to them. No IP address is stored.",
     liabilityTitle: "Limitation of liability",
     liabilityBody: (site: string) =>
       `The service is provided “as is”. Alerts depend on the providers publishing their own incidents: ${site} cannot guarantee detection of an outage that was never published on the official status page.`,

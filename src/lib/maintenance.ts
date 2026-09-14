@@ -33,6 +33,10 @@ export async function cleanup(): Promise<Record<string, number>> {
     "incidents",
     () => sql`delete from incidents where started_at < now() - interval '400 days'`,
   );
+  await del(
+    "page_views",
+    () => sql`delete from page_views where created_at < now() - interval '90 days'`,
+  );
 
   // Livraisons bloquées en 'sending' (lambda tuée en plein vol) : on les remet
   // en file plutôt que de perdre l'alerte.
