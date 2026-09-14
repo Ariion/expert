@@ -238,6 +238,13 @@ if (missingRequired.length) {
 interface Rule {
   key: string;
   label: string;
+  /**
+   * Réparation avant validation. Un secret se colle depuis un tableau de bord
+   * qui n'affiche pas toujours le protocole : refuser la saisie plutôt que la
+   * corriger fait échouer une installation de treize secondes pour un
+   * « https:// » manquant, et oblige à tout relancer.
+   */
+  normalize?: (v: string) => string;
   fatal: (v: string) => string | null;
   warn?: (v: string) => string | null;
 }
@@ -260,6 +267,14 @@ const RULES: Rule[] = [
   {
     key: "APP_URL",
     label: "URL publique du site, sans slash final",
+    normalize: (v) => {
+      const clean = v.trim().replace(/\/+$/, "");
+      // « upstreamstatus.vercel.app » est ce que les hébergeurs affichent ;
+      // on complète le protocole plutôt que de rejeter la valeur.
+      return /^https?:\/\//i.test(clean) || !/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/.*)?$/i.test(clean)
+        ? clean
+        : `https://${clean}`;
+    },
     fatal: (v) => (/^https?:\/\/.+/.test(v) ? null : "doit être une URL complète (https://…)"),
     warn: (v) =>
       v.startsWith("https://") || v.includes("localhost")
@@ -298,6 +313,18 @@ const RULES: Rule[] = [
 
 const warnings: string[] = [];
 
+// Réparation avant contrôle : ce qui peut être deviné sans ambiguïté ne doit
+// pas coûter une relance de workflow. Toute correction appliquée est signalée,
+// jamais silencieuse.
+for (const r of RULES) {
+  if (!r.normalize || !env[r.key]) continue;
+  const fixed = r.normalize(env[r.key]);
+  if (fixed !== env[r.key]) {
+    warnings.push(`${r.key} — valeur complétée automatiquement : « ${env[r.key]} » → « ${fixed} »`);
+    env[r.key] = fixed;
+  }
+}
+
 for (let pass = 0; pass < 3; pass++) {
   const bad = RULES.map((r) => ({ r, msg: env[r.key] ? r.fatal(env[r.key]) : null })).filter((x) => x.msg);
   if (bad.length === 0) break;
@@ -323,7 +350,6 @@ for (const r of RULES) {
 
 rl?.close();
 
-env.APP_URL = (env.APP_URL ?? "").replace(/\/$/, "");
 env.STRIPE_AUTOMATIC_TAX ??= "false";
 
 // Secrets : générés une fois, jamais à saisir.
