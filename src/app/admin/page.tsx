@@ -15,17 +15,59 @@ function fmtDwell(seconds: number): string {
 
 const DAY_LABEL = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
 
+/** En-tête + déconnexion, communs à l'état normal et à l'état en erreur. */
+function AdminHeader({ subtitle }: { subtitle: string }) {
+  return (
+    <div className="between" style={{ marginBottom: 24 }}>
+      <div>
+        <h1 style={{ margin: 0, fontSize: 26 }}>Statistiques</h1>
+        <p className="dim" style={{ margin: "4px 0 0" }}>{subtitle}</p>
+      </div>
+      <form method="POST" action="/api/admin/logout">
+        <button type="submit" className="btn ghost sm">Se déconnecter</button>
+      </form>
+    </div>
+  );
+}
+
 export default async function AdminPage() {
   if (!(await isAdminSession())) redirect("/admin/login");
 
-  const [live, kpis7, kpis30, series, topPages, topReferrers] = await Promise.all([
-    getLiveVisitors(),
-    getKpis(7),
-    getKpis(30),
-    getDailySeries(14),
-    getTopPages(7, 10),
-    getTopReferrers(7, 10),
-  ]);
+  let data;
+  try {
+    const [live, kpis7, kpis30, series, topPages, topReferrers] = await Promise.all([
+      getLiveVisitors(),
+      getKpis(7),
+      getKpis(30),
+      getDailySeries(14),
+      getTopPages(7, 10),
+      getTopReferrers(7, 10),
+    ]);
+    data = { live, kpis7, kpis30, series, topPages, topReferrers };
+  } catch (err) {
+    // La cause la plus probable est une base pas encore migrée : la table
+    // `page_views` n'existe que si `supabase/schema.sql` a été rejoué après
+    // l'ajout de ce panneau. On le dit clairement plutôt que de laisser
+    // Next.js afficher son écran d'erreur générique.
+    return (
+      <div className="wrap" style={{ paddingTop: 40, paddingBottom: 60, maxWidth: 640 }}>
+        <AdminHeader subtitle="Impossible de charger les statistiques." />
+        <div className="notice bad">
+          <strong>La base de données ne répond pas comme attendu.</strong>
+          <p style={{ margin: "8px 0 0", fontSize: 13.5 }}>
+            Cause la plus probable : la table <code>page_views</code> n'existe pas encore.
+            Rejouez le schéma une fois : <code>psql "$DATABASE_URL" -f supabase/schema.sql</code>{" "}
+            (fichier idempotent — sans risque sur le reste des données), puis rechargez cette page.
+          </p>
+          <p className="dim mono" style={{ margin: "10px 0 0", fontSize: 12 }}>
+            {String(err instanceof Error ? err.message : err).slice(0, 300)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { live, kpis7, kpis30, series, topPages, topReferrers } = data;
 
   const points: VisitPoint[] = series.map((d) => ({
     day: d.day,
@@ -36,17 +78,7 @@ export default async function AdminPage() {
 
   return (
     <div className="wrap" style={{ paddingTop: 40, paddingBottom: 60 }}>
-      <div className="between" style={{ marginBottom: 24 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 26 }}>Statistiques</h1>
-          <p className="dim" style={{ margin: "4px 0 0" }}>
-            Visites anonymes, sans cookie — aucune adresse IP conservée.
-          </p>
-        </div>
-        <form method="POST" action="/api/admin/logout">
-          <button type="submit" className="btn ghost sm">Se déconnecter</button>
-        </form>
-      </div>
+      <AdminHeader subtitle="Visites anonymes, sans cookie — aucune adresse IP conservée." />
 
       <div className="grid four" style={{ marginBottom: 26 }}>
         <AdminLive initial={live} />
