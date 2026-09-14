@@ -10,6 +10,20 @@ export const STATUS_TONE: Record<ServiceStatus, "ok" | "warn" | "bad" | "muted">
   unknown: "muted",
 };
 
+/**
+ * Un service est-il réellement en panne ?
+ *
+ * « Inconnu » n'en est pas une : c'est l'état d'un fournisseur qu'on n'a pas
+ * encore interrogé, ou dont le flux est momentanément illisible. Le compter
+ * comme un incident ferait annoncer une panne générale au lendemain de chaque
+ * installation — le genre de faux signal qui coûte la confiance d'un lecteur
+ * en une seconde. « Maintenance » n'en est pas une non plus : elle est
+ * annoncée, donc subie par personne.
+ */
+export function isDown(status: ServiceStatus): boolean {
+  return status === "degraded" || status === "partial_outage" || status === "major_outage";
+}
+
 export function statusLabel(status: ServiceStatus, locale: Locale = DEFAULT_LOCALE): string {
   return dict(locale).status[status] ?? dict(locale).status.unknown;
 }

@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { PLANS, type PlanId } from "@/lib/plans";
+import { WatchForm } from "@/components/WatchForm";
 import { dict, href, type Locale } from "@/lib/i18n";
 
+/**
+ * La page de vente — la seule du site.
+ *
+ * Elle porte tout ce qui explique et justifie le produit, précisément parce
+ * que l'accueil ne le fait plus : qui arrive ici a déjà consulté le tableau et
+ * cherche à savoir ce que ça coûte et comment ça marche.
+ */
 export function Pricing({ locale }: { locale: Locale }) {
   const t = dict(locale);
 
@@ -12,6 +20,18 @@ export function Pricing({ locale }: { locale: Locale }) {
         <p className="lead">
           {t.pricing.lead} <strong>{t.pricing.leadNoAccount}</strong>
         </p>
+      </section>
+
+      <section className="section grid two" style={{ marginTop: 10 }}>
+        <div className="stack">
+          {t.home.steps.map(([title, body]) => (
+            <div className="card" key={title}>
+              <h3>{title}</h3>
+              <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
+            </div>
+          ))}
+        </div>
+        <WatchForm locale={locale} source="pricing" />
       </section>
 
       <section className="grid three">

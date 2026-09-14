@@ -142,9 +142,25 @@ const fr = {
     incidentsCount: (n: number) => `${n} incident(s)`,
   },
   home: {
-    metaTitle: "Surveillez les status pages de tous vos fournisseurs",
+    // L'accueil n'est pas une page de vente : c'est le tableau que les gens
+    // viennent consulter. La vente vit sur /pricing, où va celui qui a déjà
+    // compris à quoi sert le produit.
+    searchLabel: "Chercher un service",
+    searchPlaceholder: "Chercher un service… (AWS, Stripe, Slack)",
+    summary: (total: number, down: number) =>
+      down === 0
+        ? `${total} services surveillés · aucun incident en cours`
+        : `${total} services surveillés · ${down} en incident`,
+    downNow: "En incident maintenant",
+    allServices: "Tous les services surveillés",
+    since: (ago: string) => `depuis ${ago}`,
+    noMatch: "Aucun service ne correspond.",
+    noMatchHint: "Le service que vous cherchez n'est peut-être pas encore suivi.",
+    pitch: "Recevez un email dès qu'un de ces services tombe. Gratuit pour 3 services.",
+    pitchCta: "Voir les tarifs",
+    metaTitle: "Statut en direct de vos fournisseurs SaaS",
     metaDescription:
-      "Un seul tableau de bord pour AWS, Stripe, Slack, GitHub, Twilio et 140+ fournisseurs. Alerte email, Slack ou webhook dès qu'un incident est publié. Gratuit pour 3 services.",
+      "AWS, Stripe, Slack, GitHub, Twilio et 140 autres : leur statut en direct sur une seule page, relevé toutes les 5 minutes sur leurs status pages officielles.",
     pill: (services: number, incidents: number) =>
       `${services} fournisseurs surveillés · ${incidents} incidents sur 30 jours`,
     h1a: "Vos clients ne devraient pas être",
@@ -570,9 +586,22 @@ const en: typeof fr = {
     incidentsCount: (n: number) => (n === 1 ? "1 incident" : `${n} incidents`),
   },
   home: {
-    metaTitle: "Monitor every provider's status page in one place",
+    searchLabel: "Search for a service",
+    searchPlaceholder: "Search a service… (AWS, Stripe, Slack)",
+    summary: (total: number, down: number) =>
+      down === 0
+        ? `${total} services monitored · no incident in progress`
+        : `${total} services monitored · ${down} reporting an incident`,
+    downNow: "Down right now",
+    allServices: "All monitored services",
+    since: (ago: string) => `since ${ago}`,
+    noMatch: "No service matches.",
+    noMatchHint: "The service you are looking for may not be tracked yet.",
+    pitch: "Get an email the moment one of these goes down. Free for 3 services.",
+    pitchCta: "See pricing",
+    metaTitle: "Live status of your SaaS providers",
     metaDescription:
-      "One dashboard for AWS, Stripe, Slack, GitHub, Twilio and 140+ providers. Email, Slack or webhook alerts the moment an incident is published. Free for 3 services.",
+      "AWS, Stripe, Slack, GitHub, Twilio and 140 more: live status on a single page, read every 5 minutes from their official status pages.",
     pill: (services: number, incidents: number) =>
       `${services} providers monitored · ${incidents} incidents in 30 days`,
     h1a: "Your customers should not be",

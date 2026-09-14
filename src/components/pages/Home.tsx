@@ -1,147 +1,99 @@
 import Link from "next/link";
-import { StatusBadge } from "@/components/StatusBadge";
-import { WatchForm } from "@/components/WatchForm";
-import { getCategories, getGlobalStats, getRecentIncidents, getAllServices } from "@/lib/queries";
-import { faviconFor, timeAgo, impactLabel } from "@/lib/format";
+import { ServiceBoard, type BoardRow } from "@/components/ServiceBoard";
+import { getAllServices } from "@/lib/queries";
+import { STATUS_TONE, faviconFor, isDown, statusLabel, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
+/**
+ * L'accueil est un tableau de bord, pas une plaquette.
+ *
+ * Quelqu'un qui arrive ici veut savoir si un service est en panne. Lui servir
+ * d'abord un slogan, puis des arguments, puis enfin l'information, c'est le
+ * faire partir avant la réponse. La vente vit sur /pricing, où va de toute
+ * façon celui qui a compris à quoi sert le produit.
+ *
+ * Effet secondaire utile : les cent vingt liens vers les pages fournisseur
+ * partent désormais de la page la plus forte du site, dans les deux langues.
+ */
 export async function Home({ locale }: { locale: Locale }) {
   const t = dict(locale);
-  const L = (p: string) => href(locale, p);
+  const services = await getAllServices().catch(() => []);
 
-  const [stats, incidents, categories, services] = await Promise.all([
-    getGlobalStats().catch(() => ({ services: 0, incidents_30d: 0, degraded_now: 0, watchers: 0 })),
-    getRecentIncidents(8).catch(() => []),
-    getCategories().catch(() => []),
-    getAllServices().catch(() => []),
-  ]);
+  const down = services.filter((s) => isDown(s.current_status));
 
-  const trending = services.slice(0, 12);
-  const cards: Array<[string, string, string]> = [
-    [t.home.stats.detection[0], t.home.stats.detection[1], t.home.stats.detection[2]],
-    [t.home.stats.providers[0], `${stats.services}`, t.home.stats.providers[1]],
-    [t.home.stats.degraded[0], `${stats.degraded_now}`, t.home.stats.degraded[1]],
-    [t.home.stats.effort[0], t.home.stats.effort[1], t.home.stats.effort[2]],
-  ];
+  // Ce qui ne va pas d'abord, puis l'ordre alphabétique : l'information rare
+  // est celle qui compte, et elle ne doit pas se chercher.
+  const ordered = [...services].sort((a, b) => {
+    const ka = isDown(a.current_status) ? 0 : 1;
+    const kb = isDown(b.current_status) ? 0 : 1;
+    return ka - kb || a.name.localeCompare(b.name);
+  });
+
+  const rows: BoardRow[] = ordered.map((s) => ({
+    slug: s.slug,
+    name: s.name,
+    category: categoryLabel(s.category, locale),
+    href: href(locale, `/status/${s.slug}`),
+    logo: faviconFor(s.logo_domain),
+    status: statusLabel(s.current_status, locale),
+    tone: STATUS_TONE[s.current_status] ?? "muted",
+  }));
 
   return (
     <div className="wrap">
-      <section className="hero">
-        <span className="pill">{t.home.pill(stats.services, stats.incidents_30d)}</span>
-        <h1 style={{ marginTop: 16 }}>
-          {t.home.h1a}
-          <br />
-          {t.home.h1b}
-        </h1>
-        <p className="lead">{t.home.lead}</p>
-        <div className="row" style={{ marginTop: 22 }}>
-          <Link className="btn" href={L("/pricing")}>
-            {t.home.ctaPrimary}
-          </Link>
-          <Link className="btn ghost" href={L("/status")}>
-            {t.home.ctaSecondary}
-          </Link>
-        </div>
+      <section className="hero" style={{ paddingBottom: 16 }}>
+        <h1 style={{ fontSize: 27, margin: "0 0 6px" }}>{t.statusIndex.h1(services.length)}</h1>
+        <p className="dim" style={{ margin: 0, fontSize: 14 }}>
+          {t.home.summary(services.length, down.length)}
+        </p>
       </section>
 
-      <section className="section grid four">
-        {cards.map(([label, value, note]) => (
-          <div className="card" key={label}>
-            <div className="dim">{label}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, margin: "4px 0" }}>{value}</div>
-            <div className="dim">{note}</div>
-          </div>
-        ))}
-      </section>
-
-      <section className="section">
-        <div className="between">
-          <h2 style={{ margin: 0 }}>{t.home.recentIncidents}</h2>
-          <Link href={L("/status")} className="dim">
-            {t.home.seeAll}
-          </Link>
-        </div>
-        <div className="grid two" style={{ marginTop: 14 }}>
-          {incidents.length === 0 && <div className="notice">{t.home.noIncidents}</div>}
-          {incidents.map((i) => (
-            <div className={`card incident ${i.impact}`} key={i.id}>
-              <div className="between">
-                <Link href={L(`/status/${i.service_slug}`)} className="flex">
-                  <img className="logo-img" src={faviconFor(i.logo_domain)} alt="" loading="lazy" />
-                  <strong>{i.service_name}</strong>
-                </Link>
-                <span className="dim">{timeAgo(i.started_at, locale)}</span>
-              </div>
-              <h3 style={{ marginTop: 10 }}>{i.title}</h3>
-              <div className="dim">
-                {impactLabel(i.impact, locale)} ·{" "}
-                {i.is_resolved ? t.home.resolved : t.home.ongoing}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <h2>{t.home.mostWatched}</h2>
-        <div className="grid four">
-          {trending.map((s) => (
-            <Link className="card link" key={s.id} href={L(`/status/${s.slug}`)}>
-              <div className="flex">
-                <img className="logo-img" src={faviconFor(s.logo_domain)} alt="" loading="lazy" />
-                <strong>{s.name}</strong>
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <StatusBadge status={s.current_status} locale={locale} />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="section grid two">
-        <div>
-          <h2 style={{ marginTop: 0 }}>{t.home.howItWorks}</h2>
-          <div className="stack">
-            {t.home.steps.map(([title, body]) => (
-              <div className="card" key={title}>
-                <h3>{title}</h3>
-                <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
-              </div>
+      {down.length > 0 && (
+        <section style={{ marginBottom: 26 }}>
+          <h2 style={{ fontSize: 17, margin: "0 0 12px" }}>{t.home.downNow}</h2>
+          <div className="grid two">
+            {down.slice(0, 6).map((s) => (
+              <Link
+                className={`card link incident ${s.current_status === "major_outage" ? "critical" : "major"}`}
+                key={s.id}
+                href={href(locale, `/status/${s.slug}`)}
+              >
+                <div className="between">
+                  <span className="flex">
+                    <img className="logo-img" src={faviconFor(s.logo_domain)} alt="" loading="lazy" />
+                    <strong>{s.name}</strong>
+                  </span>
+                  <span className={`badge ${STATUS_TONE[s.current_status] ?? "muted"}`}>
+                    <i className="dot" />
+                    {statusLabel(s.current_status, locale)}
+                  </span>
+                </div>
+                <div className="dim" style={{ marginTop: 8 }}>
+                  {t.home.since(timeAgo(s.current_status_since, locale))}
+                </div>
+              </Link>
             ))}
           </div>
-        </div>
-        <div className="stack">
-          <WatchForm locale={locale} source="home" />
-          <div className="card">
-            <h3>
-              {t.plans.pro.name} — {t.plans.pro.priceLabel}
-            </h3>
-            <ul className="muted" style={{ fontSize: 14, paddingLeft: 18, margin: "8px 0 14px" }}>
-              {t.plans.pro.features.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-            <Link className="btn" href={L("/pricing")}>
-              {t.home.planCta}
-            </Link>
-          </div>
-        </div>
+        </section>
+      )}
+
+      <section>
+        <h2 style={{ fontSize: 17, margin: "0 0 12px" }}>{t.home.allServices}</h2>
+        <ServiceBoard
+          rows={rows}
+          searchLabel={t.home.searchLabel}
+          searchPlaceholder={t.home.searchPlaceholder}
+          noMatch={t.home.noMatch}
+          noMatchHint={t.home.noMatchHint}
+        />
       </section>
 
-      <section className="section">
-        <h2>{t.home.byCategory}</h2>
-        <div className="grid four">
-          {categories.map((c) => (
-            <Link className="card link" key={c.category} href={L(`/categories/${c.category}`)}>
-              <strong>{categoryLabel(c.category, locale)}</strong>
-              <div className="dim" style={{ marginTop: 6 }}>
-                {t.home.categoryCount(c.count, c.degraded)}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <div className="strip">
+        <span>{t.home.pitch}</span>
+        <Link className="btn sm" href={href(locale, "/pricing")}>
+          {t.home.pitchCta}
+        </Link>
+      </div>
     </div>
   );
 }

@@ -125,7 +125,7 @@ p { color: var(--muted); }
 .incident p { font-size: 13.5px; margin: 6px 0 0; }
 
 /* ----- Formulaires ----- */
-input[type="email"], input[type="url"], input[type="text"], select {
+input[type="email"], input[type="url"], input[type="text"], input[type="search"], select {
   width: 100%; padding: 11px 13px; border-radius: 10px; font: inherit; font-size: 14px;
   background: var(--bg-soft); border: 1px solid var(--line); color: var(--text);
 }
@@ -153,3 +153,66 @@ footer a { color: var(--muted); }
 .logo-img { width: 22px; height: 22px; border-radius: 5px; background: var(--bg-soft); }
 .flex { display: flex; align-items: center; gap: 10px; }
 .between { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+
+/* ----- Tableau des services (accueil) -----
+   Une grille de lignes compactes : la densité est le but, on doit pouvoir
+   balayer cent vingt services sans faire défiler dix écrans. */
+.board-search { margin: 0 0 16px; }
+.board-search input {
+  width: 100%;
+  font-size: 15px;
+  padding: 12px 14px;
+}
+.board-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.board-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+.board-row:hover { background: var(--card-hover); text-decoration: none; }
+.board-row .badge { margin-left: auto; flex: none; }
+
+.board-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.board-name > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-cat { font-weight: 400; margin-top: 1px; }
+
+/* Bandeau discret vers la page de vente : présent, jamais au premier plan. */
+.strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  font-size: 14.5px;
+}
