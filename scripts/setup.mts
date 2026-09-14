@@ -313,6 +313,8 @@ const RULES: Rule[] = [
 ];
 
 const warnings: string[] = [];
+/** Actions à faire qui ne découlent pas d'une étape : renseignées en cours de route. */
+const extraTodos: string[] = [];
 
 // Réparation avant contrôle : ce qui peut être deviné sans ambiguïté ne doit
 // pas coûter une relance de workflow. Toute correction appliquée est signalée,
@@ -354,15 +356,41 @@ rl?.close();
 env.STRIPE_AUTOMATIC_TAX ??= "false";
 
 // Secrets : générés une fois, jamais à saisir.
+//
+// Ce script ne peut pas écrire dans les secrets du dépôt : un secret qu'on
+// génère ici ne survit donc pas à l'exécution suivante, qui en fabriquera un
+// autre. Pour AUTH_SECRET c'est sans conséquence visible (les sessions
+// ouvertes sont invalidées, on se reconnecte). Pour CRON_SECRET, c'est une
+// panne silencieuse : les URLs déjà enregistrées chez le planificateur
+// contiennent l'ancienne clé, se font refuser, et la collecte s'arrête sans
+// que rien n'ait l'air cassé sur le site.
+//
+// On ne peut pas l'empêcher, mais on peut cesser de le taire.
 let generated = 0;
+const regenerated: string[] = [];
 for (const [key, bytes] of [["AUTH_SECRET", 48], ["CRON_SECRET", 24]] as const) {
   if (!env[key] || env[key].length < 16 || env[key].startsWith("remplacer")) {
     env[key] = randomBytes(bytes).toString("base64url");
     generated++;
+    regenerated.push(key);
     // Dans GitHub Actions, les logs d'un dépôt public sont lisibles par tous :
     // un secret fraîchement généré ne doit jamais y apparaître.
     if (process.env.GITHUB_ACTIONS) console.log(`::add-mask::${env[key]}`);
   }
+}
+
+if (regenerated.includes("CRON_SECRET")) {
+  warnings.push(
+    "CRON_SECRET — nouvelle clé générée : les URLs déjà enregistrées chez votre planificateur " +
+      "(cron-job.org) utilisent l'ancienne et vont être refusées.",
+  );
+  extraTodos.push(
+    "Stabilisez la clé des tâches planifiées, sinon chaque réinstallation les coupera : " +
+      "choisissez vous-même une valeur d'au moins 24 caractères, enregistrez-la dans " +
+      "Settings → Secrets and variables → Actions sous le nom CRON_SECRET, relancez cette " +
+      "installation, puis mettez cette même valeur dans le paramètre ?key= de vos 4 tâches. " +
+      "Une fois fait, elle ne changera plus jamais.",
+  );
 }
 
 console.log(`\n${C.b("Installation")}\n`);
@@ -1099,7 +1127,7 @@ if (env.APP_URL?.startsWith("https://")) {
 // ---------------------------------------------------------------------------
 // Rapport final
 // ---------------------------------------------------------------------------
-const todos = steps.filter((s) => s.todo).map((s) => s.todo!);
+const todos = [...extraTodos, ...steps.filter((s) => s.todo).map((s) => s.todo!)];
 if (warnings.length) {
   console.log(`\n${C.b("À savoir")}\n`);
   for (const w of warnings) console.log(`  ${C.warn("!")} ${w}`);

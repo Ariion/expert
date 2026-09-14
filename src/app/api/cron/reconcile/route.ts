@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAuthorizedCron, runCron } from "@/lib/http";
+import { isAuthorizedCron, runCron, unauthorizedCron } from "@/lib/http";
 import { cleanup, healthcheck, reconcileStripe, retryDisabledFeeds } from "@/lib/maintenance";
 
 export const runtime = "nodejs";
@@ -14,7 +14,7 @@ export const maxDuration = 60;
  *  4. watchdog : alerte humaine si le système s'est arrêté en silence.
  */
 export async function GET(req: Request) {
-  if (!isAuthorizedCron(req)) return new NextResponse("non autorisé", { status: 401 });
+  if (!isAuthorizedCron(req)) return unauthorizedCron();
 
   return runCron("reconcile", async () => {
     const cleaned = await cleanup();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { isAuthorizedCron, runCron } from "@/lib/http";
+import { isAuthorizedCron, runCron, unauthorizedCron } from "@/lib/http";
 import { ensureCatalog } from "@/lib/bootstrap";
 import { runIngestion } from "@/lib/ingest";
 
@@ -15,7 +15,7 @@ export const maxDuration = 60;
  * chevauchent ne traitent jamais le même fournisseur.
  */
 export async function GET(req: Request) {
-  if (!isAuthorizedCron(req)) return new NextResponse("non autorisé", { status: 401 });
+  if (!isAuthorizedCron(req)) return unauthorizedCron();
 
   // Budget de temps : 25 secondes. Les planificateurs externes gratuits coupent
   // la requête à 30 s ; au-delà, la tâche serait comptée en échec alors qu'elle
@@ -39,7 +39,19 @@ export async function GET(req: Request) {
     // de revalidation — jusqu'à une heure pour le sitemap. La collecte, qui
     // connaît l'état réel, les rafraîchit elle-même : le site est juste dans
     // les minutes qui suivent un déploiement, pas dans l'heure.
-    for (const path of ["/", "/status", "/categories", "/sitemap/0.xml"]) {
+    // Les deux langues, sans exception. N'en rafraîchir qu'une revient à
+    // publier un site anglais figé sur l'état du déploiement : les pages
+    // existent, répondent, et n'affichent aucun incident — la panne la plus
+    // difficile à voir, puisque rien n'a l'air cassé.
+    for (const path of [
+      "/",
+      "/status",
+      "/categories",
+      "/en",
+      "/en/status",
+      "/en/categories",
+      "/sitemap/0.xml",
+    ]) {
       try {
         revalidatePath(path);
       } catch {

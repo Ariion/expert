@@ -71,6 +71,21 @@ export function isAuthorizedCron(req: Request): boolean {
 }
 
 /**
+ * Refus d'une tâche planifiée non authentifiée.
+ *
+ * Un corps vide laissait le planificateur afficher « Échec (Erreur HTTP) »
+ * sans rien dire de la cause, et une clé périmée ressemblait alors à une panne
+ * du site. Le message nomme le problème sans jamais révéler la clé attendue.
+ */
+export function unauthorizedCron(): NextResponse {
+  return new NextResponse(
+    "Clé de tâche planifiée absente ou périmée. Vérifiez le paramètre ?key= de cette URL " +
+      "contre le secret CRON_SECRET du déploiement.",
+    { status: 401, headers: { "content-type": "text/plain; charset=utf-8" } },
+  );
+}
+
+/**
  * Exécution standard d'une tâche planifiée.
  *
  * Un échec renvoyait un 500 au corps vide : le planificateur voyait « HTTP 500 »
