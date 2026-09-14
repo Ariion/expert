@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { sql } from "./db";
+import { sql, withTimeout } from "./db";
 import type { ServiceStatus } from "./feeds";
 
 /**
@@ -21,6 +21,19 @@ import type { ServiceStatus } from "./feeds";
 // toujours. Un accès par clé calculée ne peut pas être remplacé.
 const PHASE_KEY = ["NEXT", "PHASE"].join("_");
 const isBuildPhase = () => process.env[PHASE_KEY] === "phase-production-build";
+
+/**
+ * Toute lecture de page est bornée dans le temps.
+ *
+ * Ces requêtes s'exécutent pendant le rendu : tant qu'elles n'ont pas répondu,
+ * le visiteur regarde une page blanche. Deux secondes et demie suffisent
+ * largement à n'importe laquelle d'entre elles ; au-delà, c'est que la base ne
+ * répondra pas, et il vaut mieux servir la page sans ses données que ne pas la
+ * servir du tout. Chaque appelant retombe déjà sur une valeur par défaut.
+ */
+const READ_TIMEOUT_MS = 2500;
+const read = <T>(query: Promise<T>, label: string): Promise<T> =>
+  withTimeout(query, READ_TIMEOUT_MS, label);
 
 export interface Service {
   id: string;
@@ -62,17 +75,23 @@ const serviceCols = () => sql`
 /** `cache` déduplique les appels au sein d'un même rendu (layout + page + metadata). */
 export const getServiceBySlug = cache(async (slug: string): Promise<Service | null> => {
   if (isBuildPhase()) return null;
-  const [row] = await sql<Service[]>`
-    select ${serviceCols()} from services where slug = ${slug} and is_active limit 1
-  `;
+  const [row] = await read(
+    sql<Service[]>`
+      select ${serviceCols()} from services where slug = ${slug} and is_active limit 1
+    `,
+    `service:${slug}`,
+  );
   return row ?? null;
 });
 
 export const getAllServices = cache(async (): Promise<Service[]> => {
   if (isBuildPhase()) return [];
-  return sql<Service[]>`
-    select ${serviceCols()} from services where is_active order by watcher_count desc, name asc
-  `;
+  return read(
+    sql<Service[]>`
+      select ${serviceCols()} from services where is_active order by watcher_count desc, name asc
+    `,
+    "services",
+  );
 });
 
 export async function getServiceSlugs(): Promise<{ slug: string; updated_at: Date }[]> {
@@ -137,16 +156,19 @@ export async function getRecentIncidents(limit = 12): Promise<
   (Incident & { service_name: string; service_slug: string; logo_domain: string | null })[]
 > {
   if (isBuildPhase()) return [];
-  return sql`
-    select i.id, i.service_id, i.title, i.body, i.url, i.impact, i.state, i.is_resolved,
-           i.started_at, i.resolved_at,
-           s.name as service_name, s.slug as service_slug, s.logo_domain
-      from incidents i
-      join services s on s.id = i.service_id
-     where s.is_active and i.started_at > now() - interval '30 days'
-     order by i.started_at desc
-     limit ${limit}
-  `;
+  return read(
+    sql`
+      select i.id, i.service_id, i.title, i.body, i.url, i.impact, i.state, i.is_resolved,
+             i.started_at, i.resolved_at,
+             s.name as service_name, s.slug as service_slug, s.logo_domain
+        from incidents i
+        join services s on s.id = i.service_id
+       where s.is_active and i.started_at > now() - interval '30 days'
+       order by i.started_at desc
+       limit ${limit}
+    `,
+    "incidents",
+  );
 }
 
 export async function getGlobalStats(): Promise<{

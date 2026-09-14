@@ -71,7 +71,16 @@ export function ServiceBoard({
         <div className="board">
           {visible.map((r) => (
             <Link className="board-row" key={r.slug} href={r.href}>
-              <img className="logo-img" src={r.logo} alt="" loading="lazy" />
+              <img
+                className="logo-img"
+                src={r.logo}
+                alt=""
+                width={18}
+                height={18}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
               <span className="board-name">
                 {r.name}
                 <span className="dim board-cat">{r.category}</span>

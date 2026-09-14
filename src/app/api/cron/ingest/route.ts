@@ -34,35 +34,45 @@ export async function GET(req: Request) {
       first.services === 40 && Date.now() < deadline - 10_000
         ? await runIngestion(40, 12, deadline)
         : { services: 0, changed: 0, queued: 0, deferred: 0 };
-    // Les pages d'ensemble sortent vides du build (aucune requête pendant la
-    // compilation) et ne se rafraîchiraient qu'à l'expiration de leur fenêtre
-    // de revalidation — jusqu'à une heure pour le sitemap. La collecte, qui
-    // connaît l'état réel, les rafraîchit elle-même : le site est juste dans
-    // les minutes qui suivent un déploiement, pas dans l'heure.
-    // Les deux langues, sans exception. N'en rafraîchir qu'une revient à
-    // publier un site anglais figé sur l'état du déploiement : les pages
-    // existent, répondent, et n'affichent aucun incident — la panne la plus
-    // difficile à voir, puisque rien n'a l'air cassé.
-    for (const path of [
-      "/",
-      "/status",
-      "/categories",
-      "/en",
-      "/en/status",
-      "/en/categories",
-      "/sitemap/0.xml",
-    ]) {
-      try {
-        revalidatePath(path);
-      } catch {
-        /* une revalidation qui échoue ne doit pas faire échouer la collecte */
+    // Rafraîchissement des pages d'ensemble — mais seulement s'il y a de quoi.
+    //
+    // Purger le cache vide l'entrée : le visiteur suivant ne reçoit plus une
+    // page en cache, il attend qu'elle soit reconstruite, requêtes de base
+    // comprises. Le faire toutes les cinq minutes quoi qu'il arrive, c'était
+    // garantir qu'un visiteur sur douze paie ce prix — et l'annuler
+    // exactement quand la charge est la plus forte, puisque la collecte tourne
+    // au même instant. Or la grande majorité des passages ne change rien.
+    //
+    // On ne purge donc que sur changement réel. Le reste du temps, la fenêtre
+    // de revalidation fait son travail : elle sert la page en cache et la
+    // reconstruit en arrière-plan, sans faire attendre personne.
+    const changed = first.changed + second.changed;
+    if (changed > 0 || seeded > 0) {
+      // Les deux langues, sans exception. N'en rafraîchir qu'une revient à
+      // publier un site anglais figé sur l'état du déploiement : les pages
+      // existent, répondent, et n'affichent aucun incident — la panne la plus
+      // difficile à voir, puisque rien n'a l'air cassé.
+      for (const path of [
+        "/",
+        "/status",
+        "/categories",
+        "/en",
+        "/en/status",
+        "/en/categories",
+        "/sitemap/0.xml",
+      ]) {
+        try {
+          revalidatePath(path);
+        } catch {
+          /* une revalidation qui échoue ne doit pas faire échouer la collecte */
+        }
       }
     }
 
     return {
       seeded,
       services: first.services + second.services,
-      changed: first.changed + second.changed,
+      changed,
       queued: first.queued + second.queued,
       deferred: first.deferred + second.deferred,
     };

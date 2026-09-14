@@ -178,6 +178,10 @@ footer a { color: var(--muted); }
   overflow: hidden;
 }
 
+/* Taille réservée d'avance : une image tierce lente ou absente ne doit pas
+   décaler la ligne une fois arrivée. */
+.board-row .logo-img { width: 18px; height: 18px; flex: none; }
+
 .board-row {
   display: flex;
   align-items: center;

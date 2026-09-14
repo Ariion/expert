@@ -16,8 +16,20 @@ declare global {
 
 function create() {
   return postgres(env().DATABASE_URL, {
-    max: 3,
+    // Une seule connexion par instance, plus une de réserve.
+    //
+    // Le pooler Supabase a un nombre de connexions client borné, partagé par
+    // tout le projet. Chaque lambda qui en réserve trois épuise ce budget à
+    // cinq instances — et les suivantes attendent, sans erreur, sans fin.
+    // C'est la cause la plus fréquente d'une page qui « charge à l'infini » :
+    // rien n'échoue, tout patiente. Nos requêtes durent quelques
+    // millisecondes ; les sérialiser sur deux connexions coûte moins cher que
+    // de saturer le pooler.
+    max: 2,
     idle_timeout: 20,
+    // Une connexion recyclée régulièrement évite de garder une place réservée
+    // côté pooler pendant qu'une instance dort.
+    max_lifetime: 60 * 10,
     connect_timeout: 10,
     prepare: false,
     onnotice: () => {},
@@ -60,6 +72,38 @@ export const sql: Sql = new Proxy(function noop() {} as unknown as Sql, {
  * sérialisables, mais leur forme n'est pas connue statiquement.
  */
 export const asJson = (value: unknown) => sql.json(value as never);
+
+/**
+ * Borne dure sur une requête de lecture.
+ *
+ * `connect_timeout` couvre l'ouverture de connexion, pas une requête qui
+ * répond jamais. Sans cette borne, une page en cours de régénération attend
+ * indéfiniment et le navigateur tourne dans le vide — le visiteur, lui, part.
+ * Mieux vaut une page rendue avec des données vides, en deux secondes, qu'une
+ * page parfaite qui n'arrive pas : les appelants retombent tous sur leur
+ * valeur par défaut.
+ *
+ * La requête est annulée côté serveur, pour ne pas laisser la connexion
+ * occupée après l'abandon.
+ */
+export function withTimeout<T>(query: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      (query as unknown as { cancel?: () => void }).cancel?.();
+      reject(new Error(`${label} : pas de réponse en ${ms} ms`));
+    }, ms);
+    query.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
 
 /** Retry générique avec backoff exponentiel + jitter. */
 export async function withRetry<T>(
