@@ -34,38 +34,39 @@ export async function GET(req: Request) {
       first.services === 40 && Date.now() < deadline - 10_000
         ? await runIngestion(40, 12, deadline)
         : { services: 0, changed: 0, queued: 0, deferred: 0 };
-    // Rafraîchissement des pages d'ensemble — mais seulement s'il y a de quoi.
+    // Rafraîchissement des pages d'ensemble — à chaque passage, sans condition.
     //
-    // Purger le cache vide l'entrée : le visiteur suivant ne reçoit plus une
-    // page en cache, il attend qu'elle soit reconstruite, requêtes de base
-    // comprises. Le faire toutes les cinq minutes quoi qu'il arrive, c'était
-    // garantir qu'un visiteur sur douze paie ce prix — et l'annuler
-    // exactement quand la charge est la plus forte, puisque la collecte tourne
-    // au même instant. Or la grande majorité des passages ne change rien.
+    // Une version précédente ne le faisait que sur changement réel, pour
+    // éviter de payer le coût d'une reconstruction à chaque tick. Mais un
+    // site fraîchement déployé sort du build avec des pages vides (aucune
+    // requête n'a lieu pendant la compilation) : sans revalidation
+    // inconditionnelle, rien ne les remplit jamais tant qu'aucun incident ne
+    // survient nulle part — ce qui peut être des jours. Le site reste vide en
+    // silence après chaque déploiement, la pire régression possible.
     //
-    // On ne purge donc que sur changement réel. Le reste du temps, la fenêtre
-    // de revalidation fait son travail : elle sert la page en cache et la
-    // reconstruit en arrière-plan, sans faire attendre personne.
+    // Le vrai risque à l'origine du changement — une purge qui fait attendre
+    // un visiteur pendant que la base est déjà sollicitée par la collecte —
+    // est traité à la racine : pool de connexions réduit et borne de temps
+    // dure sur chaque lecture de page (voir src/lib/db.ts, src/lib/queries.ts).
+    // Revalidation systématique, donc, avec ces garde-fous en place.
     const changed = first.changed + second.changed;
-    if (changed > 0 || seeded > 0) {
-      // Les deux langues, sans exception. N'en rafraîchir qu'une revient à
-      // publier un site anglais figé sur l'état du déploiement : les pages
-      // existent, répondent, et n'affichent aucun incident — la panne la plus
-      // difficile à voir, puisque rien n'a l'air cassé.
-      for (const path of [
-        "/",
-        "/status",
-        "/categories",
-        "/en",
-        "/en/status",
-        "/en/categories",
-        "/sitemap/0.xml",
-      ]) {
-        try {
-          revalidatePath(path);
-        } catch {
-          /* une revalidation qui échoue ne doit pas faire échouer la collecte */
-        }
+    // Les deux langues, sans exception. N'en rafraîchir qu'une revient à
+    // publier un site anglais figé sur l'état du déploiement : les pages
+    // existent, répondent, et n'affichent aucun incident — la panne la plus
+    // difficile à voir, puisque rien n'a l'air cassé.
+    for (const path of [
+      "/",
+      "/status",
+      "/categories",
+      "/en",
+      "/en/status",
+      "/en/categories",
+      "/sitemap/0.xml",
+    ]) {
+      try {
+        revalidatePath(path);
+      } catch {
+        /* une revalidation qui échoue ne doit pas faire échouer la collecte */
       }
     }
 
