@@ -39,6 +39,11 @@ const schema = z.object({
   // configuré » plutôt que de faire échouer la validation de tout le site —
   // la même leçon que pour LEGAL_* ci-dessus, apprise à ses dépens ailleurs.
   ADMIN_PASSWORD: z.string().min(8).optional(),
+
+  // Pas un secret (visible dans le code source de chaque page) : une valeur
+  // par défaut vit directement dans les layouts. Cette variable ne sert qu'à
+  // la remplacer sans redéploiement de code, si une revérification l'exige.
+  GOOGLE_SITE_VERIFICATION: z.string().min(10).optional(),
 });
 
 export type Env = z.infer<typeof schema>;
