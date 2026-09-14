@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         // Rien d'utile à indexer côté privé, et surtout rien à gaspiller en
         // budget de crawl.
-        disallow: ["/api/", "/dashboard", "/login"],
+        disallow: ["/api/", "/dashboard", "/login", "/en/dashboard", "/en/login"],
       },
     ],
     sitemap: [`${base}/sitemap/0.xml`],

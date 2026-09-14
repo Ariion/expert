@@ -8,6 +8,11 @@ mise en avant manuelle peut amener un premier client.
 Ces textes sont versionnés ici pour pouvoir être corrigés, réutilisés et
 comparés à leurs résultats. Ordre de priorité décroissante.
 
+**Les publications anglophones pointent vers `/en`.** Un lecteur de Hacker News
+ou de r/devops qui atterrit sur une page en français repart immédiatement ; le
+site existe désormais dans les deux langues, il faut envoyer chacun sur la
+sienne.
+
 ## Règles qui valent pour tout ce qui suit
 
 - **Jamais deux fois le même texte.** Reddit et Hacker News détectent la
@@ -53,7 +58,7 @@ fil tient la première page. Publier sur https://news.ycombinator.com/submit
 
     Next.js on Vercel, Postgres on Supabase, no server to babysit.
 
-    https://statuspulse.aardesign.fr
+    https://statuspulse.aardesign.fr/en
 
 ## 2. Reddit — r/devops
 
@@ -86,7 +91,7 @@ technique, le lien en dernière ligne. Publier sur https://reddit.com/r/devops
 
     If you poll status pages yourself, those three things will save you a
     weekend. If you would rather not, that is what I built:
-    https://statuspulse.aardesign.fr — free for 3 providers.
+    https://statuspulse.aardesign.fr/en — free for 3 providers.
 
 ## 3. LinkedIn
 
@@ -141,8 +146,8 @@ https://www.indiehackers.com/post/new
       every conversion; the account is now created from the billing email after
       payment.
 
-    Live here: https://statuspulse.aardesign.fr — free for 3 providers. Happy to
-    go into detail on any of the four.
+    Live here: https://statuspulse.aardesign.fr/en — free for 3 providers. Happy
+    to go into detail on any of the four.
 
 ## 5. Product Hunt
 
@@ -151,6 +156,7 @@ https://www.indiehackers.com/post/new
 
 **Nom** : StatusPulse
 **Accroche** : One alert when any of your SaaS providers goes down
+**Lien** : https://statuspulse.aardesign.fr/en
 **Description**
 
     Every provider you depend on publishes a status page. Nobody watches twenty

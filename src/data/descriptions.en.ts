@@ -1,0 +1,180 @@
+/**
+ * Descriptions anglaises du catalogue.
+ *
+ * Volontairement séparées de `services.ts` : le catalogue reste une liste de
+ * lignes qu'on allonge sans réfléchir, et la traduction vit à part, où une clé
+ * manquante ne casse rien — la page anglaise retombe alors sur une phrase
+ * générique plutôt que d'afficher du français.
+ *
+ * Clé = slug du fournisseur.
+ */
+export const DESCRIPTIONS_EN: Record<string, string> = {
+  // --- Cloud & infrastructure ---------------------------------------------
+  cloudflare: "CDN, DNS and DDoS protection sitting in front of a large share of the web.",
+  digitalocean: "Cloud hosting, droplets and managed databases.",
+  fastly: "CDN and edge computing.",
+  vercel: "Frontend hosting and serverless functions.",
+  netlify: "Jamstack hosting and edge functions.",
+  render: "PaaS for web apps and managed services.",
+  "fly-io": "Runs applications close to their users.",
+  railway: "Application deployment platform.",
+  aws: "EC2, S3, RDS, Lambda — the foundation much of the internet runs on.",
+  "google-cloud": "Compute Engine, BigQuery, GKE and Google's managed services.",
+  "microsoft-azure": "Virtual machines, App Service, Azure SQL and Microsoft services.",
+  heroku: "The original PaaS for web applications.",
+  ovhcloud: "European host: dedicated servers, public cloud and domains.",
+  scaleway: "French cloud provider: instances, object storage and Kubernetes.",
+  "clever-cloud": "French PaaS for applications and managed databases.",
+  linode: "Virtual servers and storage, now part of Akamai.",
+  vultr: "Cloud instances and bare metal.",
+  hetzner: "Low-cost dedicated servers and cloud.",
+  "bunny-net": "CDN, storage and video streaming.",
+  "deno-deploy": "JavaScript execution at the edge.",
+  koyeb: "European serverless platform.",
+  upcloud: "Cloud servers with fast storage.",
+
+  // --- Databases & data ----------------------------------------------------
+  supabase: "Managed Postgres, auth and storage.",
+  "mongodb-atlas": "Managed document database.",
+  "mongodb-cloud": "MongoDB's cloud services.",
+  planetscale: "Serverless MySQL.",
+  neon: "Serverless Postgres with branching.",
+  "redis-cloud": "Managed cache and key-value store.",
+  snowflake: "Cloud data warehouse.",
+  databricks: "Data and AI platform.",
+  "elastic-cloud": "Managed search and observability.",
+  algolia: "Hosted search engine.",
+  cockroachdb: "Managed distributed SQL database.",
+  clickhouse: "Columnar analytics warehouse.",
+  fivetran: "Managed data pipelines.",
+  "dbt-cloud": "Analytics data transformation.",
+  meilisearch: "Hosted search engine, built in France.",
+  typesense: "Hosted open-source search engine.",
+
+  // --- Payments ------------------------------------------------------------
+  stripe: "Online payments, subscriptions and invoicing.",
+  adyen: "Omnichannel payment platform.",
+  braintree: "PayPal's payment gateway.",
+  plaid: "Bank data aggregation and open banking.",
+  coinbase: "Cryptocurrency exchange.",
+  mollie: "European online payments.",
+  gocardless: "SEPA direct debit and recurring payments.",
+  "checkout-com": "International payment gateway.",
+  paddle: "Merchant of record for software companies.",
+  square: "Online and in-store payments.",
+  wise: "Multi-currency transfers and accounts.",
+  qonto: "French business banking account.",
+  "revolut-business": "Business account and cards.",
+  spendesk: "Company spend and expense management.",
+
+  // --- Communication -------------------------------------------------------
+  slack: "Team messaging and integrations.",
+  zoom: "Video conferencing and webinars.",
+  discord: "Real-time community messaging.",
+  vonage: "Voice, SMS and video APIs.",
+  ringcentral: "Business telephony and video conferencing.",
+
+  // --- Customer support ----------------------------------------------------
+  intercom: "Customer messaging and support.",
+  zendesk: "Helpdesk and ticketing.",
+  front: "Shared team inbox.",
+  "help-scout": "Email-based customer support.",
+  crisp: "Customer messaging suite, built in France.",
+  freshworks: "Helpdesk and CRM.",
+  pipedrive: "Sales CRM.",
+
+  // --- Email & messaging ---------------------------------------------------
+  twilio: "Programmable SMS, voice and messaging.",
+  sendgrid: "Transactional and marketing email.",
+  postmark: "Transactional email with high deliverability.",
+  mailchimp: "Email marketing and automation.",
+  mailgun: "Transactional email sending API.",
+  brevo: "Email marketing and automation, built in France.",
+  mailjet: "French transactional and marketing email.",
+  resend: "Email sending API for developers.",
+  "customer-io": "Behavioural messaging.",
+
+  // --- Developer tools -----------------------------------------------------
+  github: "Code hosting, CI and package registry.",
+  gitlab: "Git hosting, CI/CD and registry.",
+  bitbucket: "Atlassian's Git hosting.",
+  circleci: "Continuous integration and delivery.",
+  npm: "JavaScript package registry.",
+  pypi: "Python package registry.",
+  "docker-hub": "Container image registry.",
+  hashicorp: "Terraform Cloud, Vault and Consul.",
+  sonarcloud: "Code quality analysis.",
+  codecov: "Test coverage reporting.",
+  jfrog: "Software artifact management.",
+
+  // --- Observability -------------------------------------------------------
+  datadog: "Infrastructure monitoring and APM.",
+  sentry: "Application error tracking.",
+  "new-relic": "Full-stack observability.",
+  "grafana-cloud": "Managed metrics, logs and dashboards.",
+  pagerduty: "On-call scheduling and incident response.",
+  betterstack: "Uptime monitoring and log management.",
+  logrocket: "Session replay and error tracking.",
+  honeycomb: "Observability for distributed systems.",
+  opsgenie: "On-call scheduling and alerting.",
+
+  // --- Security & identity -------------------------------------------------
+  okta: "Enterprise identity management and SSO.",
+  auth0: "Authentication and identity as a service.",
+  clerk: "Authentication and user management.",
+  workos: "SSO and directory sync for B2B applications.",
+  "1password": "Team password manager.",
+  bitwarden: "Open-source password manager.",
+  dashlane: "Password manager, built in France.",
+  "cloudflare-zero-trust": "Network access without implicit trust.",
+
+  // --- Productivity --------------------------------------------------------
+  jira: "Issue tracking and project management.",
+  confluence: "Team knowledge base.",
+  trello: "Kanban task management.",
+  notion: "Documentation and knowledge bases.",
+  figma: "Collaborative design.",
+  linear: "Issue tracking for product teams.",
+  airtable: "Collaborative database.",
+  miro: "Collaborative whiteboard.",
+  dropbox: "File storage and sharing.",
+  box: "Enterprise content management.",
+  calendly: "Automated meeting scheduling.",
+  loom: "Asynchronous video messages.",
+  typeform: "Online forms and surveys.",
+  monday: "Visual project management.",
+  clickup: "Task and document management.",
+  asana: "Team project management.",
+  canva: "Online graphic design.",
+  "cal-com": "Open-source scheduling.",
+  framer: "Website building for designers.",
+  "webflow-status": "Hosting for Webflow sites.",
+  payfit: "Payroll and HR, built in France.",
+  pennylane: "French accounting and financial management.",
+  lucca: "French HR software suite.",
+
+  // --- E-commerce, marketing, no-code --------------------------------------
+  shopify: "Hosted e-commerce platform.",
+  bigcommerce: "Hosted e-commerce platform.",
+  lemonsqueezy: "Digital product sales, merchant of record.",
+  hubspot: "CRM and marketing automation.",
+  klaviyo: "E-commerce marketing automation.",
+  segment: "Customer data collection and routing.",
+  cloudinary: "Media management and transformation.",
+  imgix: "Image processing and delivery.",
+  amplitude: "Product analytics.",
+  posthog: "Open-source product analytics.",
+  webflow: "Website building without code.",
+  zapier: "Automation between applications.",
+  make: "Visual automation scenarios.",
+
+  // --- Artificial intelligence ---------------------------------------------
+  openai: "Language and image model APIs.",
+  anthropic: "The Claude API and related services.",
+  "mistral-ai": "European language models.",
+  "hugging-face": "Models, datasets and inference.",
+  replicate: "Run models on demand.",
+  elevenlabs: "Speech synthesis.",
+  pinecone: "Managed vector database.",
+  groq: "Very low latency model inference.",
+};

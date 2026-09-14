@@ -4,9 +4,9 @@ import { sql } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ops } from "@/lib/ops";
 import { stripe, syncSubscriptionToUser } from "@/lib/stripe";
-import { sendEmail } from "@/lib/mail";
+import { dunningEmail, sendEmail } from "@/lib/mail";
 import { findOrCreateUser, isValidEmail, sendLoginLink } from "@/lib/auth";
-import { APP_URL } from "@/lib/env";
+import { asLocale, href } from "@/lib/i18n";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,11 +63,17 @@ export async function POST(req: Request) {
             );
             break;
           }
-          const account = await findOrCreateUser(email, { source: "checkout" });
+          const locale = asLocale(session.metadata?.locale);
+          const account = await findOrCreateUser(email, { source: "checkout", locale });
           userId = account.id;
           // Lien de connexion immédiat : l'acheteur n'a saisi aucun mot de
           // passe et doit pouvoir configurer ses alertes dans la minute.
-          await sendLoginLink(account.id, account.email, "/dashboard").catch(async (err) => {
+          await sendLoginLink(
+            account.id,
+            account.email,
+            href(account.locale, "/dashboard"),
+            account.locale,
+          ).catch(async (err) => {
             await ops.critical(
               "stripe-webhook",
               `Lien de connexion non envoyé après paiement : ${String(err)}`,
@@ -104,16 +110,14 @@ export async function POST(req: Request) {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId =
           typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-        const [user] = await sql<{ email: string }[]>`
+        const [user] = await sql<{ email: string; locale: string }[]>`
           update users set plan_status = 'past_due' where stripe_customer_id = ${customerId ?? ""}
-          returning email
+          returning email, locale
         `;
         if (user) {
           await sendEmail({
             to: user.email,
-            subject: "Échec du paiement — vos alertes instantanées sont menacées",
-            html: `<p>Le prélèvement de votre abonnement StatusPulse a échoué. Mettez à jour votre moyen de paiement pour conserver les alertes instantanées.</p><p><a href="${APP_URL()}/dashboard">Mettre à jour</a></p>`,
-            text: `Échec du paiement StatusPulse. Mettez à jour votre moyen de paiement : ${APP_URL()}/dashboard`,
+            ...dunningEmail(asLocale(user.locale)),
             tag: "dunning",
           }).catch(() => {});
         }

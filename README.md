@@ -225,14 +225,37 @@ Chaque fournisseur du catalogue génère automatiquement :
 - `/status/<slug>` — « *X est-il en panne ?* » : statut en direct, disponibilité
   sur 90 jours, historique complet, FAQ en données structurées `FAQPage` ;
 - `/categories/<catégorie>` — page d'agrégation par maillon d'infrastructure ;
-- `/compare/<a>-vs-<b>` — comparatif de fiabilité, à intention commerciale.
+- `/compare/<a>-vs-<b>` — comparatif de fiabilité, à intention commerciale ;
+- les mêmes sous `/en/…`, en anglais.
 
-145 fournisseurs dans le catalogue produisent **575 URLs** indexables, dont le
-contenu se met à jour tout seul toutes les 2 à 5 minutes. Ajouter un fournisseur
-= ajouter une ligne dans `src/data/services.ts` : la page, le sitemap,
-l'ingestion et les alertes suivent. La collecte insère d'elle-même les
-fournisseurs présents dans le code et absents de la base, donc aucune commande
-n'est à lancer pour qu'une nouvelle page existe.
+Chacune existe en français et en anglais : 145 fournisseurs produisent
+**1 148 URLs** indexables, dont le contenu se met à jour tout seul toutes les 2 à
+5 minutes. Ajouter un fournisseur = ajouter une ligne dans
+`src/data/services.ts` : la page, le sitemap, l'ingestion et les alertes suivent,
+dans les deux langues. La collecte insère d'elle-même les fournisseurs présents
+dans le code et absents de la base, donc aucune commande n'est à lancer pour
+qu'une nouvelle page existe.
+
+### Deux langues, deux marchés
+
+Le français vit à la racine (`/status/github`), l'anglais sous `/en`
+(`/en/status/github`). Aucune URL française n'a bougé : elles étaient déjà
+indexées, et les déplacer derrière un préfixe `/fr` aurait sacrifié le seul
+capital de référencement acquis.
+
+L'anglais n'est pas une traduction de confort. « is github down » se cherche
+environ trente fois plus que « github est-il en panne » : c'est le même code et
+les mêmes données, pour un marché d'un autre ordre de grandeur. Chaque page
+déclare ses deux adresses en `hreflang`, faute de quoi Google traiterait les deux
+versions comme concurrentes et en déclasserait une.
+
+Deux racines de mise en page (`src/app/(fr)` et `src/app/(en)`) portent chacune
+leur `<html lang>` ; tout le reste est mutualisé dans `src/components/pages/`.
+Le dictionnaire est dans `src/lib/i18n.ts`, typé de sorte qu'une clé oubliée
+casse la compilation au lieu d'afficher « undefined » sur la page censée
+convertir. La langue suit ensuite l'utilisateur partout : redirections après
+formulaire, tunnel Stripe, emails d'alerte, relance d'impayé et digest
+quotidien.
 
 Ces requêtes (« slack down », « aws panne », « github status ») ont trois
 propriétés rares réunies : volume élevé, intention immédiate, et un visiteur
@@ -538,11 +561,12 @@ bloquée, webhook Stripe en échec répété, flux fournisseurs massivement cass
 Ce qui a été exécuté et vérifié :
 
 - `npm run typecheck` — aucune erreur.
-- `npx next build` — build complet ; le sitemap publie **575 URLs** (145 pages
-  fournisseur, 14 catégories, 411 comparatifs), robots inclus. Le build lui-même
+- `npx next build` — build complet ; le sitemap publie **1 148 URLs** (145 pages
+  fournisseur, 14 catégories et 411 comparatifs, en français et en anglais),
+  robots inclus. Le build lui-même
   n'interroge pas la base : les pages sont rendues à la demande puis mises en
   cache, ce qui garde le déploiement sous la barre des vingt secondes.
-- `npm run selftest` — **27 vérifications** : parseurs Statuspage v2, Atom et
+- `npm run selftest` — **34 vérifications** : parseurs Statuspage v2, Atom et
   RSS, en-têtes conditionnels 304, nettoyage HTML, empreintes de
   déduplication, remontée d'erreur HTTP, résolution de l'URL publique
   (variable vide, blancs, valeur invalide, repli sur le domaine Vercel) et
@@ -555,7 +579,7 @@ Ce qui a été exécuté et vérifié :
   notification de résolution, remise en file avec backoff après échec d'envoi,
   calcul de disponibilité au prorata, purge, watchdog, backoff sur flux mort.
 - Routes HTTP vérifiées sur un serveur de production local : pages, sitemap
-  (575 URLs), `robots.txt`, JSON-LD `FAQPage`/`BreadcrumbList`, `/api/health`,
+  (1 148 URLs), `robots.txt`, JSON-LD `FAQPage`/`BreadcrumbList`, `/api/health`,
   rejet des crons non authentifiés (401), rejet du webhook Stripe non signé
   (400), redirection du tableau de bord non connecté, création de compte via
   le formulaire public.

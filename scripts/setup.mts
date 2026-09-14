@@ -431,7 +431,9 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
     record({
       name: "Catalogue de fournisseurs",
       status: "ok",
-      detail: `${SEED_SERVICES.length} fournisseurs (${inserted} nouveaux) → ${SEED_SERVICES.length} pages indexables`,
+      detail:
+        `${SEED_SERVICES.length} fournisseurs (${inserted} nouveaux) → ` +
+        `${SEED_SERVICES.length * 2} pages fournisseur indexables (français + anglais)`,
     });
 
     // Vérification des flux : ce qui ne répond pas est désactivé pour ne pas

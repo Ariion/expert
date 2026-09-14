@@ -1,12 +1,18 @@
+import { DEFAULT_LOCALE, dict, type Locale } from "@/lib/i18n";
+
 /**
  * Historique 90 jours. Rendu en pur HTML/CSS (aucune librairie de graphes) :
  * la page reste statique, légère et indexable.
  */
 export function UptimeBar({
   days,
+  locale = DEFAULT_LOCALE,
 }: {
   days: { day: string; uptime_pct: number; incident_count: number }[];
+  locale?: Locale;
 }) {
+  const t = dict(locale);
+
   // On complète à gauche pour toujours afficher 90 colonnes, même service jeune.
   const byDay = new Map(days.map((d) => [d.day, d]));
   const cols: Array<{ day: string; pct: number | null; incidents: number }> = [];
@@ -18,20 +24,19 @@ export function UptimeBar({
 
   return (
     <div>
-      <div className="uptime" aria-hidden="false" role="img" aria-label="Disponibilité sur 90 jours">
+      <div className="uptime" role="img" aria-label={t.service.uptimeTitle}>
         {cols.map((c) => {
-          const cls =
-            c.pct === null ? "none" : c.pct >= 99.9 ? "" : c.pct >= 98 ? "warn" : "bad";
+          const cls = c.pct === null ? "none" : c.pct >= 99.9 ? "" : c.pct >= 98 ? "warn" : "bad";
           const title =
             c.pct === null
-              ? `${c.day} — pas de donnée`
-              : `${c.day} — ${c.pct.toFixed(2)} % (${c.incidents} incident(s))`;
+              ? `${c.day} — ${t.time.noData}`
+              : `${c.day} — ${c.pct.toFixed(2)} % (${t.time.incidentsCount(c.incidents)})`;
           return <i key={c.day} className={cls} title={title} />;
         })}
       </div>
       <div className="between dim" style={{ marginTop: 6 }}>
-        <span>il y a 90 jours</span>
-        <span>aujourd&apos;hui</span>
+        <span>{t.time.ninetyDaysAgo}</span>
+        <span>{t.time.today}</span>
       </div>
     </div>
   );

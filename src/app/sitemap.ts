@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { APP_URL } from "@/lib/env";
 import { getAllServices, getCategories, type Service } from "@/lib/queries";
+import { LOCALES, href } from "@/lib/i18n";
 
 /**
  * Sitemap dynamique et segmenté.
@@ -22,13 +23,28 @@ export const revalidate = 3600;
 async function buildUrls(): Promise<MetadataRoute.Sitemap> {
   const base = APP_URL();
   const now = new Date();
+  const urls: MetadataRoute.Sitemap = [];
 
-  const urls: MetadataRoute.Sitemap = [
-    { url: `${base}/`, changeFrequency: "hourly", priority: 1, lastModified: now },
-    { url: `${base}/status`, changeFrequency: "hourly", priority: 0.9, lastModified: now },
-    { url: `${base}/categories`, changeFrequency: "daily", priority: 0.7, lastModified: now },
-    { url: `${base}/pricing`, changeFrequency: "weekly", priority: 0.8, lastModified: now },
-  ];
+  /**
+   * Chaque page est déclarée une fois par langue, et chaque déclaration porte
+   * les deux adresses en `alternates`. Sans ce couplage, Google voit deux pages
+   * distinctes sur le même sujet et en déclasse une : la version anglaise
+   * coûterait alors du trafic à la française au lieu d'en ajouter.
+   */
+  const push = (
+    path: string,
+    opts: Omit<MetadataRoute.Sitemap[number], "url" | "alternates">,
+  ) => {
+    const languages = Object.fromEntries(LOCALES.map((l) => [l, `${base}${href(l, path)}`]));
+    for (const locale of LOCALES) {
+      urls.push({ url: `${base}${href(locale, path)}`, ...opts, alternates: { languages } });
+    }
+  };
+
+  push("/", { changeFrequency: "hourly", priority: 1, lastModified: now });
+  push("/status", { changeFrequency: "hourly", priority: 0.9, lastModified: now });
+  push("/categories", { changeFrequency: "daily", priority: 0.7, lastModified: now });
+  push("/pricing", { changeFrequency: "weekly", priority: 0.8, lastModified: now });
 
   const [services, categories] = await Promise.all([
     getAllServices().catch((): Service[] => []),
@@ -36,8 +52,7 @@ async function buildUrls(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   for (const c of categories) {
-    urls.push({
-      url: `${base}/categories/${c.category}`,
+    push(`/categories/${c.category}`, {
       changeFrequency: "daily",
       priority: 0.7,
       lastModified: now,
@@ -45,8 +60,7 @@ async function buildUrls(): Promise<MetadataRoute.Sitemap> {
   }
 
   for (const s of services) {
-    urls.push({
-      url: `${base}/status/${s.slug}`,
+    push(`/status/${s.slug}`, {
       // Une page de statut change en permanence : on le dit au crawler.
       changeFrequency: s.current_status === "operational" ? "hourly" : "always",
       priority: 0.9,
@@ -64,8 +78,7 @@ async function buildUrls(): Promise<MetadataRoute.Sitemap> {
     const top = list.slice(0, 10);
     for (let i = 0; i < top.length; i++) {
       for (let j = i + 1; j < top.length; j++) {
-        urls.push({
-          url: `${base}/compare/${top[i].slug}-vs-${top[j].slug}`,
+        push(`/compare/${top[i].slug}-vs-${top[j].slug}`, {
           changeFrequency: "weekly",
           priority: 0.6,
           lastModified: now,

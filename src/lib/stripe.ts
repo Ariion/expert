@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { sql } from "./db";
 import { env, APP_URL } from "./env";
 import { PLANS, planFromPriceId, type PlanId } from "./plans";
+import { DEFAULT_LOCALE, href, type Locale } from "./i18n";
 
 let client: Stripe | null = null;
 
@@ -44,6 +45,7 @@ export async function ensureCustomer(user: {
 export async function createCheckoutSession(
   user: { id: string; email: string; stripe_customer_id: string | null },
   plan: PlanId,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<string> {
   const customerId = await ensureCustomer(user);
   const session = await stripe().checkout.sessions.create({
@@ -57,11 +59,15 @@ export async function createCheckoutSession(
     // variable d'environnement, le jour où le seuil de TVA l'impose.
     automatic_tax: { enabled: process.env.STRIPE_AUTOMATIC_TAX === "true" },
     customer_update: { address: "auto", name: "auto" },
-    subscription_data: { metadata: { user_id: user.id, plan } },
-    metadata: { user_id: user.id, plan },
+    // Stripe traduit son propre tunnel ; sans ce réglage il le rend dans la
+    // langue du navigateur, qui n'est pas forcément celle de la page d'où
+    // vient l'acheteur.
+    locale,
+    subscription_data: { metadata: { user_id: user.id, plan, locale } },
+    metadata: { user_id: user.id, plan, locale },
     client_reference_id: user.id,
-    success_url: `${APP_URL()}/dashboard?upgraded=1&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL()}/pricing?canceled=1`,
+    success_url: `${APP_URL()}${href(locale, "/dashboard")}?upgraded=1&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${APP_URL()}${href(locale, "/pricing")}?canceled=1`,
   });
   if (!session.url) throw new Error("Stripe n'a pas renvoyé d'URL de checkout.");
   return session.url;
@@ -76,7 +82,11 @@ export async function createCheckoutSession(
  * envoie un lien de connexion. L'acheteur ne saisit qu'une seule fois son
  * email, et jamais de mot de passe.
  */
-export async function createAnonymousCheckoutSession(plan: PlanId, email?: string): Promise<string> {
+export async function createAnonymousCheckoutSession(
+  plan: PlanId,
+  locale: Locale = DEFAULT_LOCALE,
+  email?: string,
+): Promise<string> {
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     // Pas de `customer` : Stripe en crée un à partir de l'email saisi. Les
@@ -86,10 +96,16 @@ export async function createAnonymousCheckoutSession(plan: PlanId, email?: strin
     allow_promotion_codes: true,
     billing_address_collection: "auto",
     automatic_tax: { enabled: process.env.STRIPE_AUTOMATIC_TAX === "true" },
-    subscription_data: { metadata: { plan, signup: "checkout_first" } },
-    metadata: { plan, signup: "checkout_first" },
-    success_url: `${APP_URL()}/bienvenue?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL()}/pricing?canceled=1`,
+    locale,
+    subscription_data: { metadata: { plan, signup: "checkout_first", locale } },
+    metadata: { plan, signup: "checkout_first", locale },
+    // La langue voyage dans les métadonnées ET dans l'URL de retour : le
+    // webhook crée le compte à partir des premières, l'acheteur revient par la
+    // seconde, et les deux doivent concorder.
+    success_url: `${APP_URL()}${
+      locale === "en" ? "/en/welcome" : "/bienvenue"
+    }?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${APP_URL()}${href(locale, "/pricing")}?canceled=1`,
   });
   if (!session.url) throw new Error("Stripe n'a pas renvoyé d'URL de checkout.");
   return session.url;

@@ -142,6 +142,13 @@ create table if not exists users (
   updated_at             timestamptz not null default now()
 );
 
+-- Langue du compte. Ajoutée après coup : `create table if not exists` ne
+-- touche pas une table existante, donc la colonne doit être demandée
+-- explicitement pour que les bases déjà en production la reçoivent aussi.
+-- C'est elle qui décide de la langue des alertes : un client anglophone qui
+-- reçoit une alerte de panne en français ne la lit pas.
+alter table users add column if not exists locale text not null default 'fr';
+
 create unique index if not exists users_email_key on users (lower(email));
 create index if not exists users_plan_idx on users (plan, plan_status);
 

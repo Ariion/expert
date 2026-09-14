@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { APP_URL } from "./env";
 import { sql } from "./db";
 import { describeError, trackCron } from "./ops";
+import { asLocale, href, type Locale } from "./i18n";
 
 /** Redirection 303 : un POST suivi d'un GET (pattern POST-Redirect-GET). */
 export function redirectTo(path: string, params: Record<string, string> = {}): NextResponse {
@@ -14,6 +15,31 @@ export function fail(path: string, message: string): NextResponse {
   // Pas d'encodage manuel : `searchParams.set` s'en charge, et un double
   // encodage afficherait des %25 à l'utilisateur.
   return redirectTo(path, { error: message });
+}
+
+/**
+ * Langue depuis laquelle le formulaire a été posté.
+ *
+ * Chaque formulaire du site transporte un champ `locale` caché. Sans lui, une
+ * route d'API renverrait systématiquement vers la version française : un
+ * visiteur anglophone qui s'abonne depuis /en/status/github se retrouverait sur
+ * une page de connexion en français, juste après avoir donné son email.
+ */
+export function formLocale(form: FormData): Locale {
+  return asLocale(str(form, "locale"));
+}
+
+/** Raccourci vers un chemin interne dans la langue du formulaire. */
+export function localized(form: FormData, path: string): string {
+  return href(formLocale(form), path);
+}
+
+/**
+ * Chemin interne sûr. Une valeur postée qui ne commence pas par une seule barre
+ * oblique pourrait rediriger hors du site (`//evil.example`) : on la refuse.
+ */
+export function safePath(value: string, fallback: string): string {
+  return /^\/(?!\/)/.test(value) ? value : fallback;
 }
 
 export function str(form: FormData, key: string): string {

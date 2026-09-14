@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { findOrCreateUser, isValidEmail, sendLoginLink } from "@/lib/auth";
-import { fail, redirectTo, str, tooManyTokens } from "@/lib/http";
+import { fail, formLocale, localized, redirectTo, str, tooManyTokens } from "@/lib/http";
 import { planFor } from "@/lib/plans";
 import { ops } from "@/lib/ops";
+import { dict, href } from "@/lib/i18n";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,12 +22,13 @@ export async function POST(req: Request) {
   const email = str(form, "email");
   const serviceId = str(form, "service_id") || null;
   const source = str(form, "source") || "direct";
-  const back = serviceId ? "/login" : "/login";
+  const locale = formLocale(form);
+  const back = localized(form, "/login");
 
-  if (!isValidEmail(email)) return fail(back, "Adresse email invalide.");
+  if (!isValidEmail(email)) return fail(back, dict(locale).errors.invalidEmail);
 
   try {
-    const user = await findOrCreateUser(email, { source, serviceId });
+    const user = await findOrCreateUser(email, { source, serviceId, locale });
 
     if (serviceId) {
       const [{ plan }] = await sql<{ plan: string }[]>`select plan from users where id = ${user.id}`;
@@ -51,11 +53,11 @@ export async function POST(req: Request) {
       return redirectTo(back, { sent: "1" }); // réponse identique : pas d'oracle
     }
 
-    await sendLoginLink(user.id, email, "/dashboard");
+    await sendLoginLink(user.id, email, href(user.locale, "/dashboard"), user.locale);
     return redirectTo(back, { sent: "1" });
   } catch (err) {
     await ops.critical("subscribe", `Inscription impossible : ${String(err)}`, { source });
-    return fail(back, "Une erreur est survenue, réessayez dans un instant.");
+    return fail(back, dict(locale).errors.generic);
   }
 }
 

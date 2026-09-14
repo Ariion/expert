@@ -4,6 +4,7 @@ import { sql } from "./db";
 import { env, APP_URL } from "./env";
 import { magicLinkEmail, sendEmail } from "./mail";
 import type { PlanId } from "./plans";
+import { DEFAULT_LOCALE, asLocale, type Locale } from "./i18n";
 
 export const SESSION_COOKIE = "sp_session";
 const SESSION_DAYS = 60;
@@ -19,6 +20,7 @@ export interface SessionUser {
   cancel_at_period_end: boolean;
   email_verified: boolean;
   digest_enabled: boolean;
+  locale: Locale;
 }
 
 /** On ne stocke jamais un token en clair : seule son empreinte va en base. */
@@ -42,25 +44,34 @@ export function isValidEmail(raw: string): boolean {
 /** Idempotent : un lead qui revient n'est jamais dupliqué. */
 export async function findOrCreateUser(
   rawEmail: string,
-  opts: { source?: string; serviceId?: string | null } = {},
-): Promise<{ id: string; email: string; created: boolean }> {
+  opts: { source?: string; serviceId?: string | null; locale?: Locale } = {},
+): Promise<{ id: string; email: string; locale: Locale; created: boolean }> {
   const email = normalizeEmail(rawEmail);
-  const [existing] = await sql<{ id: string; email: string }[]>`
-    select id, email from users where lower(email) = ${email} limit 1
-  `;
-  if (existing) return { ...existing, created: false };
+  const locale = opts.locale ?? DEFAULT_LOCALE;
 
-  const [created] = await sql<{ id: string; email: string }[]>`
-    insert into users (email, signup_source, signup_service_id)
-    values (${email}, ${opts.source ?? "direct"}, ${opts.serviceId ?? null})
-    on conflict (lower(email)) do update set updated_at = now()
-    returning id, email
+  const [existing] = await sql<{ id: string; email: string; locale: string }[]>`
+    select id, email, locale from users where lower(email) = ${email} limit 1
   `;
-  return { ...created, created: true };
+  // La langue d'un compte existant n'est jamais écrasée : elle appartient à son
+  // propriétaire, pas à la page par laquelle il est repassé une fois.
+  if (existing) return { ...existing, locale: asLocale(existing.locale), created: false };
+
+  const [created] = await sql<{ id: string; email: string; locale: string }[]>`
+    insert into users (email, signup_source, signup_service_id, locale)
+    values (${email}, ${opts.source ?? "direct"}, ${opts.serviceId ?? null}, ${locale})
+    on conflict (lower(email)) do update set updated_at = now()
+    returning id, email, locale
+  `;
+  return { ...created, locale: asLocale(created.locale), created: true };
 }
 
 /** Génère un lien magique et l'envoie. Le token n'existe qu'en transit. */
-export async function sendLoginLink(userId: string, email: string, next?: string): Promise<void> {
+export async function sendLoginLink(
+  userId: string,
+  email: string,
+  next?: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<void> {
   const token = newToken();
   await sql`
     insert into auth_tokens (user_id, token_hash, expires_at)
@@ -69,7 +80,7 @@ export async function sendLoginLink(userId: string, email: string, next?: string
   const url = `${APP_URL()}/api/auth/verify?token=${token}${
     next ? `&next=${encodeURIComponent(next)}` : ""
   }`;
-  const tpl = magicLinkEmail(url);
+  const tpl = magicLinkEmail(url, locale);
   await sendEmail({ to: email, ...tpl, tag: "magic-link" });
 }
 
@@ -114,7 +125,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     const [row] = await sql<SessionUser[]>`
       select u.id, u.email, u.plan, u.plan_status, u.stripe_customer_id,
-             u.current_period_end, u.cancel_at_period_end, u.email_verified, u.digest_enabled
+             u.current_period_end, u.cancel_at_period_end, u.email_verified,
+             u.digest_enabled, u.locale
         from sessions s
         join users u on u.id = s.user_id
        where s.token_hash = ${hashToken(token)} and s.expires_at > now()

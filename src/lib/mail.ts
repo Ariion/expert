@@ -1,5 +1,6 @@
 import { env, APP_URL, SITE_NAME } from "./env";
 import { withRetry } from "./db";
+import { DEFAULT_LOCALE, dict, href, type Locale } from "./i18n";
 
 interface SendArgs {
   to: string;
@@ -46,7 +47,13 @@ export async function sendEmail({ to, subject, html, text, tag }: SendArgs): Pro
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function layout(title: string, bodyHtml: string, footerNote?: string): string {
+function layout(
+  title: string,
+  bodyHtml: string,
+  locale: Locale = DEFAULT_LOCALE,
+  footerNote?: string,
+): string {
+  const t = dict(locale).email;
   return `<!doctype html><html><body style="margin:0;background:#0b1020;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden">
@@ -56,8 +63,8 @@ function layout(title: string, bodyHtml: string, footerNote?: string): string {
 ${bodyHtml}
 </td></tr>
 <tr><td style="padding:18px 28px;background:#f5f6fa;color:#6b7280;font-size:12px;line-height:1.6">
-${footerNote ?? `Vous recevez cet email parce que vous surveillez des fournisseurs sur ${SITE_NAME}.`}
-<br><a href="${APP_URL()}/dashboard" style="color:#4f46e5">Gérer mes alertes</a>
+${footerNote ?? t.footerNote(SITE_NAME)}
+<br><a href="${APP_URL()}${href(locale, "/dashboard")}" style="color:#4f46e5">${t.manageLink}</a>
 </td></tr></table></td></tr></table></body></html>`;
 }
 
@@ -73,35 +80,26 @@ const P = (html: string) =>
 // Templates
 // --------------------------------------------------------------------------
 
-export function magicLinkEmail(url: string) {
+export function magicLinkEmail(url: string, locale: Locale = DEFAULT_LOCALE) {
+  const t = dict(locale).email;
   return {
-    subject: `Votre lien de connexion ${SITE_NAME}`,
-    html: layout(
-      "Connexion en un clic",
-      P("Ce lien est valable 30 minutes et ne fonctionne qu'une seule fois.") + button(url, "Ouvrir mon tableau de bord"),
-      "Si vous n'avez pas demandé ce lien, ignorez cet email.",
-    ),
-    text: `Connexion ${SITE_NAME} : ${url}\n(valable 30 minutes, usage unique)`,
+    subject: t.magicSubject(SITE_NAME),
+    html: layout(t.magicTitle, P(t.magicBody) + button(url, t.magicCta), locale, t.magicFooter),
+    text: t.magicText(SITE_NAME, url),
   };
 }
 
-export function welcomeEmail(serviceName?: string) {
-  const url = `${APP_URL()}/dashboard`;
+export function welcomeEmail(serviceName?: string, locale: Locale = DEFAULT_LOCALE) {
+  const t = dict(locale).email;
+  const url = `${APP_URL()}${href(locale, "/dashboard")}`;
   return {
-    subject: serviceName
-      ? `Surveillance de ${serviceName} activée`
-      : `Votre surveillance ${SITE_NAME} est active`,
+    subject: serviceName ? t.welcomeSubjectService(serviceName) : t.welcomeSubject(SITE_NAME),
     html: layout(
-      serviceName ? `Vous êtes alerté dès que ${serviceName} tombe` : "Surveillance active",
-      P(
-        "Nous interrogeons les status pages officielles de vos fournisseurs toutes les 5 minutes. Dès qu'un incident est publié, vous recevez l'alerte — sans avoir à ouvrir quoi que ce soit.",
-      ) +
-        P(
-          "<strong>Ajoutez le reste de votre stack</strong> : la panne qui vous coûtera cher est rarement celle que vous surveilliez déjà.",
-        ) +
-        button(url, "Ajouter mes fournisseurs"),
+      serviceName ? t.welcomeTitleService(serviceName) : t.welcomeTitle,
+      P(t.welcomeBody1) + P(t.welcomeBody2) + button(url, t.welcomeCta),
+      locale,
     ),
-    text: `Surveillance active. Ajoutez vos fournisseurs : ${url}`,
+    text: t.welcomeText(url),
   };
 }
 
@@ -115,49 +113,46 @@ export function incidentEmail(args: {
   url?: string | null;
   body?: string | null;
   startedAt: string;
+  locale?: Locale;
 }) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const t = dict(locale).email;
   const icon = args.kind === "resolved" ? "✅" : args.impact === "critical" ? "🔴" : "🟠";
-  const verb =
-    args.kind === "resolved" ? "résolu" : args.kind === "updated" ? "mis à jour" : "en cours";
-  const subject = `${icon} ${args.serviceName} — incident ${verb} : ${args.title}`;
-  const page = `${APP_URL()}/status/${args.serviceSlug}`;
+  const subject = t.incidentSubject(icon, args.serviceName, t.incidentVerb[args.kind], args.title);
+  const page = `${APP_URL()}${href(locale, `/status/${args.serviceSlug}`)}`;
   return {
     subject: subject.slice(0, 160),
     html: layout(
       `${args.serviceName} : ${args.title}`,
-      P(
-        `<strong>Impact :</strong> ${esc(args.impact)} &nbsp;·&nbsp; <strong>État :</strong> ${esc(
-          args.state,
-        )} &nbsp;·&nbsp; <strong>Début :</strong> ${esc(args.startedAt)}`,
-      ) +
+      P(t.incidentMeta(esc(args.impact), esc(args.state), esc(args.startedAt))) +
         (args.body ? P(esc(args.body.slice(0, 900))) : "") +
-        button(args.url || page, "Voir le détail de l'incident") +
-        P(`<a href="${page}" style="color:#4f46e5">Historique complet de ${esc(args.serviceName)}</a>`),
+        button(args.url || page, t.incidentCta) +
+        P(`<a href="${page}" style="color:#4f46e5">${esc(t.incidentHistory(args.serviceName))}</a>`),
+      locale,
     ),
-    text: `${subject}\n\nImpact: ${args.impact} | État: ${args.state} | Début: ${args.startedAt}\n${
+    text: `${subject}\n\n${args.impact} | ${args.state} | ${args.startedAt}\n${
       args.body?.slice(0, 900) ?? ""
     }\n\n${args.url || page}`,
   };
 }
 
-export function limitReachedEmail(count: number) {
-  const url = `${APP_URL()}/pricing`;
+export function limitReachedEmail(count: number, locale: Locale = DEFAULT_LOCALE) {
+  const t = dict(locale).email;
+  const url = `${APP_URL()}${href(locale, "/pricing")}`;
   return {
-    subject: "Vous avez atteint la limite du plan Free",
-    html: layout(
-      `${count} fournisseurs surveillés — la limite Free est de 3`,
-      P(
-        "Passez en Pro pour surveiller jusqu'à 50 fournisseurs, recevoir les alertes <strong>sans délai de 15 minutes</strong>, et les router vers Slack ou un webhook.",
-      ) + button(url, "Passer en Pro — 19 €/mois"),
-    ),
-    text: `Limite Free atteinte. Passez en Pro : ${url}`,
+    subject: t.limitSubject,
+    html: layout(t.limitTitle(count), P(t.limitBody) + button(url, t.limitCta), locale),
+    text: t.limitText(url),
   };
 }
 
 export function digestEmail(args: {
   rows: Array<{ name: string; slug: string; status: string; incidents: number; uptime: number }>;
   date: string;
+  locale?: Locale;
 }) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const t = dict(locale).email;
   const lines = args.rows
     .map(
       (r) =>
@@ -169,14 +164,29 @@ export function digestEmail(args: {
     )
     .join("");
   return {
-    subject: `Disponibilité de votre stack — ${args.date}`,
+    subject: t.digestSubject(args.date),
     html: layout(
-      `Récapitulatif du ${args.date}`,
+      t.digestTitle(args.date),
       `<table role="presentation" width="100%">${lines}</table>` +
-        button(`${APP_URL()}/dashboard`, "Ouvrir le tableau de bord"),
+        button(`${APP_URL()}${href(locale, "/dashboard")}`, t.digestCta),
+      locale,
     ),
     text: args.rows
-      .map((r) => `${r.name}: ${r.status} — ${r.uptime.toFixed(2)}% (${r.incidents} incidents)`)
+      .map((r) => `${r.name}: ${r.status} — ${r.uptime.toFixed(2)}% (${r.incidents})`)
       .join("\n"),
+  };
+}
+
+/**
+ * Relance d'impayé. Inline dans le webhook auparavant, ce qui la laissait seule
+ * en français quand tout le reste basculait.
+ */
+export function dunningEmail(locale: Locale = DEFAULT_LOCALE) {
+  const t = dict(locale).email;
+  const url = `${APP_URL()}${href(locale, "/dashboard")}`;
+  return {
+    subject: t.dunningSubject,
+    html: layout(t.dunningSubject, P(t.dunningBody) + button(url, t.dunningCta), locale),
+    text: `${t.dunningSubject}\n${t.dunningBody}\n${url}`,
   };
 }

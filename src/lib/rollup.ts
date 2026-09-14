@@ -1,7 +1,8 @@
 import { sql } from "./db";
 import { digestEmail, sendEmail } from "./mail";
 import { ops } from "./ops";
-import { STATUS_LABEL } from "./format";
+import { statusLabel } from "./format";
+import { asLocale } from "./i18n";
 
 /**
  * Recalcule la disponibilité journalière des 90 derniers jours.
@@ -79,8 +80,8 @@ export async function rebuildUptime(windowDays = 90): Promise<number> {
  * C'est le rappel de valeur qui fait tenir l'abonnement les mois sans panne.
  */
 export async function sendDailyDigests(): Promise<number> {
-  const users = await sql<{ id: string; email: string }[]>`
-    select id, email from users
+  const users = await sql<{ id: string; email: string; locale: string }[]>`
+    select id, email, locale from users
      where plan <> 'free'
        and digest_enabled
        and email_verified
@@ -107,11 +108,13 @@ export async function sendDailyDigests(): Promise<number> {
       `;
       if (rows.length === 0) continue;
 
+      const locale = asLocale(user.locale);
       const tpl = digestEmail({
         date,
+        locale,
         rows: rows.map((r) => ({
           ...r,
-          status: STATUS_LABEL[r.status as keyof typeof STATUS_LABEL] ?? r.status,
+          status: statusLabel(r.status as Parameters<typeof statusLabel>[0], locale),
           uptime: Number(r.uptime),
         })),
       });

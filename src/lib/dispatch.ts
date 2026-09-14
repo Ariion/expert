@@ -3,6 +3,7 @@ import { sql } from "./db";
 import { ops } from "./ops";
 import { env, APP_URL, SITE_NAME } from "./env";
 import { incidentEmail, sendEmail } from "./mail";
+import { asLocale, dict } from "./i18n";
 
 interface Delivery {
   id: string;
@@ -27,6 +28,7 @@ interface Delivery {
   kind: "email" | "webhook" | "slack";
   target: string;
   email: string;
+  locale: string;
 }
 
 const MAX_ATTEMPTS = 6;
@@ -43,8 +45,10 @@ function emoji(kind: string, impact: string): string {
 
 async function deliverSlack(d: Delivery): Promise<void> {
   const { service, incident } = d.payload;
+  const locale = asLocale(d.locale);
+  const verb = dict(locale).email.incidentVerb;
   const head = `${emoji(d.event_kind, incident.impact)} *${service.name}* — ${
-    d.event_kind === "resolved" ? "incident résolu" : `incident ${incident.state}`
+    d.event_kind === "resolved" ? `incident ${verb.resolved}` : `incident ${incident.state}`
   }`;
   const res = await fetch(d.target, {
     method: "POST",
@@ -107,6 +111,7 @@ async function deliverEmail(d: Delivery): Promise<void> {
     url: incident.url,
     body: incident.body,
     startedAt: new Date(incident.started_at).toUTCString(),
+    locale: asLocale(d.locale),
   });
   await sendEmail({ to: d.target || d.email, ...tpl, tag: "incident-alert" });
 }
@@ -128,7 +133,7 @@ export async function runDispatch(
       select * from claim_alert_deliveries(${batchSize})
     )
     select c.id, c.user_id, c.channel_id, c.incident_id, c.event_kind, c.payload, c.attempts,
-           ch.kind, ch.target, u.email
+           ch.kind, ch.target, u.email, u.locale
       from claimed c
       join alert_channels ch on ch.id = c.channel_id
       join users u on u.id = c.user_id

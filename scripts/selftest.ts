@@ -15,6 +15,9 @@ import { fetchFeed, hashIncident } from "../src/lib/feeds";
 import { APP_URL } from "../src/lib/env";
 import { splitSqlStatements } from "../src/lib/sqlfile";
 import { readFileSync } from "node:fs";
+import { DICT, LOCALES, href, translatePath, categoryLabel, asLocale } from "../src/lib/i18n";
+import { SEED_SERVICES } from "../src/data/services";
+import { DESCRIPTIONS_EN } from "../src/data/descriptions.en";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -266,6 +269,60 @@ async function main() {
   ok("les commentaires seuls ne produisent pas d'instruction vide", () =>
     assert.equal(splitSqlStatements("-- rien du tout\n\n-- non plus\n").length, 0),
   );
+
+  console.log("\nBilingue");
+  ok("le français reste à la racine, l'anglais sous /en", () => {
+    assert.equal(href("fr", "/status/github"), "/status/github");
+    assert.equal(href("en", "/status/github"), "/en/status/github");
+    assert.equal(href("fr", "/"), "/");
+    assert.equal(href("en", "/"), "/en");
+  });
+  ok("une page se traduit vers son équivalent, pas vers l'accueil", () => {
+    assert.equal(translatePath("/status/stripe", "en"), "/en/status/stripe");
+    assert.equal(translatePath("/status/stripe", "fr"), "/status/stripe");
+    // Segment renommé : l'URL française était publiée avant l'anglaise.
+    assert.equal(translatePath("/bienvenue", "en"), "/en/welcome");
+    assert.equal(translatePath("/welcome", "fr"), "/bienvenue");
+  });
+  ok("une locale inconnue retombe sur le français", () => {
+    assert.equal(asLocale("de"), "fr");
+    assert.equal(asLocale(""), "fr");
+    assert.equal(asLocale(null), "fr");
+    assert.equal(asLocale("EN"), "en");
+  });
+  ok("aucune clé de traduction ne manque dans une langue", () => {
+    // Une clé absente afficherait « undefined » en production, sur la page
+    // même qui est censée convertir. On compare les deux arbres entiers.
+    const shape = (v: unknown): unknown => {
+      if (!v || typeof v !== "object" || Array.isArray(v)) return typeof v;
+      return Object.fromEntries(
+        Object.entries(v as Record<string, unknown>)
+          .map(([k, val]): [string, unknown] => [k, shape(val)])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+      );
+    };
+    assert.deepEqual(shape(DICT.fr), shape(DICT.en));
+  });
+  ok("chaque catégorie a une étiquette dans les deux langues", () => {
+    for (const category of new Set(SEED_SERVICES.map((s) => s.category))) {
+      for (const locale of LOCALES) {
+        const label = categoryLabel(category, locale);
+        assert.ok(label && label !== category, `${category} en ${locale}`);
+      }
+    }
+  });
+  ok("chaque fournisseur a une description anglaise", () => {
+    const missing = SEED_SERVICES.filter((s) => !DESCRIPTIONS_EN[s.slug]).map((s) => s.slug);
+    assert.deepEqual(missing, []);
+    const orphans = Object.keys(DESCRIPTIONS_EN).filter(
+      (k) => !SEED_SERVICES.some((s) => s.slug === k),
+    );
+    assert.deepEqual(orphans, []);
+  });
+  ok("les titres anglais portent la requête visée", () => {
+    assert.equal(DICT.en.service.metaTitle("GitHub").startsWith("Is GitHub down?"), true);
+    assert.equal(DICT.fr.service.metaTitle("GitHub").startsWith("GitHub est-il en panne"), true);
+  });
 
   console.log("\nErreurs");
   await assert.rejects(

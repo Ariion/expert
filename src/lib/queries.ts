@@ -206,8 +206,19 @@ export async function getUserChannels(userId: string): Promise<
   `;
 }
 
+export interface AlertHistoryRow {
+  id: string;
+  event_kind: string;
+  status: string;
+  sent_at: Date | null;
+  created_at: Date;
+  title: string;
+  service_name: string;
+  service_slug: string;
+}
+
 export async function getUserAlertHistory(userId: string, limit = 10) {
-  return sql`
+  return sql<AlertHistoryRow[]>`
     select d.id, d.event_kind, d.status, d.sent_at, d.created_at,
            i.title, s.name as service_name, s.slug as service_slug
       from alert_deliveries d
