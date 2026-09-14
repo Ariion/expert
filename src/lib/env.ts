@@ -24,6 +24,15 @@ const schema = z.object({
 
   OPS_ALERT_EMAIL: z.string().email().optional(),
   OPS_ALERT_WEBHOOK: z.string().url().optional(),
+
+  // Identité de l'éditeur, affichée dans les mentions légales. Obligatoire en
+  // France dès qu'un site vend, mais volontairement optionnelle ici : plutôt
+  // aucune mention qu'une mention inventée. Le bloc n'apparaît que si le nom
+  // et le numéro sont tous deux renseignés.
+  LEGAL_PUBLISHER: z.string().min(2).optional(),
+  LEGAL_REGISTRATION: z.string().min(4).optional(),
+  LEGAL_CONTACT_EMAIL: z.string().email().optional(),
+  LEGAL_ADDRESS: z.string().min(4).optional(),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -87,3 +96,30 @@ export const APP_URL = (): string => {
 };
 
 export const SITE_NAME = "StatusPulse";
+
+export interface Publisher {
+  name: string;
+  registration: string;
+  email?: string;
+  address?: string;
+}
+
+/**
+ * Éditeur du site, tel qu'il doit figurer dans les mentions légales.
+ *
+ * Lu dans l'environnement plutôt qu'écrit en dur : le produit n'appartient pas
+ * au code, et l'identité qui le publie peut changer sans qu'on redéploie. Tant
+ * que le nom et le numéro d'immatriculation ne sont pas renseignés, rien n'est
+ * affiché — un site sans mention vaut mieux qu'un site avec une mention fausse.
+ */
+export function publisher(): Publisher | null {
+  const name = envOr("LEGAL_PUBLISHER", "");
+  const registration = envOr("LEGAL_REGISTRATION", "");
+  if (!name || !registration) return null;
+  return {
+    name,
+    registration,
+    email: envOr("LEGAL_CONTACT_EMAIL", "") || undefined,
+    address: envOr("LEGAL_ADDRESS", "") || undefined,
+  };
+}

@@ -75,6 +75,10 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
           OPS_ALERT_WEBHOOK: ${{ secrets.OPS_ALERT_WEBHOOK }}
+          LEGAL_PUBLISHER: ${{ secrets.LEGAL_PUBLISHER }}
+          LEGAL_REGISTRATION: ${{ secrets.LEGAL_REGISTRATION }}
+          LEGAL_CONTACT_EMAIL: ${{ secrets.LEGAL_CONTACT_EMAIL }}
+          LEGAL_ADDRESS: ${{ secrets.LEGAL_ADDRESS }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}

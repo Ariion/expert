@@ -386,6 +386,14 @@ const fr = {
     metaDescription:
       "Éditeur, hébergement, sources de données et traitement des données personnelles.",
     h1: "Mentions légales",
+    publisherTitle: "Éditeur du site",
+    publisherRegistration: "Immatriculation",
+    publisherContact: "Contact",
+    publisherMissing:
+      "L'identité de l'éditeur n'est pas encore renseignée. Elle apparaîtra ici dès que les variables correspondantes seront définies.",
+    hostingTitle: "Hébergement",
+    hostingBody:
+      "Le site est hébergé par Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis. Les données applicatives sont hébergées dans l'Union européenne (Supabase, région Irlande).",
     sourcesTitle: "Sources des données",
     sourcesBody: (site: string) =>
       `${site} agrège et republie des informations issues des pages de statut publiques des fournisseurs cités, accessibles sans authentification et destinées à la diffusion publique. Chaque page indique sa source officielle et y renvoie. ${site} n'est affilié à aucun de ces fournisseurs et leurs marques restent la propriété de leurs détenteurs respectifs.`,
@@ -794,6 +802,14 @@ const en: typeof fr = {
     metaTitle: "Legal notice and data handling",
     metaDescription: "Publisher, hosting, data sources and handling of personal data.",
     h1: "Legal & privacy",
+    publisherTitle: "Site publisher",
+    publisherRegistration: "Registration",
+    publisherContact: "Contact",
+    publisherMissing:
+      "The publisher's details are not filled in yet. They will appear here as soon as the matching variables are set.",
+    hostingTitle: "Hosting",
+    hostingBody:
+      "This site is hosted by Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, United States. Application data is hosted in the European Union (Supabase, Ireland region).",
     sourcesTitle: "Data sources",
     sourcesBody: (site: string) =>
       `${site} aggregates and republishes information from the public status pages of the providers listed, which are accessible without authentication and intended for public distribution. Every page names its official source and links to it. ${site} is not affiliated with any of these providers, and their trademarks remain the property of their respective owners.`,

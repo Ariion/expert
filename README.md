@@ -236,6 +236,30 @@ dans les deux langues. La collecte insère d'elle-même les fournisseurs présen
 dans le code et absents de la base, donc aucune commande n'est à lancer pour
 qu'une nouvelle page existe.
 
+### Marque et domaine
+
+Le produit s'appelle StatusPulse et rien d'autre : aucune autre marque
+n'apparaît dans les pages, les emails ou les mentions légales. Le nom du domaine
+est la seule chose qui puisse trahir l'origine du projet, et il vit entièrement
+dans la variable `APP_URL` — changer d'adresse ne demande aucune modification de
+code, seulement de repointer le domaine et de relancer l'installation.
+
+Deux points à connaître avant de choisir :
+
+- **L'adresse du site peut être gratuite.** Un sous-domaine `*.vercel.app`
+  convient parfaitement au départ et ne coûte rien. Un domaine propre se
+  justifie surtout pour la crédibilité auprès d'un acheteur payant.
+- **L'expéditeur des emails, non.** Resend exige un domaine dont on contrôle les
+  enregistrements DNS, ce qui exclut `*.vercel.app`. Tant qu'aucun domaine n'est
+  acheté, `EMAIL_FROM` doit donc utiliser un domaine déjà possédé — c'est le
+  seul endroit du système où l'origine reste visible, et seulement pour les
+  personnes qui reçoivent effectivement une alerte.
+
+L'identité de l'éditeur affichée dans les mentions légales est elle aussi
+paramétrable (`LEGAL_PUBLISHER`, `LEGAL_REGISTRATION`, `LEGAL_CONTACT_EMAIL`,
+`LEGAL_ADDRESS`). Sans elles, le bloc n'est pas publié : mieux vaut aucune
+mention qu'une mention fausse.
+
 ### Deux langues, deux marchés
 
 Le français vit à la racine (`/status/github`), l'anglais sous `/en`
