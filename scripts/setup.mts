@@ -32,6 +32,7 @@ import { readEnvFile, writeEnvFile, type EnvMap } from "../src/lib/envfile";
 import { splitSqlStatements } from "../src/lib/sqlfile";
 import { fetchFeed } from "../src/lib/feeds";
 import { discoverFeeds } from "../src/lib/discover";
+import { normalizeUrl } from "../src/lib/env";
 
 // Un rejet de promesse non intercepté fait tomber le processus Node et emporte
 // toutes les étapes suivantes. Une installation doit au contraire aller au bout
@@ -268,14 +269,10 @@ const RULES: Rule[] = [
   {
     key: "APP_URL",
     label: "URL publique du site, sans slash final",
-    normalize: (v) => {
-      const clean = v.trim().replace(/\/+$/, "");
-      // « upstreamstatus.vercel.app » est ce que les hébergeurs affichent ;
-      // on complète le protocole plutôt que de rejeter la valeur.
-      return /^https?:\/\//i.test(clean) || !/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/.*)?$/i.test(clean)
-        ? clean
-        : `https://${clean}`;
-    },
+    // « upstreamstatus.vercel.app » est ce que les hébergeurs affichent ; on
+    // complète le protocole plutôt que de rejeter la valeur. Règle partagée
+    // avec l'application, pour qu'elles ne puissent pas diverger.
+    normalize: normalizeUrl,
     fatal: (v) => (/^https?:\/\/.+/.test(v) ? null : "doit être une URL complète (https://…)"),
     warn: (v) =>
       v.startsWith("https://") || v.includes("localhost")

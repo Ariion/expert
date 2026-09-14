@@ -50,10 +50,20 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          URL="$APP_URL"
+          # Un secret se colle depuis un tableau de bord : il arrive avec des
+          # espaces, parfois sans protocole. Le fichier de secours était déjà
+          # nettoyé, le secret ne l'était pas — et une espace en tête suffit à
+          # faire rejeter l'adresse par curl, donc à couper toute la collecte.
+          URL="$(printf '%s' "$APP_URL" | tr -d '[:space:]')"
           if [ -z "$URL" ] && [ -f .github/app-url.txt ]; then
             URL="$(tr -d '[:space:]' < .github/app-url.txt)"
           fi
+          case "$URL" in
+            http://*|https://*) ;;
+            "") ;;
+            *) URL="https://$URL" ;;
+          esac
+          URL="${URL%/}"
           if [ -z "$URL" ]; then
             echo "::error::Adresse du site introuvable. Lancez « 1. Installation », ou ajoutez un secret APP_URL."
             exit 1

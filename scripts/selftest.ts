@@ -12,7 +12,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { fetchFeed, hashIncident } from "../src/lib/feeds";
-import { APP_URL } from "../src/lib/env";
+import { APP_URL, normalizeUrl } from "../src/lib/env";
 import { splitSqlStatements } from "../src/lib/sqlfile";
 import { readFileSync } from "node:fs";
 import { DICT, LOCALES, href, translatePath, categoryLabel, asLocale } from "../src/lib/i18n";
@@ -270,6 +270,20 @@ async function main() {
   ok("les commentaires seuls ne produisent pas d'instruction vide", () =>
     assert.equal(splitSqlStatements("-- rien du tout\n\n-- non plus\n").length, 0),
   );
+
+  console.log("\nAdresse du site");
+  ok("un protocole manquant est complété", () => {
+    assert.equal(normalizeUrl("upstreamstatus.vercel.app"), "https://upstreamstatus.vercel.app");
+    assert.equal(normalizeUrl("  upstreamstatus.vercel.app//  "), "https://upstreamstatus.vercel.app");
+  });
+  ok("une adresse déjà complète n'est pas touchée", () => {
+    assert.equal(normalizeUrl("https://x.test/a"), "https://x.test/a");
+    assert.equal(normalizeUrl("http://localhost:3000"), "http://localhost:3000");
+  });
+  ok("ce qui n'est pas une adresse reste refusable", () => {
+    assert.equal(normalizeUrl("pas une url"), "pas une url");
+    assert.equal(normalizeUrl(""), "");
+  });
 
   console.log("\nDécouverte de flux");
   ok("le flux déclaré en <link rel=alternate> est trouvé", () => {

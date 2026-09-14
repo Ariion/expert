@@ -47,6 +47,12 @@ export function env(): Env {
   for (const [k, v] of Object.entries(process.env)) {
     if (typeof v === "string" && v.trim()) cleaned[k] = v.trim();
   }
+
+  // Une adresse collée depuis un tableau de bord d'hébergeur arrive souvent
+  // sans protocole. La refuser ferait échouer le diagnostic et l'installation
+  // pour un « https:// » manquant ; on complète ce qui se devine sans
+  // ambiguïté, et on rejette toujours ce qui ne ressemble pas à une adresse.
+  if (cleaned.APP_URL) cleaned.APP_URL = normalizeUrl(cleaned.APP_URL);
   cleaned.APP_URL = APP_URL();
 
   const parsed = schema.safeParse(cleaned);
@@ -68,6 +74,13 @@ export function env(): Env {
  * crée les clés sans valeur) doit être traitée comme absente. Utiliser `??`
  * ici laisserait passer la chaîne vide et ferait échouer le build.
  */
+/** Complète le protocole manquant et retire les barres obliques finales. */
+export function normalizeUrl(value: string): string {
+  const clean = value.trim().replace(/\/+$/, "");
+  if (!clean || /^https?:\/\//i.test(clean)) return clean;
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?(\/.*)?$/i.test(clean) ? `https://${clean}` : clean;
+}
+
 export function envOr(key: keyof Env, fallback: string): string {
   const value = process.env[key];
   return value && value.trim() ? value.trim() : fallback;
