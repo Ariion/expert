@@ -45,7 +45,9 @@ function frame(children: React.ReactNode) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         {MARK}
-        <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.01em" }}>StatusPulse</div>
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 700, letterSpacing: "-0.01em" }}>
+          Upstream Status
+        </div>
       </div>
       {children}
     </div>

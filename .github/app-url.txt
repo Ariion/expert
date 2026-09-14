@@ -1,1 +1,1 @@
-https://statuspulse.aardesign.fr
+https://upstreamstatus.vercel.app

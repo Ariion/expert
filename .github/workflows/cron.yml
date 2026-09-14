@@ -34,7 +34,7 @@ on:
         options: [ingest, dispatch, rollup, reconcile]
 
 concurrency:
-  group: statuspulse-cron
+  group: upstreamstatus-cron
   cancel-in-progress: false
 
 jobs:

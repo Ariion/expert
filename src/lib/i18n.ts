@@ -149,7 +149,7 @@ const fr = {
       `${services} fournisseurs surveillés · ${incidents} incidents sur 30 jours`,
     h1a: "Vos clients ne devraient pas être",
     h1b: "les premiers à vous dire que Stripe est down.",
-    lead: "StatusPulse interroge en continu les pages de statut officielles de vos fournisseurs et vous alerte par email, Slack ou webhook dans les minutes qui suivent la publication d'un incident. Rien à installer, rien à maintenir.",
+    lead: "Upstream Status interroge en continu les pages de statut officielles de vos fournisseurs et vous alerte par email, Slack ou webhook dans les minutes qui suivent la publication d'un incident. Rien à installer, rien à maintenir.",
     ctaPrimary: "Commencer gratuitement",
     ctaSecondary: "Parcourir les fournisseurs",
     stats: {
@@ -224,7 +224,7 @@ const fr = {
     unchangedSince: (ago: string) =>
       `état inchangé depuis ${ago} · relevé automatique toutes les 5 minutes`,
     fallbackDescription: (name: string) =>
-      `${name} publie ses incidents sur une page de statut officielle. StatusPulse la surveille en continu et vous alerte automatiquement.`,
+      `${name} publie ses incidents sur une page de statut officielle. Upstream Status la surveille en continu et vous alerte automatiquement.`,
     kpiStatus: "Statut actuel",
     kpiUptime: "Disponibilité 90 j",
     kpiIncidents: "Incidents 90 j",
@@ -353,7 +353,7 @@ const fr = {
   },
   login: {
     metaTitle: "Connexion",
-    metaDescription: "Connexion sans mot de passe à votre tableau de bord StatusPulse.",
+    metaDescription: "Connexion sans mot de passe à votre tableau de bord Upstream Status.",
     h1: "Connexion",
     lead: "Pas de mot de passe à retenir : vous recevez un lien de connexion valable 30 minutes.",
     sent: "Lien envoyé. Ouvrez votre boîte mail (et le dossier indésirables, au cas où).",
@@ -366,7 +366,7 @@ const fr = {
   welcome: {
     metaTitle: "Paiement confirmé — votre surveillance démarre",
     metaDescription:
-      "Votre abonnement StatusPulse est actif. Un lien de connexion vient de partir vers votre boîte mail.",
+      "Votre abonnement Upstream Status est actif. Un lien de connexion vient de partir vers votre boîte mail.",
     pill: "Paiement confirmé",
     h1: "Votre surveillance est active",
     lead: "Nous venons de vous envoyer un lien de connexion à l'adresse utilisée pour le paiement. Un clic suffit : aucun mot de passe à créer.",
@@ -406,7 +406,7 @@ const fr = {
   },
   notFound: {
     h1: "Page introuvable",
-    lead: "Ce fournisseur n'est pas (encore) surveillé par StatusPulse, ou l'adresse est erronée.",
+    lead: "Ce fournisseur n'est pas (encore) surveillé par Upstream Status, ou l'adresse est erronée.",
     ctaProviders: "Voir tous les fournisseurs",
     ctaHome: "Accueil",
   },
@@ -571,7 +571,7 @@ const en: typeof fr = {
       `${services} providers monitored · ${incidents} incidents in 30 days`,
     h1a: "Your customers should not be",
     h1b: "the first to tell you Stripe is down.",
-    lead: "StatusPulse continuously reads your providers' official status pages and alerts you by email, Slack or webhook within minutes of an incident being published. Nothing to install, nothing to maintain.",
+    lead: "Upstream Status continuously reads your providers' official status pages and alerts you by email, Slack or webhook within minutes of an incident being published. Nothing to install, nothing to maintain.",
     ctaPrimary: "Start for free",
     ctaSecondary: "Browse providers",
     stats: {
@@ -643,7 +643,7 @@ const en: typeof fr = {
     h1: (name: string) => `Is ${name} down?`,
     unchangedSince: (ago: string) => `unchanged since ${ago} · checked automatically every 5 minutes`,
     fallbackDescription: (name: string) =>
-      `${name} publishes its incidents on an official status page. StatusPulse reads it continuously and alerts you automatically.`,
+      `${name} publishes its incidents on an official status page. Upstream Status reads it continuously and alerts you automatically.`,
     kpiStatus: "Current status",
     kpiUptime: "90-day uptime",
     kpiIncidents: "Incidents (90d)",
@@ -771,7 +771,7 @@ const en: typeof fr = {
   },
   login: {
     metaTitle: "Sign in",
-    metaDescription: "Passwordless sign-in to your StatusPulse dashboard.",
+    metaDescription: "Passwordless sign-in to your Upstream Status dashboard.",
     h1: "Sign in",
     lead: "No password to remember: we send you a sign-in link valid for 30 minutes.",
     sent: "Link sent. Check your inbox (and the spam folder, just in case).",
@@ -784,7 +784,7 @@ const en: typeof fr = {
   welcome: {
     metaTitle: "Payment confirmed — your monitoring is live",
     metaDescription:
-      "Your StatusPulse subscription is active. A sign-in link is on its way to your inbox.",
+      "Your Upstream Status subscription is active. A sign-in link is on its way to your inbox.",
     pill: "Payment confirmed",
     h1: "Your monitoring is live",
     lead: "We just sent a sign-in link to the address you paid with. One click, no password to create.",
@@ -822,7 +822,7 @@ const en: typeof fr = {
   },
   notFound: {
     h1: "Page not found",
-    lead: "This provider is not monitored by StatusPulse (yet), or the address is wrong.",
+    lead: "This provider is not monitored by Upstream Status (yet), or the address is wrong.",
     ctaProviders: "See all providers",
     ctaHome: "Home",
   },

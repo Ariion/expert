@@ -44,7 +44,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "# StatusPulse — diagnostic"
+            echo "# Upstream Status — diagnostic"
             echo ""
             echo '```'
             sed -e 's/\x1b\[[0-9;]*m//g' /tmp/doctor.txt || echo "diagnostic indisponible"

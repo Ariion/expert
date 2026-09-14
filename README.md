@@ -1,4 +1,4 @@
-# StatusPulse
+# Upstream Status
 
 **Agrégateur de status pages fournisseurs + alerting.** Un micro-SaaS conçu pour
 tourner sans opérateur humain : acquisition par SEO programmatique, paiement
@@ -33,7 +33,7 @@ Notez l'URL obtenue, du type `https://expert.vercel.app`.
 | `DATABASE_URL` | [supabase.com](https://supabase.com) → votre projet → **Project Settings → Database → Connection string** → onglet **Transaction pooler** (port 6543). Remplacer `[YOUR-PASSWORD]` par le mot de passe du projet. |
 | `STRIPE_SECRET_KEY` | [dashboard.stripe.com](https://dashboard.stripe.com) → **Développeurs → Clés API** → bouton **« Reveal secret key »** → commence par `sk_`. ⚠️ Pas la clé publiable `pk_` affichée au-dessus. |
 | `RESEND_API_KEY` | [resend.com](https://resend.com) → **API Keys → Create API Key** → commence par `re_`. |
-| `EMAIL_FROM` | Vous l'écrivez vous-même : `StatusPulse <alertes@votredomaine.com>`. Le domaine doit être ajouté dans Resend → **Domains** et ses 2 enregistrements DNS publiés chez votre registrar. |
+| `EMAIL_FROM` | Vous l'écrivez vous-même : `Upstream Status <alertes@votredomaine.com>`. Le domaine doit être ajouté dans Resend → **Domains** et ses 2 enregistrements DNS publiés chez votre registrar. |
 | `VERCEL_TOKEN` | [vercel.com](https://vercel.com) → avatar → **Account Settings → Tokens → Create**. |
 | `CRON_SECRET` | Vous l'inventez : n'importe quelle suite d'une trentaine de caractères au hasard. Elle sert uniquement à empêcher un inconnu de déclencher vos tâches. |
 
@@ -238,7 +238,7 @@ qu'une nouvelle page existe.
 
 ### Marque et domaine
 
-Le produit s'appelle StatusPulse et rien d'autre : aucune autre marque
+Le produit s'appelle Upstream Status et rien d'autre : aucune autre marque
 n'apparaît dans les pages, les emails ou les mentions légales. Le nom du domaine
 est la seule chose qui puisse trahir l'origine du projet, et il vit entièrement
 dans la variable `APP_URL` — changer d'adresse ne demande aucune modification de
@@ -341,7 +341,7 @@ jour de sécurité à subir — c'est un choix d'exploitation, pas d'esthétique
 ### Arborescence commentée
 
 ```
-statuspulse/
+upstreamstatus/
 ├── supabase/
 │   └── schema.sql               Schéma complet, idempotent : tables, index,
 │                                triggers, fonctions de file (SKIP LOCKED), RLS.
@@ -469,7 +469,7 @@ La section 0 suffit et ne demande aucun terminal. Cette variante n'existe que
 si vous préférez travailler en local.
 
 ```bash
-git clone https://github.com/Ariion/expert statuspulse && cd statuspulse
+git clone https://github.com/Ariion/expert upstreamstatus && cd upstreamstatus
 npm install
 npm run setup      # pose 4 questions, fait tout le reste, écrit .env.local
 ```
@@ -640,7 +640,7 @@ Le produit agrège des pages de statut **publiques**, destinées par leurs
 éditeurs à une diffusion large, et cite systématiquement sa source avec un
 lien vers la page officielle. Il ne republie pas de contenu sous licence, ne
 contourne aucune authentification et s'identifie explicitement auprès des
-serveurs (`User-Agent: StatusPulseBot/1.0`), avec requêtes conditionnelles
+serveurs (`User-Agent: Upstream StatusBot/1.0`), avec requêtes conditionnelles
 (ETag) pour minimiser la charge imposée aux fournisseurs.
 
 Les marques citées appartiennent à leurs détenteurs ; la page `/legal` le

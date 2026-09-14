@@ -89,9 +89,9 @@ async function deliverWebhook(d: Delivery): Promise<void> {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "user-agent": `${SITE_NAME}-webhook/1.0`,
-      "x-statuspulse-event": `incident.${d.event_kind}`,
-      "x-statuspulse-signature": `sha256=${signature}`,
+      "user-agent": `UpstreamStatus-webhook/1.0`,
+      "x-upstream-event": `incident.${d.event_kind}`,
+      "x-upstream-signature": `sha256=${signature}`,
     },
     body,
     signal: AbortSignal.timeout(10000),

@@ -38,7 +38,7 @@ export interface FeedResult {
 }
 
 const USER_AGENT =
-  "StatusPulseBot/1.0 (+https://statuspulse.app/bot; vendor status aggregation)";
+  "UpstreamStatusBot/1.0 (+https://upstreamstatus.vercel.app; vendor status aggregation)";
 
 const INDICATOR_TO_STATUS: Record<string, ServiceStatus> = {
   none: "operational",

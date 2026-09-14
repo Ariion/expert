@@ -174,7 +174,7 @@ async function ask(key: string, label: string, opts: { required?: boolean; examp
   console.log("");
 }
 
-console.log(`\n${C.b("StatusPulse — installation automatique")}\n`);
+console.log(`\n${C.b("Upstream Status — installation automatique")}\n`);
 console.log(
   C.dim(
     "Ce script ne peut pas créer vos comptes à votre place (identité, KYC bancaire).\n" +
@@ -188,14 +188,14 @@ await ask("DATABASE_URL", "URL Postgres (Supabase > Database > Transaction poole
 });
 await ask("APP_URL", "URL publique du site, sans slash final", {
   required: true,
-  example: "https://statuspulse.app",
+  example: "https://upstreamstatus.vercel.app",
 });
 await ask("STRIPE_SECRET_KEY", "Clé secrète Stripe (Développeurs > Clés API)", {
   required: !args.has("--skip-stripe"),
   example: "sk_live_…",
 });
 await ask("RESEND_API_KEY", "Clé API Resend", { example: "re_…" });
-await ask("EMAIL_FROM", "Expéditeur des emails", { example: "StatusPulse <alertes@votredomaine.com>" });
+await ask("EMAIL_FROM", "Expéditeur des emails", { example: "Upstream Status <alertes@votredomaine.com>" });
 await ask("OPS_ALERT_EMAIL", "Votre email personnel pour les alertes système (fortement conseillé)");
 
 // L'URL publique est indispensable (webhook Stripe, liens des emails). Elle est
@@ -210,7 +210,7 @@ if (missingRequired.length) {
     APP_URL: "l'URL publique du site — normalement déduite automatiquement de Vercel ; vérifiez le secret VERCEL_TOKEN, ou ajoutez un secret APP_URL",
     STRIPE_SECRET_KEY: "Stripe > Développeurs > Clés API > « Reveal secret key » (sk_…)",
     RESEND_API_KEY: "Resend > API Keys",
-    EMAIL_FROM: "l'expéditeur des emails, ex. StatusPulse <alertes@votredomaine.com>",
+    EMAIL_FROM: "l'expéditeur des emails, ex. Upstream Status <alertes@votredomaine.com>",
   };
   console.log(`\n${C.err("Configuration incomplète.")}\n`);
   for (const k of unique) console.log(`  ${C.err("✗")} ${C.b(k)} — ${help[k] ?? "valeur manquante"}`);
@@ -292,7 +292,7 @@ const RULES: Rule[] = [
     fatal: (v) =>
       /@[^@\s]+\.[^@\s]{2,}/.test(v)
         ? null
-        : "doit contenir une adresse email valide, ex. StatusPulse <alertes@votredomaine.com>",
+        : "doit contenir une adresse email valide, ex. Upstream Status <alertes@votredomaine.com>",
   },
 ];
 
@@ -590,8 +590,8 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
   const stripe = new Stripe(env.STRIPE_SECRET_KEY, { maxNetworkRetries: 3, timeout: 30000, telemetry: false });
 
   const CATALOG = [
-    { id: "statuspulse_pro", key: "STRIPE_PRICE_PRO", lookup: "statuspulse_pro_monthly", name: "StatusPulse Pro", amount: 1900, desc: "50 fournisseurs surveillés, alertes instantanées, Slack et webhooks." },
-    { id: "statuspulse_team", key: "STRIPE_PRICE_TEAM", lookup: "statuspulse_team_monthly", name: "StatusPulse Team", amount: 4900, desc: "500 fournisseurs, 25 canaux, rapports SLA et accès API." },
+    { id: "upstreamstatus_pro", key: "STRIPE_PRICE_PRO", lookup: "upstreamstatus_pro_monthly", name: "Upstream Status Pro", amount: 1900, desc: "50 fournisseurs surveillés, alertes instantanées, Slack et webhooks." },
+    { id: "upstreamstatus_team", key: "STRIPE_PRICE_TEAM", lookup: "upstreamstatus_team_monthly", name: "Upstream Status Team", amount: 4900, desc: "500 fournisseurs, 25 canaux, rapports SLA et accès API." },
   ];
 
   try {
@@ -652,7 +652,7 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
       const created = await stripe.webhookEndpoints.create({
         url,
         enabled_events: WEBHOOK_EVENTS,
-        description: "StatusPulse — facturation",
+        description: "Upstream Status — facturation",
       });
       env.STRIPE_WEBHOOK_SECRET = created.secret ?? "";
       record({
@@ -668,9 +668,9 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
   // --- Portail de facturation ---------------------------------------------
   try {
     const configs = await stripe.billingPortal.configurations.list({ limit: 10 });
-    const existing = configs.data.find((c) => c.metadata?.app === "statuspulse");
+    const existing = configs.data.find((c) => c.metadata?.app === "upstreamstatus");
     const params: Stripe.BillingPortal.ConfigurationCreateParams = {
-      business_profile: { headline: "StatusPulse — gérez votre abonnement" },
+      business_profile: { headline: "Upstream Status — gérez votre abonnement" },
       features: {
         customer_update: { enabled: true, allowed_updates: ["email", "address", "tax_id"] },
         invoice_history: { enabled: true },
@@ -681,13 +681,13 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
           default_allowed_updates: ["price"],
           proration_behavior: "create_prorations",
           products: [
-            { product: "statuspulse_pro", prices: [env.STRIPE_PRICE_PRO] },
-            { product: "statuspulse_team", prices: [env.STRIPE_PRICE_TEAM] },
+            { product: "upstreamstatus_pro", prices: [env.STRIPE_PRICE_PRO] },
+            { product: "upstreamstatus_team", prices: [env.STRIPE_PRICE_TEAM] },
           ],
         },
       },
       default_return_url: `${env.APP_URL}/dashboard`,
-      metadata: { app: "statuspulse" },
+      metadata: { app: "upstreamstatus" },
     };
     if (existing) await stripe.billingPortal.configurations.update(existing.id, params as Stripe.BillingPortal.ConfigurationUpdateParams);
     else await stripe.billingPortal.configurations.create(params);
@@ -1101,7 +1101,7 @@ if (errors.length === 0 && todos.length === 0) {
 if (process.env.GITHUB_STEP_SUMMARY) {
   const icon = (st: Step["status"]) => (st === "ok" ? "✅" : st === "warn" ? "⚠️" : st === "skip" ? "➖" : "❌");
   const md = [
-    `# StatusPulse — installation`,
+    `# Upstream Status — installation`,
     "",
     errors.length === 0 && todos.length === 0
       ? `## ✅ Terminé — le système tourne seul à partir de maintenant`

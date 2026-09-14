@@ -29,7 +29,7 @@ function line(status: "ok" | "warn" | "err", label: string, detail: string) {
 const ago = (d: Date | string | null) =>
   d ? `${Math.round((Date.now() - new Date(d).getTime()) / 60000)} min` : "jamais";
 
-console.log(`\n${C.b("StatusPulse — diagnostic")}\n`);
+console.log(`\n${C.b("Upstream Status — diagnostic")}\n`);
 
 // --- Base de données --------------------------------------------------------
 console.log(C.b("Base de données"));
@@ -101,7 +101,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { maxNetworkRetries: 2, timeout: 20000, telemetry: false });
   try {
     const prices = await stripe.prices.list({
-      lookup_keys: ["statuspulse_pro_monthly", "statuspulse_team_monthly"],
+      lookup_keys: ["upstreamstatus_pro_monthly", "upstreamstatus_team_monthly"],
       active: true,
     });
     line(prices.data.length === 2 ? "ok" : "err", "Tarifs", `${prices.data.length}/2 actifs`);

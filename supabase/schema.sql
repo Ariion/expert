@@ -1,5 +1,5 @@
 -- ============================================================================
--- StatusPulse — schéma complet (PostgreSQL 15+ / Supabase)
+-- Upstream Status — schéma complet (PostgreSQL 15+ / Supabase)
 --
 -- Exécuter une seule fois :  psql "$DATABASE_URL" -f supabase/schema.sql
 -- Le fichier est idempotent : il peut être rejoué sans casser l'existant.

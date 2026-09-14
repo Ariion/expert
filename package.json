@@ -1,5 +1,5 @@
 {
-  "name": "statuspulse",
+  "name": "upstreamstatus",
   "version": "1.0.0",
   "private": true,
   "description": "Autonomous vendor-status aggregation & alerting micro-SaaS. Programmatic SEO acquisition, Stripe recurring revenue, zero human ops.",

@@ -20,7 +20,7 @@ export function SiteChrome({ locale, children }: { locale: Locale; children: Rea
       <nav className="nav">
         <div className="wrap nav-inner">
           <Link href={L("/")} className="brand">
-            Status<span>Pulse</span>
+            Upstream <span>Status</span>
           </Link>
           <Link href={L("/status")} className="link">
             {t.nav.providers}

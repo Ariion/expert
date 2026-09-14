@@ -95,7 +95,7 @@ export const APP_URL = (): string => {
   return "http://localhost:3000";
 };
 
-export const SITE_NAME = "StatusPulse";
+export const SITE_NAME = "Upstream Status";
 
 export interface Publisher {
   name: string;

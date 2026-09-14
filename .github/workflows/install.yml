@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: statuspulse-install
+  group: upstreamstatus-install
   cancel-in-progress: false
 
 jobs:
@@ -64,7 +64,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Installer StatusPulse
+      - name: Installer Upstream Status
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           APP_URL: ${{ secrets.APP_URL }}

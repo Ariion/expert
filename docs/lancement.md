@@ -32,14 +32,14 @@ fil tient la première page. Publier sur https://news.ycombinator.com/submit
 
 **Titre**
 
-    Show HN: StatusPulse – one alert when any of your SaaS providers goes down
+    Show HN: Upstream Status – one alert when any of your SaaS providers goes down
 
 **Texte**
 
     I kept learning about provider outages from my own users. Every provider we
     depend on publishes a status page, and nobody watches twenty of them.
 
-    StatusPulse polls the official status pages of 145 providers (Statuspage,
+    Upstream Status polls the official status pages of 145 providers (Statuspage,
     Atom, RSS) every 5 minutes, every 2 minutes once something is already
     degraded, and sends one alert to email, Slack or a webhook. It reports what
     the provider published — it never probes the services itself, so it cannot
@@ -58,7 +58,7 @@ fil tient la première page. Publier sur https://news.ycombinator.com/submit
 
     Next.js on Vercel, Postgres on Supabase, no server to babysit.
 
-    https://statuspulse.aardesign.fr/en
+    https://upstreamstatus.vercel.app/en
 
 ## 2. Reddit — r/devops
 
@@ -91,7 +91,7 @@ technique, le lien en dernière ligne. Publier sur https://reddit.com/r/devops
 
     If you poll status pages yourself, those three things will save you a
     weekend. If you would rather not, that is what I built:
-    https://statuspulse.aardesign.fr/en — free for 3 providers.
+    https://upstreamstatus.vercel.app/en — free for 3 providers.
 
 ## 3. LinkedIn
 
@@ -105,12 +105,12 @@ premières lignes : l'algorithme les pénalise.
     surveille les vingt pages de statut de sa stack — jusqu'à la première panne
     qui coûte cher.
 
-    J'ai mis en ligne StatusPulse. Il lit les pages de statut officielles de 145
+    J'ai mis en ligne Upstream Status. Il lit les pages de statut officielles de 145
     fournisseurs (AWS, Stripe, GitHub, OVHcloud, Scaleway, Qonto, PayFit,
     Brevo…) toutes les 5 minutes, et envoie une alerte par email, Slack ou
     webhook dès qu'un incident est publié. Rien à installer.
 
-    Gratuit pour 3 fournisseurs : statuspulse.aardesign.fr
+    Gratuit pour 3 fournisseurs : upstreamstatus.vercel.app
 
     Si vous surveillez déjà vos fournisseurs, je suis curieux de savoir comment.
     C'est typiquement la tâche qu'on repousse jusqu'au jour où elle se rappelle
@@ -146,7 +146,7 @@ https://www.indiehackers.com/post/new
       every conversion; the account is now created from the billing email after
       payment.
 
-    Live here: https://statuspulse.aardesign.fr/en — free for 3 providers. Happy
+    Live here: https://upstreamstatus.vercel.app/en — free for 3 providers. Happy
     to go into detail on any of the four.
 
 ## 5. Product Hunt
@@ -154,13 +154,13 @@ https://www.indiehackers.com/post/new
 À préparer la veille, publication mardi ou mercredi à 09 h 01 heure de Paris
 (00 h 01 Pacifique) pour disposer de la journée entière de classement.
 
-**Nom** : StatusPulse
+**Nom** : Upstream Status
 **Accroche** : One alert when any of your SaaS providers goes down
-**Lien** : https://statuspulse.aardesign.fr/en
+**Lien** : https://upstreamstatus.vercel.app/en
 **Description**
 
     Every provider you depend on publishes a status page. Nobody watches twenty
-    of them. StatusPulse polls the official status pages of 145 providers every
+    of them. Upstream Status polls the official status pages of 145 providers every
     5 minutes and sends one alert to email, Slack or a webhook. It reports what
     the provider published, never a guess. Free for 3 providers.
 

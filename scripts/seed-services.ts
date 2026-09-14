@@ -55,7 +55,7 @@ async function main() {
       SEED_SERVICES.map(async (s) => {
         try {
           const res = await fetch(s.feed_url, {
-            headers: { "user-agent": "StatusPulseBot/1.0 (+seed check)" },
+            headers: { "user-agent": "UpstreamStatusBot/1.0 (+seed check)" },
             signal: AbortSignal.timeout(12000),
           });
           if (!res.ok) {

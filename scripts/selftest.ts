@@ -212,8 +212,8 @@ async function main() {
   // Vercel crée les clés sans valeur) faisait échouer le build sur
   // « new URL('') ». Ces cas verrouillent le comportement.
   const urlCases: Array<[Record<string, string>, string, string]> = [
-    [{ APP_URL: "https://statuspulse.app" }, "https://statuspulse.app", "valeur explicite"],
-    [{ APP_URL: "https://statuspulse.app/" }, "https://statuspulse.app", "slash final retiré"],
+    [{ APP_URL: "https://upstreamstatus.vercel.app" }, "https://upstreamstatus.vercel.app", "valeur explicite"],
+    [{ APP_URL: "https://upstreamstatus.vercel.app/" }, "https://upstreamstatus.vercel.app", "slash final retiré"],
     [{ APP_URL: "", VERCEL_PROJECT_PRODUCTION_URL: "expert.vercel.app" }, "https://expert.vercel.app", "vide -> domaine de production Vercel"],
     [{ APP_URL: "   ", VERCEL_URL: "expert-abc.vercel.app" }, "https://expert-abc.vercel.app", "blancs -> URL de déploiement Vercel"],
     [{ APP_URL: "pas-une-url", VERCEL_URL: "expert.vercel.app" }, "https://expert.vercel.app", "valeur invalide ignorée"],

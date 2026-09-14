@@ -3,7 +3,7 @@ import { getServiceBySlug } from "@/lib/queries";
 
 export const size = OG_SIZE;
 export const contentType = "image/png";
-export const alt = "StatusPulse";
+export const alt = "Upstream Status";
 
 /**
  * Générée à la demande : une carte partagée pendant une panne doit montrer
