@@ -2,19 +2,30 @@ import { UptimeChart, type DayPoint } from "./UptimeChart";
 import { fmtDuration } from "@/lib/format";
 import { DEFAULT_LOCALE, dict, type Locale } from "@/lib/i18n";
 
+interface IncidentLike {
+  title: string;
+  impact: string;
+  started_at: Date;
+  resolved_at: Date | null;
+}
+
 /**
  * Prépare les 90 derniers jours pour le graphique.
  *
  * Les jours sans mesure sont comblés côté serveur : la série doit toujours
  * faire quatre-vingt-dix colonnes, sinon l'axe ment sur la période couverte.
- * Tout le calcul est fait ici pour que le composant interactif ne reçoive que
- * des chaînes déjà traduites et formatées.
+ * `incidents` est la même liste déjà chargée pour l'historique en dessous —
+ * aucune requête de plus — recoupée jour par jour pour que le survol du
+ * graphique réponde directement à « c'était quoi, cet incident ? » au lieu
+ * d'un simple compte.
  */
 export function UptimeBar({
   days,
+  incidents = [],
   locale = DEFAULT_LOCALE,
 }: {
   days: { day: string; uptime_pct: number; incident_count: number }[];
+  incidents?: IncidentLike[];
   locale?: Locale;
 }) {
   const t = dict(locale);
@@ -33,12 +44,27 @@ export function UptimeBar({
     const row = byDay.get(key);
     const pct = row ? Number(row.uptime_pct) : null;
     const minutes = pct === null ? 0 : Math.round(((100 - pct) / 100) * 1440);
-    const incidents = row?.incident_count ?? 0;
+
+    // Un incident touche ce jour dès que son intervalle [début, fin] le
+    // recoupe — un incident commencé la veille et résolu ce matin compte pour
+    // les deux jours, exactement comme l'a vécu quiconque surveillait.
+    const dayStart = new Date(key + "T00:00:00.000Z").getTime();
+    const dayEnd = dayStart + 86400000;
+    const dayIncidents = incidents.filter((inc) => {
+      if (inc.impact === "maintenance") return false;
+      const start = inc.started_at.getTime();
+      const end = (inc.resolved_at ?? new Date()).getTime();
+      return start < dayEnd && end >= dayStart;
+    });
+
+    const titles = [...new Set(dayIncidents.map((inc) => inc.title))];
+    const incidentCount = row?.incident_count ?? dayIncidents.length;
 
     points.push({
       day: key,
       minutes,
-      incidents,
+      incidents: incidentCount,
+      titles,
       missing: pct === null,
       label: dayFormat.format(date),
       detail:
@@ -48,7 +74,7 @@ export function UptimeBar({
             ? t.service.chartDayOk
             : t.service.chartDayDown(
                 fmtDuration(new Date(0), new Date(minutes * 60_000), locale),
-                incidents,
+                incidentCount,
               ),
     });
   }
@@ -57,8 +83,13 @@ export function UptimeBar({
     <UptimeChart
       points={points}
       hint={t.service.chartHint}
-      fromLabel={t.time.ninetyDaysAgo}
-      toLabel={t.time.today}
+      toLabelText={t.time.today}
+      ranges={[
+        { days: 7, label: t.service.chartRange7, from: t.service.chartFrom(7) },
+        { days: 30, label: t.service.chartRange30, from: t.service.chartFrom(30) },
+        { days: 90, label: t.service.chartRange90, from: t.service.chartFrom(90) },
+      ]}
+      defaultRangeDays={90}
       legend={[
         ["ok", t.service.uptimeLegendOk],
         ["warn", t.service.uptimeLegendWarn],

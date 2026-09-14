@@ -69,6 +69,7 @@ export const CATEGORY_LABEL: Record<Locale, Record<string, string>> = {
     ecommerce: "E-commerce",
     "no-code": "No-code & automatisation",
     ia: "Intelligence artificielle",
+    jeux: "Jeux vidéo",
   },
   en: {
     cloud: "Cloud & infrastructure",
@@ -85,6 +86,7 @@ export const CATEGORY_LABEL: Record<Locale, Record<string, string>> = {
     ecommerce: "E-commerce",
     "no-code": "No-code & automation",
     ia: "Artificial intelligence",
+    jeux: "Gaming",
   },
 };
 
@@ -252,7 +254,11 @@ const fr = {
     uptimeLegendWarn: "moins d'une heure",
     uptimeLegendBad: "une heure ou plus",
     uptimeLegendNone: "pas de donnée",
-    chartHint: "Survolez un jour pour le détail.",
+    chartHint: "Survolez ou touchez un jour pour le détail.",
+    chartFrom: (days: number): string => (days === 90 ? "il y a 90 jours" : days === 30 ? "il y a 30 jours" : "il y a 7 jours"),
+    chartRange7: "7 j",
+    chartRange30: "30 j",
+    chartRange90: "90 j",
     chartDayOk: "Aucune interruption",
     chartDayNone: "Pas de donnée collectée",
     chartDayDown: (duration: string, incidents: number) =>
@@ -711,7 +717,11 @@ const en: typeof fr = {
     uptimeLegendWarn: "under an hour",
     uptimeLegendBad: "an hour or more",
     uptimeLegendNone: "no data",
-    chartHint: "Hover a day for details.",
+    chartHint: "Hover or tap a day for details.",
+    chartFrom: (days: number) => (days === 90 ? "90 days ago" : days === 30 ? "30 days ago" : "7 days ago"),
+    chartRange7: "7d",
+    chartRange30: "30d",
+    chartRange90: "90d",
     chartDayOk: "No downtime",
     chartDayNone: "No data collected",
     chartDayDown: (duration: string, incidents: number) =>

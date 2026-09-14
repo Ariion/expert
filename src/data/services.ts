@@ -209,6 +209,12 @@ const STATUSPAGE: Row[] = [
   ["imgix", "imgix", "marketing", "status.imgix.com", "imgix.com", "Traitement et diffusion d'images."],
   ["amplitude", "Amplitude", "marketing", "status.amplitude.com", "amplitude.com", "Analyse de produit."],
   ["posthog", "PostHog", "marketing", "status.posthog.com", "posthog.com", "Analyse de produit open source."],
+
+  // --- Jeux vidéo et divertissement -----------------------------------------
+  // Statuspage.io confirmé pour ces deux-là ; les autres (Riot, PlayStation,
+  // Xbox, Meta) sont dans EXPLICIT_FEEDS plus bas, avec leur propre format.
+  ["epic-games", "Epic Games", "jeux", "status.epicgames.com", "epicgames.com", "Fortnite, Epic Games Store et services en ligne."],
+  ["twitch", "Twitch", "jeux", "status.twitch.tv", "twitch.tv", "Diffusion de jeux vidéo en direct."],
 ];
 
 /** Fournisseurs hors Statuspage : flux RSS/Atom officiels. */
@@ -289,6 +295,83 @@ const FEEDS: Array<Omit<SeedService, "alt_feeds">> = [
     feed_url: "https://status.auth0.com/feed?domain=auth0.com",
     feed_kind: "rss",
     logo_domain: "auth0.com",
+  },
+
+  // --- Jeux vidéo et divertissement (suite) --------------------------------
+  // Aucun de ces quatre n'est sur Statuspage : `feed_url` pointe volontairement
+  // sur la page humaine plutôt que sur un flux deviné. La découverte
+  // automatique (src/lib/discover.ts) la lit dès la première tentative
+  // échouée et en extrait la vraie adresse de flux déclarée par la page —
+  // c'est plus fiable que de deviner un chemin RSS à l'aveugle.
+  {
+    slug: "league-of-legends",
+    name: "League of Legends",
+    category: "jeux",
+    description: "Statut des serveurs de jeu Riot Games pour League of Legends.",
+    homepage: "https://www.leagueoflegends.com",
+    status_page_url: "https://status.riotgames.com/lol?region=na",
+    feed_url: "https://status.riotgames.com/lol?region=na",
+    feed_kind: "rss",
+    logo_domain: "leagueoflegends.com",
+  },
+  {
+    slug: "valorant",
+    name: "Valorant",
+    category: "jeux",
+    description: "Statut des serveurs de jeu Riot Games pour Valorant.",
+    homepage: "https://playvalorant.com",
+    status_page_url: "https://status.riotgames.com/valorant?region=na",
+    feed_url: "https://status.riotgames.com/valorant?region=na",
+    feed_kind: "rss",
+    logo_domain: "playvalorant.com",
+  },
+  {
+    slug: "playstation-network",
+    name: "PlayStation Network",
+    category: "jeux",
+    description: "Connexion, boutique et jeu en ligne sur PlayStation.",
+    homepage: "https://www.playstation.com",
+    status_page_url: "https://status.playstation.com/en-us/",
+    feed_url: "https://status.playstation.com/en-us/",
+    feed_kind: "rss",
+    logo_domain: "playstation.com",
+  },
+  {
+    slug: "xbox-live",
+    name: "Xbox Live",
+    category: "jeux",
+    description: "Connexion, boutique et jeu en ligne sur Xbox.",
+    homepage: "https://www.xbox.com",
+    status_page_url: "https://support.xbox.com/en-US/xbox-live-status",
+    feed_url: "https://support.xbox.com/en-US/xbox-live-status",
+    feed_kind: "rss",
+    logo_domain: "xbox.com",
+  },
+  {
+    slug: "meta",
+    name: "Meta (Facebook, Instagram, WhatsApp)",
+    category: "communication",
+    description: "Statut officiel de Facebook, Instagram, WhatsApp et Threads.",
+    homepage: "https://about.meta.com",
+    status_page_url: "https://metastatus.com",
+    feed_url: "https://metastatus.com",
+    feed_kind: "rss",
+    logo_domain: "meta.com",
+  },
+  {
+    slug: "google-gemini",
+    name: "Google Gemini",
+    category: "ia",
+    description: "Statut de l'infrastructure Google IA derrière Gemini.",
+    homepage: "https://gemini.google.com",
+    // Gemini n'a pas de status page dédiée : ses incidents remontent sur celle
+    // de Google Cloud, qui héberge son infrastructure. Même flux que
+    // « google-cloud », donc jamais interrogé deux fois pour rien : la
+    // collecte partage l'état entre les deux fournisseurs.
+    status_page_url: "https://status.cloud.google.com",
+    feed_url: "https://status.cloud.google.com/en/feed.atom",
+    feed_kind: "atom",
+    logo_domain: "gemini.google.com",
   },
 ];
 

@@ -7,6 +7,8 @@ export interface DayPoint {
   /** Minutes d'indisponibilité ce jour-là. */
   minutes: number;
   incidents: number;
+  /** Titres des incidents ouverts ce jour-là — ce qu'on cherche en survolant. */
+  titles: string[];
   /** Aucune donnée collectée ce jour-là. */
   missing: boolean;
   label: string;
@@ -39,24 +41,60 @@ function tone(point: DayPoint): string {
   return point.minutes >= 60 ? "bad" : "warn";
 }
 
+export interface RangeOption {
+  days: number;
+  label: string;
+  /** Texte « il y a N jours » pour cette plage — calculé côté serveur : une
+      fonction ne peut pas traverser la frontière serveur/client en prop. */
+  from: string;
+}
+
 export function UptimeChart({
   points,
   legend,
-  fromLabel,
-  toLabel,
+  toLabelText,
   hint,
+  ranges,
+  defaultRangeDays,
 }: {
+  /** Toujours la plage maximale (90 jours) : les plages plus courtes en sont extraites. */
   points: DayPoint[];
   legend: Array<[string, string]>;
-  fromLabel: string;
-  toLabel: string;
+  toLabelText: string;
   hint: string;
+  ranges: RangeOption[];
+  defaultRangeDays: number;
 }) {
   const [active, setActive] = useState<number | null>(null);
-  const shown = active !== null ? points[active] : null;
+  const [rangeDays, setRangeDays] = useState(defaultRangeDays);
+
+  // La plage sélectionnée n'est jamais une nouvelle requête : on ne fait que
+  // recadrer la série déjà chargée sur ses derniers N jours.
+  const visible = points.slice(Math.max(0, points.length - rangeDays));
+  const shown = active !== null ? visible[active] : null;
+
+  const changeRange = (days: number) => {
+    setRangeDays(days);
+    setActive(null);
+  };
 
   return (
     <div className="chart">
+      {ranges.length > 1 && (
+        <div className="chart-range" role="group">
+          {ranges.map((r) => (
+            <button
+              type="button"
+              key={r.days}
+              className={rangeDays === r.days ? "on" : ""}
+              onClick={() => changeRange(r.days)}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Un emplacement réservé en permanence : sans lui, la lecture du
           graphique déplacerait tout ce qui se trouve en dessous. */}
       <div className="chart-readout" aria-live="polite">
@@ -64,6 +102,16 @@ export function UptimeChart({
           <>
             <strong>{shown.label}</strong>
             <span className="dim">{shown.detail}</span>
+            {shown.titles.length > 0 && (
+              <span className="chart-titles">
+                {shown.titles.slice(0, 3).map((title) => (
+                  <span key={title} className="chart-title-pill">
+                    {title}
+                  </span>
+                ))}
+                {shown.titles.length > 3 && <span className="dim">+{shown.titles.length - 3}</span>}
+              </span>
+            )}
           </>
         ) : (
           <span className="dim">{hint}</span>
@@ -71,7 +119,7 @@ export function UptimeChart({
       </div>
 
       <div className="chart-bars" onMouseLeave={() => setActive(null)}>
-        {points.map((p, i) => (
+        {visible.map((p, i) => (
           <button
             type="button"
             key={p.day}
@@ -87,8 +135,8 @@ export function UptimeChart({
       </div>
 
       <div className="between dim chart-axis">
-        <span>{fromLabel}</span>
-        <span>{toLabel}</span>
+        <span>{ranges.find((r) => r.days === rangeDays)?.from}</span>
+        <span>{toLabelText}</span>
       </div>
 
       <div className="uptime-legend dim">

@@ -177,4 +177,14 @@ export const DESCRIPTIONS_EN: Record<string, string> = {
   elevenlabs: "Speech synthesis.",
   pinecone: "Managed vector database.",
   groq: "Very low latency model inference.",
+
+  // --- Gaming and entertainment --------------------------------------------
+  "epic-games": "Fortnite, the Epic Games Store and online services.",
+  twitch: "Live game streaming.",
+  "league-of-legends": "Riot Games server status for League of Legends.",
+  valorant: "Riot Games server status for Valorant.",
+  "playstation-network": "Sign-in, store and online play on PlayStation.",
+  "xbox-live": "Sign-in, store and online play on Xbox.",
+  meta: "Official status for Facebook, Instagram, WhatsApp and Threads.",
+  "google-gemini": "The Google AI infrastructure behind Gemini.",
 };

@@ -184,7 +184,7 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
       <section className="section">
         <h2>{t.service.uptimeTitle}</h2>
         <div className="card">
-          <UptimeBar days={uptime} locale={locale} />
+          <UptimeBar days={uptime} incidents={incidents} locale={locale} />
         </div>
       </section>
 
