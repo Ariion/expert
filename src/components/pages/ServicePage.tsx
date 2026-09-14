@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UptimeBar } from "@/components/UptimeBar";
 import { WatchForm } from "@/components/WatchForm";
-import { getDailyUptime, getIncidents, getRelatedServices, getServiceBySlug } from "@/lib/queries";
+import {
+  getDailyUptime,
+  getIncidents,
+  getRelatedServices,
+  getReliability,
+  getServiceBySlug,
+} from "@/lib/queries";
 import { APP_URL, SITE_NAME } from "@/lib/env";
 import { fmtDate, fmtDuration, faviconFor, impactLabel, statusLabel, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
@@ -22,11 +28,23 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
   const service = await getServiceBySlug(slug).catch(() => null);
   if (!service) notFound();
 
-  const [incidents, uptime, related] = await Promise.all([
+  const [incidents, uptime, related, reliability] = await Promise.all([
     getIncidents(service.id, 25).catch(() => []),
     getDailyUptime(service.id, 90).catch(() => []),
     getRelatedServices(service.category, service.id, 6).catch(() => []),
+    getReliability(service.id).catch(() => ({
+      incidents: 0,
+      downtime_minutes: 0,
+      mttr_minutes: null,
+      worst_minutes: null,
+    })),
   ]);
+
+  /** Minutes en durée lisible, ou « aucun » quand il n'y a rien à montrer. */
+  const dur = (minutes: number | null) =>
+    minutes && minutes > 0
+      ? fmtDuration(new Date(0), new Date(minutes * 60_000), locale)
+      : t.service.noneYet;
 
   const open = incidents.filter((i) => !i.is_resolved);
   const uptime90 =
@@ -120,6 +138,8 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
           <StatusBadge status={service.current_status} locale={locale} />
           <span className="dim">
             {t.service.unchangedSince(timeAgo(service.current_status_since, locale))}
+            {" · "}
+            {t.service.exactSince(fmtDate(service.current_status_since))}
           </span>
         </div>
         <p className="lead" style={{ marginTop: 16 }}>
@@ -143,6 +163,25 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
       </section>
 
       <section className="section">
+        <h2>{t.service.severityTitle}</h2>
+        <div className="grid three">
+          {[
+            [t.service.kpiDowntime, dur(reliability.downtime_minutes)],
+            [t.service.kpiMttr, dur(reliability.mttr_minutes)],
+            [t.service.kpiWorst, dur(reliability.worst_minutes)],
+          ].map(([k, v]) => (
+            <div className="card" key={k}>
+              <div className="dim">{k}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <p className="dim" style={{ margin: "10px 0 0" }}>
+          {t.service.severityNote}
+        </p>
+      </section>
+
+      <section className="section">
         <h2>{t.service.uptimeTitle}</h2>
         <div className="card">
           <UptimeBar days={uptime} locale={locale} />
@@ -152,6 +191,9 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
       <section className="section grid two">
         <div>
           <h2 style={{ marginTop: 0 }}>{t.service.historyTitle}</h2>
+          <p className="dim" style={{ margin: "0 0 14px" }}>
+            <strong>{t.service.providerWords}</strong> — {t.service.providerWordsNote}
+          </p>
           {incidents.length === 0 && (
             <div className="notice">{t.service.noIncidents(service.name)}</div>
           )}
@@ -163,11 +205,14 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
                     {impactLabel(i.impact, locale)} ·{" "}
                     {i.is_resolved ? t.home.resolved : t.home.ongoing}
                   </span>
-                  <span className="dim">{fmtDate(i.started_at)}</span>
+                  <span className="dim" style={{ whiteSpace: "nowrap", paddingLeft: 10 }}>
+                    {fmtDate(i.started_at)}
+                  </span>
                 </div>
                 <h3 style={{ marginTop: 10 }}>{i.title}</h3>
                 <div className="dim">
                   {t.service.duration} {fmtDuration(i.started_at, i.resolved_at, locale)}
+                  {i.resolved_at ? ` → ${fmtDate(i.resolved_at)}` : ""}
                   {i.url ? (
                     <>
                       {" · "}

@@ -187,6 +187,46 @@ export async function getGlobalStats(): Promise<{
   return row;
 }
 
+/**
+ * De quoi répondre à « à quel point c'est en panne ».
+ *
+ * Un statut binaire ne dit rien de la gravité : un service qui tombe deux
+ * minutes par trimestre et un autre qui tombe six heures affichent la même
+ * pastille rouge le jour où ils sont à terre. Ces deux chiffres — le temps
+ * cumulé d'incident et le délai moyen de rétablissement — sont mesurés sur ce
+ * que le fournisseur a lui-même publié, et c'est ce qui permet de comparer.
+ *
+ * Les maintenances sont exclues : elles sont annoncées, donc subies par
+ * personne.
+ */
+export interface Reliability {
+  incidents: number;
+  downtime_minutes: number;
+  mttr_minutes: number | null;
+  worst_minutes: number | null;
+}
+
+export async function getReliability(serviceId: string, days = 90): Promise<Reliability> {
+  if (isBuildPhase()) return { incidents: 0, downtime_minutes: 0, mttr_minutes: null, worst_minutes: null };
+  const [row] = await read(
+    sql<Reliability[]>`
+      select
+        count(*)::int as incidents,
+        coalesce(round(sum(extract(epoch from (coalesce(resolved_at, now()) - started_at)) / 60)), 0)::int
+          as downtime_minutes,
+        round(avg(extract(epoch from (resolved_at - started_at)) / 60))::int as mttr_minutes,
+        round(max(extract(epoch from (coalesce(resolved_at, now()) - started_at)) / 60))::int
+          as worst_minutes
+        from incidents
+       where service_id = ${serviceId}
+         and impact <> 'maintenance'
+         and started_at > now() - ${`${days} days`}::interval
+    `,
+    `reliability:${serviceId}`,
+  );
+  return row ?? { incidents: 0, downtime_minutes: 0, mttr_minutes: null, worst_minutes: null };
+}
+
 /** Fournisseurs proches (même catégorie) : maillage interne pour le SEO. */
 export async function getRelatedServices(
   category: string,

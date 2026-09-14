@@ -220,3 +220,17 @@ footer a { color: var(--muted); }
   background: var(--bg-soft);
   font-size: 14.5px;
 }
+
+/* ----- Légende de la barre de disponibilité ----- */
+.uptime-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+}
+.uptime-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.uptime-legend .key { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.uptime-legend .key.ok { background: var(--ok); }
+.uptime-legend .key.warn { background: var(--warn); }
+.uptime-legend .key.bad { background: var(--bad); }
+.uptime-legend .key.none { background: var(--line); }

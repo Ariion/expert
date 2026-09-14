@@ -11,7 +11,7 @@
  */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { fetchFeed, hashIncident } from "../src/lib/feeds";
+import { fetchFeed, guessImpact, hashIncident, isResolvedEntry } from "../src/lib/feeds";
 import { APP_URL, normalizeUrl } from "../src/lib/env";
 import { splitSqlStatements } from "../src/lib/sqlfile";
 import { readFileSync } from "node:fs";
@@ -269,6 +269,29 @@ async function main() {
   });
   ok("les commentaires seuls ne produisent pas d'instruction vide", () =>
     assert.equal(splitSqlStatements("-- rien du tout\n\n-- non plus\n").length, 0),
+  );
+
+  console.log("\nJournal d'événements contre panne en cours");
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000);
+  ok("un message informatif n'est pas une panne", () => {
+    assert.equal(guessImpact("Informational message: Increased API error rates"), "minor");
+    assert.equal(guessImpact("Informational message: elevated error rates in eu-west-1"), "minor");
+  });
+  ok("une vraie panne reste classée comme telle", () => {
+    assert.equal(guessImpact("Service disruption: API unavailable"), "major");
+    assert.equal(guessImpact("Major outage affecting all regions"), "critical");
+    assert.equal(guessImpact("Scheduled maintenance window"), "maintenance");
+  });
+  ok("les marqueurs de clôture sont reconnus", () => {
+    assert.equal(isResolvedEntry("[RESOLVED] API errors", "", hoursAgo(1)), true);
+    assert.equal(isResolvedEntry("Service is operating normally", "", hoursAgo(1)), true);
+    assert.equal(isResolvedEntry("Elevated errors", "Issue resolved at 14:02", hoursAgo(1)), true);
+  });
+  ok("une entrée récente non close reste ouverte", () =>
+    assert.equal(isResolvedEntry("Service disruption", "We are investigating", hoursAgo(2)), false),
+  );
+  ok("une entrée vieille de plusieurs jours est un événement passé", () =>
+    assert.equal(isResolvedEntry("Service disruption", "We are investigating", hoursAgo(24 * 5)), true),
   );
 
   console.log("\nAdresse du site");

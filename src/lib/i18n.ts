@@ -242,6 +242,22 @@ const fr = {
     fallbackDescription: (name: string) =>
       `${name} publie ses incidents sur une page de statut officielle. Upstream Status la surveille en continu et vous alerte automatiquement.`,
     kpiStatus: "Statut actuel",
+    exactSince: (date: string) => `depuis le ${date}`,
+    // Répondre à « à quel point », pas seulement à « oui ou non ».
+    severityTitle: "Gravité sur 90 jours",
+    kpiDowntime: "Temps cumulé d'incident",
+    kpiMttr: "Rétablissement moyen",
+    kpiWorst: "Incident le plus long",
+    severityNote:
+      "Mesuré sur les incidents publiés par le fournisseur lui-même, maintenances exclues. Un service peut tomber souvent et brièvement, ou rarement et longtemps : ces deux chiffres distinguent les deux.",
+    noneYet: "aucun",
+    uptimeLegendOk: "aucun incident",
+    uptimeLegendWarn: "incident partiel",
+    uptimeLegendBad: "incident majeur",
+    uptimeLegendNone: "pas de donnée",
+    providerWords: "Texte du fournisseur, reproduit tel quel",
+    providerWordsNote:
+      "Les incidents sont republiés mot pour mot, dans la langue du fournisseur — le plus souvent l'anglais. Les traduire reviendrait à réécrire ce qu'il a annoncé, et à en devenir responsable.",
     kpiUptime: "Disponibilité 90 j",
     kpiIncidents: "Incidents 90 j",
     kpiLast: "Dernier incident",
@@ -255,7 +271,11 @@ const fr = {
       `Les données de cette page proviennent exclusivement de la page de statut publique de ${name}.`,
     sourceCta: "Page de statut officielle",
     watchers: (n: number, name: string, site: string) =>
-      `${n} personne(s) surveillent ${name} via ${site}.`,
+      n === 0
+        ? `Personne ne surveille encore ${name} via ${site}.`
+        : n === 1
+          ? `1 personne surveille ${name} via ${site}.`
+          : `${n} personnes surveillent ${name} via ${site}.`,
     relatedTitle: (label: string) => `Autres services ${label}`,
     compareCta: (a: string, b: string) => `Comparer ${a} et ${b} →`,
     faqTitle: "Questions fréquentes",
@@ -680,6 +700,21 @@ const en: typeof fr = {
     fallbackDescription: (name: string) =>
       `${name} publishes its incidents on an official status page. Upstream Status reads it continuously and alerts you automatically.`,
     kpiStatus: "Current status",
+    exactSince: (date: string) => `since ${date}`,
+    severityTitle: "Severity over 90 days",
+    kpiDowntime: "Total incident time",
+    kpiMttr: "Average recovery",
+    kpiWorst: "Longest incident",
+    severityNote:
+      "Measured from the incidents the provider published itself, maintenance excluded. A service can fail often and briefly, or rarely and for hours — these two numbers tell them apart.",
+    noneYet: "none",
+    uptimeLegendOk: "no incident",
+    uptimeLegendWarn: "partial incident",
+    uptimeLegendBad: "major incident",
+    uptimeLegendNone: "no data",
+    providerWords: "The provider's own words, reproduced verbatim",
+    providerWordsNote:
+      "Incidents are republished word for word, in the provider's own language. Translating them would mean rewriting what they announced, and becoming answerable for it.",
     kpiUptime: "90-day uptime",
     kpiIncidents: "Incidents (90d)",
     kpiLast: "Last incident",
@@ -693,9 +728,11 @@ const en: typeof fr = {
       `Everything on this page comes from ${name}'s public status page, and nowhere else.`,
     sourceCta: "Official status page",
     watchers: (n: number, name: string, site: string) =>
-      n === 1
-        ? `1 person watches ${name} through ${site}.`
-        : `${n} people watch ${name} through ${site}.`,
+      n === 0
+        ? `Nobody watches ${name} through ${site} yet.`
+        : n === 1
+          ? `1 person watches ${name} through ${site}.`
+          : `${n} people watch ${name} through ${site}.`,
     relatedTitle: (label: string) => `Other ${label.toLowerCase()} services`,
     compareCta: (a: string, b: string) => `Compare ${a} and ${b} →`,
     faqTitle: "Frequently asked questions",

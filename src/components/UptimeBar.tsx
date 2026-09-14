@@ -38,6 +38,14 @@ export function UptimeBar({
         <span>{t.time.ninetyDaysAgo}</span>
         <span>{t.time.today}</span>
       </div>
+      {/* Sans légende, une barre de couleurs ne se lit pas : on devine que le
+          rouge est mauvais, jamais ce qu'il mesure exactement. */}
+      <div className="uptime-legend dim">
+        <span><i className="key ok" />{t.service.uptimeLegendOk}</span>
+        <span><i className="key warn" />{t.service.uptimeLegendWarn}</span>
+        <span><i className="key bad" />{t.service.uptimeLegendBad}</span>
+        <span><i className="key none" />{t.service.uptimeLegendNone}</span>
+      </div>
     </div>
   );
 }

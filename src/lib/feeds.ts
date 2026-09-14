@@ -196,11 +196,42 @@ function asArray<T>(v: T | T[] | undefined): T[] {
   return Array.isArray(v) ? v : [v];
 }
 
-function guessImpact(text: string): Impact {
+/**
+ * Un flux Atom/RSS n'expose pas d'état : chaque entrée est un billet daté, pas
+ * un incident vivant. Tout l'enjeu est de ne pas prendre un journal
+ * d'événements passés pour une panne en cours.
+ *
+ * Le cas d'école est AWS : son flux publie chaque événement de chaque service
+ * dans chaque région, y compris purement informatif, et la plupart sont clos
+ * depuis longtemps. Lus naïvement, ils faisaient afficher « panne majeure » à
+ * un fournisseur parfaitement opérationnel — une page qui ment sur ce qu'elle
+ * est censée établir ne vaut rien.
+ */
+const RESOLVED_MARK =
+  /^\s*\[?\s*(resolved|closed|completed)\s*\]?\b|\b(resolved|completed|restored|closed|operating normally|back to normal|fully recovered|service restored)\b/i;
+
+/** Au-delà de ce délai, une entrée non close est un événement passé. */
+const STALE_AFTER_MS = 3 * 24 * 3600_000;
+
+export function isResolvedEntry(title: string, content: string, published: Date): boolean {
+  if (RESOLVED_MARK.test(title) || RESOLVED_MARK.test(content)) return true;
+  // Aucune panne réelle ne reste ouverte trois jours sans la moindre mise à
+  // jour : passé ce délai, l'entrée décrit un événement terminé que le
+  // fournisseur n'a simplement pas marqué comme tel.
+  return Date.now() - published.getTime() > STALE_AFTER_MS;
+}
+
+export function guessImpact(text: string): Impact {
   const t = text.toLowerCase();
   if (/(maintenance|scheduled)/.test(t)) return "maintenance";
-  if (/(major outage|complete outage|total outage|unavailable|down)/.test(t)) return "critical";
-  if (/(partial outage|degraded performance|elevated error|disruption)/.test(t)) return "major";
+  // Classification explicite du fournisseur, quand il en donne une. AWS place
+  // « Informational message » devant ce qui n'affecte pas le service : le
+  // prendre pour une panne était l'erreur la plus coûteuse.
+  if (/informational message|informational:/.test(t)) return "minor";
+  if (/(major outage|complete outage|total outage|widespread|service is unavailable)/.test(t))
+    return "critical";
+  if (/(partial outage|service disruption|service degradation|degraded performance|elevated error)/.test(t))
+    return "major";
   return "minor";
 }
 
@@ -219,7 +250,7 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
       asArray(e?.link)[0]?.["@_href"] ??
       null;
     const published = toDate(e?.published ?? e?.pubDate ?? e?.updated);
-    const resolved = /\b(resolved|completed|restored|closed)\b/i.test(`${title} ${content}`);
+    const resolved = isResolvedEntry(title, content, published);
 
     return {
       externalId: String(e?.id ?? e?.guid?.["#text"] ?? e?.guid ?? link ?? `${published.getTime()}-${idx}`),
@@ -233,8 +264,10 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
     };
   });
 
-  // Sans indicateur global, on déduit l'état : un incident ouvert et récent
-  // (< 6 h) fait basculer le service en dégradé.
+  // Sans indicateur global, on déduit l'état des seules entrées encore
+  // ouvertes ET récentes. Une entrée mineure ne suffit pas : sur un flux qui
+  // publie chaque message informatif, elle maintiendrait le service en
+  // « dégradé » en permanence.
   const sixHoursAgo = Date.now() - 6 * 3600_000;
   const open = incidents.filter(
     (i) => !i.resolvedAt && i.startedAt.getTime() > sixHoursAgo && i.impact !== "maintenance",
@@ -243,9 +276,7 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
     ? "major_outage"
     : open.some((i) => i.impact === "major")
       ? "partial_outage"
-      : open.length > 0
-        ? "degraded"
-        : "operational";
+      : "operational";
 
   return { status, incidents };
 }
