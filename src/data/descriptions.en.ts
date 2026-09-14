@@ -187,4 +187,66 @@ export const DESCRIPTIONS_EN: Record<string, string> = {
   "xbox-live": "Sign-in, store and online play on Xbox.",
   meta: "Official status for Facebook, Instagram, WhatsApp and Threads.",
   "google-gemini": "The Google AI infrastructure behind Gemini.",
+
+  // --- Social & consumer platforms -----------------------------------------
+  reddit: "Forums and online communities.",
+  spotify: "Playback and sign-in on Spotify.",
+  "x-twitter": "Sign-in and posting on X.",
+  pinterest: "Sign-in and browsing on Pinterest.",
+
+  // --- Gaming (more) ---------------------------------------------------------
+  minecraft: "Sign-in and multiplayer servers for Minecraft (Mojang).",
+  roblox: "Sign-in and online play on Roblox.",
+  ea: "Sign-in and online services for EA titles (FIFA/FC, Apex Legends, Battlefield).",
+  "battle-net": "Sign-in and online play for Blizzard titles (World of Warcraft, Diablo, Overwatch).",
+  nintendo: "Sign-in and online store for Nintendo Switch.",
+
+  // --- Observability & error tracking (more) ----------------------------------
+  rollbar: "Real-time error tracking.",
+  bugsnag: "Application stability monitoring.",
+  airbrake: "Error and performance tracking.",
+  honeybadger: "Error tracking for web applications.",
+  checkly: "Synthetic and performance monitoring.",
+  site24x7: "Infrastructure and application monitoring.",
+  statuscake: "Website uptime monitoring.",
+  uptimerobot: "Website uptime monitoring.",
+  instatus: "Hosted status pages.",
+
+  // --- Developer tools (more) --------------------------------------------------
+  "travis-ci": "Long-running continuous integration service.",
+  buildkite: "Self-hosted CI/CD platform.",
+  postman: "API testing and documentation.",
+  launchdarkly: "Feature flags and progressive rollouts.",
+  "split-io": "Feature flags and A/B testing.",
+  unbounce: "Landing page builder.",
+
+  // --- CMS & content -------------------------------------------------------
+  contentful: "Headless CMS for product teams.",
+  sanity: "Structured headless CMS.",
+  prismic: "Headless CMS for marketing sites.",
+  storyblok: "Visual headless CMS.",
+  datocms: "Performance-focused headless CMS.",
+  "webflow-cms": "Website building without code.",
+
+  // --- Product analytics & UX (more) --------------------------------------
+  mixpanel: "Product event analytics.",
+  heap: "Automatic behavioral analytics.",
+  fullstory: "Session replay and experience analytics.",
+  hotjar: "Heatmaps and user feedback.",
+  optimizely: "A/B testing and personalization.",
+  drift: "Conversational sales messaging.",
+  livechat: "Live customer chat.",
+
+  // --- Payments (more) -------------------------------------------------------
+  klarna: "Buy now, pay later.",
+
+  // --- Identity & access (more) ------------------------------------------------
+  "duo-security": "Enterprise multi-factor authentication.",
+  onelogin: "Identity management and SSO.",
+  jumpcloud: "Cloud directory platform.",
+
+  // --- E-commerce (more) -------------------------------------------------------
+  squarespace: "Website and online store builder.",
+  recharge: "Subscriptions for e-commerce stores.",
+  gorgias: "Customer support for e-commerce.",
 };

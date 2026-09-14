@@ -215,6 +215,58 @@ const STATUSPAGE: Row[] = [
   // Xbox, Meta) sont dans EXPLICIT_FEEDS plus bas, avec leur propre format.
   ["epic-games", "Epic Games", "jeux", "status.epicgames.com", "epicgames.com", "Fortnite, Epic Games Store et services en ligne."],
   ["twitch", "Twitch", "jeux", "status.twitch.tv", "twitch.tv", "Diffusion de jeux vidéo en direct."],
+
+  // --- Grand public et réseaux sociaux --------------------------------------
+  ["reddit", "Reddit", "communication", "www.redditstatus.com", "reddit.com", "Forums et communautés en ligne."],
+
+  // --- Observabilité et erreurs (suite) -------------------------------------
+  ["rollbar", "Rollbar", "observabilite", "status.rollbar.com", "rollbar.com", "Suivi d'erreurs en temps réel."],
+  ["bugsnag", "Bugsnag", "observabilite", "status.bugsnag.com", "bugsnag.com", "Surveillance de la stabilité applicative."],
+  ["airbrake", "Airbrake", "observabilite", "status.airbrake.io", "airbrake.io", "Suivi d'erreurs et de performance."],
+  ["honeybadger", "Honeybadger", "observabilite", "status.honeybadger.io", "honeybadger.io", "Suivi d'erreurs pour applications web."],
+  ["checkly", "Checkly", "observabilite", "status.checklyhq.com", "checklyhq.com", "Surveillance synthétique et de performance."],
+  ["site24x7", "Site24x7", "observabilite", "status.site24x7.com", "site24x7.com", "Surveillance d'infrastructure et d'applications."],
+  ["statuscake", "StatusCake", "observabilite", "status.statuscake.com", "statuscake.com", "Surveillance de disponibilité de sites."],
+  ["uptimerobot", "UptimeRobot", "observabilite", "status.uptimerobot.com", "uptimerobot.com", "Surveillance de disponibilité de sites."],
+  ["instatus", "Instatus", "observabilite", "status.instatus.com", "instatus.com", "Pages de statut hébergées."],
+
+  // --- Développement et CI/CD (suite) ---------------------------------------
+  ["travis-ci", "Travis CI", "developpement", "www.traviscistatus.com", "travis-ci.com", "Intégration continue historique."],
+  ["buildkite", "Buildkite", "developpement", "www.buildkitestatus.com", "buildkite.com", "Plateforme de CI/CD auto-hébergée."],
+  ["postman", "Postman", "developpement", "status.postman.com", "postman.com", "Test et documentation d'API."],
+  ["launchdarkly", "LaunchDarkly", "developpement", "status.launchdarkly.com", "launchdarkly.com", "Feature flags et déploiement progressif."],
+  ["split-io", "Split", "developpement", "status.split.io", "split.io", "Feature flags et tests A/B."],
+  ["unbounce", "Unbounce", "marketing", "status.unbounce.com", "unbounce.com", "Création de pages d'atterrissage."],
+
+  // --- Contenu et CMS ---------------------------------------------------------
+  ["contentful", "Contentful", "productivite", "status.contentful.com", "contentful.com", "CMS headless pour équipes produit."],
+  ["sanity", "Sanity", "productivite", "status.sanity.io", "sanity.io", "CMS headless structuré."],
+  ["prismic", "Prismic", "productivite", "status.prismic.io", "prismic.io", "CMS headless pour sites marketing."],
+  ["storyblok", "Storyblok", "productivite", "status.storyblok.com", "storyblok.com", "CMS headless visuel."],
+  ["datocms", "DatoCMS", "productivite", "status.datocms.com", "datocms.com", "CMS headless orienté performance."],
+  ["webflow-cms", "Webflow", "no-code", "status.webflow.com", "webflow.com", "Création de sites sans code."],
+
+  // --- Analyse produit et expérience utilisateur ------------------------------
+  ["mixpanel", "Mixpanel", "marketing", "status.mixpanel.com", "mixpanel.com", "Analyse d'événements produit."],
+  ["heap", "Heap", "marketing", "status.heap.io", "heap.io", "Analyse comportementale automatique."],
+  ["fullstory", "FullStory", "marketing", "status.fullstory.com", "fullstory.com", "Rejeu de sessions et analyse d'expérience."],
+  ["hotjar", "Hotjar", "marketing", "status.hotjar.com", "hotjar.com", "Cartes de chaleur et retours utilisateurs."],
+  ["optimizely", "Optimizely", "marketing", "status.optimizely.com", "optimizely.com", "Tests A/B et personnalisation."],
+  ["drift", "Drift", "support", "status.drift.com", "drift.com", "Messagerie commerciale conversationnelle."],
+  ["livechat", "LiveChat", "support", "status.livechat.com", "livechat.com", "Messagerie client en direct."],
+
+  // --- Paiement et finance (suite) --------------------------------------------
+  ["klarna", "Klarna", "paiement", "status.klarna.com", "klarna.com", "Paiement fractionné et achat différé."],
+
+  // --- Identité et accès (suite) -----------------------------------------------
+  ["duo-security", "Duo Security", "securite", "status.duo.com", "duo.com", "Authentification multifacteur d'entreprise."],
+  ["onelogin", "OneLogin", "securite", "status.onelogin.com", "onelogin.com", "Gestion d'identité et SSO."],
+  ["jumpcloud", "JumpCloud", "securite", "status.jumpcloud.com", "jumpcloud.com", "Répertoire d'identité cloud."],
+
+  // --- E-commerce (suite) -------------------------------------------------------
+  ["squarespace", "Squarespace", "ecommerce", "status.squarespace.com", "squarespace.com", "Création de sites et boutiques en ligne."],
+  ["recharge", "Recharge", "ecommerce", "status.rechargepayments.com", "rechargepayments.com", "Abonnements pour boutiques e-commerce."],
+  ["gorgias", "Gorgias", "support", "status.gorgias.com", "gorgias.com", "Support client pour e-commerce."],
 ];
 
 /** Fournisseurs hors Statuspage : flux RSS/Atom officiels. */
@@ -372,6 +424,100 @@ const FEEDS: Array<Omit<SeedService, "alt_feeds">> = [
     feed_url: "https://status.cloud.google.com/en/feed.atom",
     feed_kind: "atom",
     logo_domain: "gemini.google.com",
+  },
+
+  // --- Grand public : jeux et réseaux sociaux (suite) -----------------------
+  // Même principe que Riot/PlayStation/Xbox/Meta plus haut : l'adresse
+  // pointe sur la page humaine, et la découverte automatique
+  // (src/lib/discover.ts) lit cette page dès le premier échec pour en
+  // extraire la vraie adresse de flux déclarée, au lieu d'en deviner une.
+  {
+    slug: "minecraft",
+    name: "Minecraft",
+    category: "jeux",
+    description: "Connexion et serveurs multijoueur Minecraft (Mojang).",
+    homepage: "https://www.minecraft.net",
+    status_page_url: "https://help.minecraft.net/hc/en-us/articles/360046311411",
+    feed_url: "https://help.minecraft.net/hc/en-us/articles/360046311411",
+    feed_kind: "rss",
+    logo_domain: "minecraft.net",
+  },
+  {
+    slug: "roblox",
+    name: "Roblox",
+    category: "jeux",
+    description: "Connexion et jeu en ligne sur Roblox.",
+    homepage: "https://www.roblox.com",
+    status_page_url: "https://status.roblox.com",
+    feed_url: "https://status.roblox.com",
+    feed_kind: "rss",
+    logo_domain: "roblox.com",
+  },
+  {
+    slug: "ea",
+    name: "Electronic Arts (EA)",
+    category: "jeux",
+    description: "Connexion et services en ligne EA (FIFA/FC, Apex Legends, Battlefield).",
+    homepage: "https://www.ea.com",
+    status_page_url: "https://help.ea.com/en/service-updates/",
+    feed_url: "https://help.ea.com/en/service-updates/",
+    feed_kind: "rss",
+    logo_domain: "ea.com",
+  },
+  {
+    slug: "battle-net",
+    name: "Battle.net",
+    category: "jeux",
+    description: "Connexion et jeu en ligne Blizzard (World of Warcraft, Diablo, Overwatch).",
+    homepage: "https://battle.net",
+    status_page_url: "https://us.battle.net/support/en/article/status",
+    feed_url: "https://us.battle.net/support/en/article/status",
+    feed_kind: "rss",
+    logo_domain: "battle.net",
+  },
+  {
+    slug: "nintendo",
+    name: "Nintendo",
+    category: "jeux",
+    description: "Connexion et boutique en ligne Nintendo Switch.",
+    homepage: "https://www.nintendo.com",
+    status_page_url: "https://en-americas-support.nintendo.com/app/status",
+    feed_url: "https://en-americas-support.nintendo.com/app/status",
+    feed_kind: "rss",
+    logo_domain: "nintendo.com",
+  },
+  {
+    slug: "spotify",
+    name: "Spotify",
+    category: "communication",
+    description: "Lecture et connexion sur Spotify.",
+    homepage: "https://www.spotify.com",
+    status_page_url: "https://www.spotifystatus.com",
+    feed_url: "https://www.spotifystatus.com",
+    feed_kind: "rss",
+    logo_domain: "spotify.com",
+  },
+  {
+    slug: "x-twitter",
+    name: "X (Twitter)",
+    category: "communication",
+    description: "Connexion et publication sur X.",
+    homepage: "https://x.com",
+    status_page_url: "https://status.x.com",
+    feed_url: "https://status.x.com",
+    feed_kind: "rss",
+    logo_domain: "x.com",
+  },
+  {
+    slug: "pinterest",
+    name: "Pinterest",
+    category: "communication",
+    description: "Connexion et navigation sur Pinterest.",
+    homepage: "https://www.pinterest.com",
+    status_page_url: "https://help.pinterest.com/en/business/article/pinterest-outage",
+    feed_url: "https://help.pinterest.com/en/business/article/pinterest-outage",
+    feed_kind: "rss",
+    logo_domain: "pinterest.com",
   },
 ];
 
