@@ -1,8 +1,14 @@
+import { UptimeChart, type DayPoint } from "./UptimeChart";
+import { fmtDuration } from "@/lib/format";
 import { DEFAULT_LOCALE, dict, type Locale } from "@/lib/i18n";
 
 /**
- * Historique 90 jours. Rendu en pur HTML/CSS (aucune librairie de graphes) :
- * la page reste statique, légère et indexable.
+ * Prépare les 90 derniers jours pour le graphique.
+ *
+ * Les jours sans mesure sont comblés côté serveur : la série doit toujours
+ * faire quatre-vingt-dix colonnes, sinon l'axe ment sur la période couverte.
+ * Tout le calcul est fait ici pour que le composant interactif ne reçoive que
+ * des chaînes déjà traduites et formatées.
  */
 export function UptimeBar({
   days,
@@ -12,40 +18,53 @@ export function UptimeBar({
   locale?: Locale;
 }) {
   const t = dict(locale);
-
-  // On complète à gauche pour toujours afficher 90 colonnes, même service jeune.
   const byDay = new Map(days.map((d) => [d.day, d]));
-  const cols: Array<{ day: string; pct: number | null; incidents: number }> = [];
+
+  const dayFormat = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
+  const points: DayPoint[] = [];
   for (let i = 89; i >= 0; i--) {
-    const key = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    const date = new Date(Date.now() - i * 86400000);
+    const key = date.toISOString().slice(0, 10);
     const row = byDay.get(key);
-    cols.push({ day: key, pct: row ? Number(row.uptime_pct) : null, incidents: row?.incident_count ?? 0 });
+    const pct = row ? Number(row.uptime_pct) : null;
+    const minutes = pct === null ? 0 : Math.round(((100 - pct) / 100) * 1440);
+    const incidents = row?.incident_count ?? 0;
+
+    points.push({
+      day: key,
+      minutes,
+      incidents,
+      missing: pct === null,
+      label: dayFormat.format(date),
+      detail:
+        pct === null
+          ? t.service.chartDayNone
+          : minutes <= 0
+            ? t.service.chartDayOk
+            : t.service.chartDayDown(
+                fmtDuration(new Date(0), new Date(minutes * 60_000), locale),
+                incidents,
+              ),
+    });
   }
 
   return (
-    <div>
-      <div className="uptime" role="img" aria-label={t.service.uptimeTitle}>
-        {cols.map((c) => {
-          const cls = c.pct === null ? "none" : c.pct >= 99.9 ? "" : c.pct >= 98 ? "warn" : "bad";
-          const title =
-            c.pct === null
-              ? `${c.day} — ${t.time.noData}`
-              : `${c.day} — ${c.pct.toFixed(2)} % (${t.time.incidentsCount(c.incidents)})`;
-          return <i key={c.day} className={cls} title={title} />;
-        })}
-      </div>
-      <div className="between dim" style={{ marginTop: 6 }}>
-        <span>{t.time.ninetyDaysAgo}</span>
-        <span>{t.time.today}</span>
-      </div>
-      {/* Sans légende, une barre de couleurs ne se lit pas : on devine que le
-          rouge est mauvais, jamais ce qu'il mesure exactement. */}
-      <div className="uptime-legend dim">
-        <span><i className="key ok" />{t.service.uptimeLegendOk}</span>
-        <span><i className="key warn" />{t.service.uptimeLegendWarn}</span>
-        <span><i className="key bad" />{t.service.uptimeLegendBad}</span>
-        <span><i className="key none" />{t.service.uptimeLegendNone}</span>
-      </div>
-    </div>
+    <UptimeChart
+      points={points}
+      hint={t.service.chartHint}
+      fromLabel={t.time.ninetyDaysAgo}
+      toLabel={t.time.today}
+      legend={[
+        ["ok", t.service.uptimeLegendOk],
+        ["warn", t.service.uptimeLegendWarn],
+        ["bad", t.service.uptimeLegendBad],
+        ["none", t.service.uptimeLegendNone],
+      ]}
+    />
   );
 }

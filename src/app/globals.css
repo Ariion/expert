@@ -221,7 +221,56 @@ footer a { color: var(--muted); }
   font-size: 14.5px;
 }
 
-/* ----- Légende de la barre de disponibilité ----- */
+/* ----- Graphique des interruptions sur 90 jours ----- */
+.chart { display: flex; flex-direction: column; }
+
+/* Zone de lecture à hauteur fixe : survoler le graphique ne doit jamais
+   décaler le contenu qui suit. */
+.chart-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 24px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 60px;
+}
+
+.chart-col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
+}
+.chart-col > i {
+  display: block;
+  width: 100%;
+  border-radius: 2px;
+  background: var(--ok);
+  transition: filter .12s ease;
+}
+.chart-col.warn > i { background: var(--warn); }
+.chart-col.bad  > i { background: var(--bad); }
+.chart-col.none > i { background: var(--line); }
+.chart-col:hover > i,
+.chart-col.on > i { filter: brightness(1.45); }
+.chart-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.chart-axis { margin-top: 8px; }
+
+/* ----- Légende ----- */
 .uptime-legend {
   display: flex;
   flex-wrap: wrap;

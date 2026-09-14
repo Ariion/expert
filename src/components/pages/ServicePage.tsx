@@ -192,7 +192,7 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
         <div>
           <h2 style={{ marginTop: 0 }}>{t.service.historyTitle}</h2>
           <p className="dim" style={{ margin: "0 0 14px" }}>
-            <strong>{t.service.providerWords}</strong> — {t.service.providerWordsNote}
+            {t.service.providerWords(service.name)}
           </p>
           {incidents.length === 0 && (
             <div className="notice">{t.service.noIncidents(service.name)}</div>

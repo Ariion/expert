@@ -176,8 +176,7 @@ const fr = {
     },
     recentIncidents: "Incidents récents",
     seeAll: "Tout voir →",
-    noIncidents:
-      "Aucun incident enregistré pour l'instant. Le collecteur alimente cette page toutes les 5 minutes.",
+    noIncidents: "Aucun incident enregistré sur les 30 derniers jours.",
     resolved: "résolu",
     ongoing: "en cours",
     mostWatched: "Fournisseurs les plus surveillés",
@@ -206,7 +205,7 @@ const fr = {
     metaDescription:
       "Tableau de bord unique : statut en temps réel, disponibilité et historique d'incidents de tous les fournisseurs SaaS et cloud majeurs.",
     h1: (n: number) => `Statut en direct de ${n} fournisseurs`,
-    lead: "Relevé automatique des pages de statut officielles, toutes les 2 à 5 minutes. Cliquez sur un fournisseur pour son historique d'incidents et sa disponibilité sur 90 jours.",
+    lead: "Relevé sur les pages de statut officielles, toutes les 2 à 5 minutes.",
     seeCategory: "Voir la catégorie →",
     uptimeShort: (pct: string) => `${pct} % / 90 j`,
   },
@@ -215,7 +214,7 @@ const fr = {
     metaDescription:
       "Cloud, paiement, email, authentification, CDN, observabilité : parcourez les status pages surveillées par catégorie.",
     h1: "Catégories",
-    lead: "Chaque catégorie regroupe les fournisseurs d'un même maillon de votre infrastructure. Un incident chez l'un d'eux vous concerne directement.",
+    lead: "Les fournisseurs regroupés par maillon d'infrastructure.",
   },
   category: {
     metaTitle: (label: string, n: number) =>
@@ -237,8 +236,7 @@ const fr = {
     metaDescription: (name: string, status: string) =>
       `${name} : ${status} (vérifié il y a moins de 5 minutes). Historique des incidents sur 90 jours, disponibilité mesurée et alerte gratuite par email dès la prochaine panne.`,
     h1: (name: string) => `${name} est-il en panne ?`,
-    unchangedSince: (ago: string) =>
-      `état inchangé depuis ${ago} · relevé automatique toutes les 5 minutes`,
+    unchangedSince: (ago: string) => `inchangé depuis ${ago}`,
     fallbackDescription: (name: string) =>
       `${name} publie ses incidents sur une page de statut officielle. Upstream Status la surveille en continu et vous alerte automatiquement.`,
     kpiStatus: "Statut actuel",
@@ -248,27 +246,30 @@ const fr = {
     kpiDowntime: "Temps cumulé d'incident",
     kpiMttr: "Rétablissement moyen",
     kpiWorst: "Incident le plus long",
-    severityNote:
-      "Mesuré sur les incidents publiés par le fournisseur lui-même, maintenances exclues. Un service peut tomber souvent et brièvement, ou rarement et longtemps : ces deux chiffres distinguent les deux.",
+    severityNote: "Sur les incidents publiés par le fournisseur. Maintenances exclues.",
     noneYet: "aucun",
-    uptimeLegendOk: "aucun incident",
-    uptimeLegendWarn: "incident partiel",
-    uptimeLegendBad: "incident majeur",
+    uptimeLegendOk: "aucune interruption",
+    uptimeLegendWarn: "moins d'une heure",
+    uptimeLegendBad: "une heure ou plus",
     uptimeLegendNone: "pas de donnée",
-    providerWords: "Texte du fournisseur, reproduit tel quel",
-    providerWordsNote:
-      "Les incidents sont republiés mot pour mot, dans la langue du fournisseur — le plus souvent l'anglais. Les traduire reviendrait à réécrire ce qu'il a annoncé, et à en devenir responsable.",
+    chartHint: "Survolez un jour pour le détail.",
+    chartDayOk: "Aucune interruption",
+    chartDayNone: "Pas de donnée collectée",
+    chartDayDown: (duration: string, incidents: number) =>
+      incidents > 1
+        ? `${duration} d'interruption · ${incidents} incidents`
+        : `${duration} d'interruption · 1 incident`,
+    providerWords: (name: string) => `Publié par ${name}`,
     kpiUptime: "Disponibilité 90 j",
     kpiIncidents: "Incidents 90 j",
     kpiLast: "Dernier incident",
-    uptimeTitle: "Disponibilité sur 90 jours",
+    uptimeTitle: "Interruptions sur 90 jours",
     historyTitle: "Historique des incidents",
     noIncidents: (name: string) => `Aucun incident publié par ${name} sur la période collectée.`,
     duration: "Durée :",
     officialPost: "communication officielle",
     sourceTitle: "Source officielle",
-    sourceBody: (name: string) =>
-      `Les données de cette page proviennent exclusivement de la page de statut publique de ${name}.`,
+    sourceBody: (name: string) => `Données issues de la page de statut publique de ${name}.`,
     sourceCta: "Page de statut officielle",
     watchers: (n: number, name: string, site: string) =>
       n === 0
@@ -309,7 +310,7 @@ const fr = {
     kpiLast: "Dernier",
     readingTitle: "Lecture du comparatif",
     reading: (a: string, sa: string, b: string, sb: string) =>
-      `${a} est actuellement « ${sa} », ${b} est « ${sb} ». Un fournisseur qui publie beaucoup d'incidents n'est pas nécessairement moins fiable : c'est souvent le signe d'une status page honnête et granulaire. L'indicateur utile reste la durée cumulée d'indisponibilité, affichée ci-dessus.`,
+      `${a} est « ${sa} », ${b} est « ${sb} ». Publier beaucoup d'incidents ne veut pas dire être moins fiable : c'est souvent une status page plus détaillée. Comparez plutôt la durée cumulée.`,
   },
   watch: {
     titleService: (name: string) => `Être alerté quand ${name} tombe`,
@@ -330,7 +331,7 @@ const fr = {
     metaDescription:
       "Gratuit pour 3 fournisseurs. Pro à 19 €/mois pour 50 fournisseurs, alertes instantanées, Slack et webhooks. Team à 49 €/mois avec rapports SLA et API.",
     h1: "Un abonnement, zéro maintenance",
-    lead: "Le prix d'une heure de panne non détectée dépasse largement celui d'une année d'abonnement. Sans engagement, résiliable en un clic depuis le portail de facturation.",
+    lead: "Sans engagement, résiliable en un clic depuis le portail de facturation.",
     leadNoAccount:
       "Aucun compte à créer avant de payer : il se crée tout seul à partir de votre email de facturation.",
     mostChosen: "Le plus choisi",
@@ -465,9 +466,9 @@ const fr = {
     welcomeTitleService: (name: string) => `Vous êtes alerté dès que ${name} tombe`,
     welcomeTitle: "Surveillance active",
     welcomeBody1:
-      "Nous interrogeons les status pages officielles de vos fournisseurs toutes les 5 minutes. Dès qu'un incident est publié, vous recevez l'alerte — sans avoir à ouvrir quoi que ce soit.",
+      "Nous interrogeons les status pages officielles de vos fournisseurs toutes les 5 minutes. Dès qu'un incident est publié, vous recevez l'alerte.",
     welcomeBody2:
-      "<strong>Ajoutez le reste de votre stack</strong> : la panne qui vous coûtera cher est rarement celle que vous surveilliez déjà.",
+      "<strong>Ajoutez le reste de votre stack</strong> pour être couvert sur tous vos fournisseurs, pas seulement le premier.",
     welcomeCta: "Ajouter mes fournisseurs",
     welcomeText: (url: string) => `Surveillance active. Ajoutez vos fournisseurs : ${url}`,
     incidentVerb: { opened: "en cours", updated: "mis à jour", resolved: "résolu" },
@@ -551,7 +552,7 @@ const fr = {
     limitCta: "Passer au plan supérieur",
     limitSuffix: " pour en ajouter davantage.",
     alertsTitle: "Dernières alertes envoyées",
-    noAlerts: "Aucune alerte pour l'instant — c'est plutôt une bonne nouvelle.",
+    noAlerts: "Aucune alerte envoyée.",
   },
 };
 
@@ -637,8 +638,7 @@ const en: typeof fr = {
     },
     recentIncidents: "Recent incidents",
     seeAll: "See all →",
-    noIncidents:
-      "No incidents recorded yet. The collector refreshes this page every 5 minutes.",
+    noIncidents: "No incident recorded over the last 30 days.",
     resolved: "resolved",
     ongoing: "ongoing",
     mostWatched: "Most watched providers",
@@ -666,7 +666,7 @@ const en: typeof fr = {
     metaDescription:
       "One dashboard: live status, uptime and incident history for every major SaaS and cloud provider.",
     h1: (n: number) => `Live status of ${n} providers`,
-    lead: "Read automatically from official status pages, every 2 to 5 minutes. Open a provider for its incident history and 90-day uptime.",
+    lead: "Read from official status pages, every 2 to 5 minutes.",
     seeCategory: "See category →",
     uptimeShort: (pct: string) => `${pct}% / 90d`,
   },
@@ -675,7 +675,7 @@ const en: typeof fr = {
     metaDescription:
       "Cloud, payments, email, authentication, CDN, observability: browse monitored status pages by category.",
     h1: "Categories",
-    lead: "Each category groups the providers sitting at the same layer of your infrastructure. An incident at any of them is your incident too.",
+    lead: "Providers grouped by infrastructure layer.",
   },
   category: {
     metaTitle: (label: string, n: number) => `${label} status — ${n} providers monitored`,
@@ -696,7 +696,7 @@ const en: typeof fr = {
     metaDescription: (name: string, status: string) =>
       `${name}: ${status} (checked less than 5 minutes ago). 90 days of incident history, measured uptime, and a free email alert the next time it goes down.`,
     h1: (name: string) => `Is ${name} down?`,
-    unchangedSince: (ago: string) => `unchanged since ${ago} · checked automatically every 5 minutes`,
+    unchangedSince: (ago: string) => `unchanged since ${ago}`,
     fallbackDescription: (name: string) =>
       `${name} publishes its incidents on an official status page. Upstream Status reads it continuously and alerts you automatically.`,
     kpiStatus: "Current status",
@@ -705,27 +705,28 @@ const en: typeof fr = {
     kpiDowntime: "Total incident time",
     kpiMttr: "Average recovery",
     kpiWorst: "Longest incident",
-    severityNote:
-      "Measured from the incidents the provider published itself, maintenance excluded. A service can fail often and briefly, or rarely and for hours — these two numbers tell them apart.",
+    severityNote: "From the incidents published by the provider. Maintenance excluded.",
     noneYet: "none",
-    uptimeLegendOk: "no incident",
-    uptimeLegendWarn: "partial incident",
-    uptimeLegendBad: "major incident",
+    uptimeLegendOk: "no downtime",
+    uptimeLegendWarn: "under an hour",
+    uptimeLegendBad: "an hour or more",
     uptimeLegendNone: "no data",
-    providerWords: "The provider's own words, reproduced verbatim",
-    providerWordsNote:
-      "Incidents are republished word for word, in the provider's own language. Translating them would mean rewriting what they announced, and becoming answerable for it.",
+    chartHint: "Hover a day for details.",
+    chartDayOk: "No downtime",
+    chartDayNone: "No data collected",
+    chartDayDown: (duration: string, incidents: number) =>
+      incidents > 1 ? `${duration} down · ${incidents} incidents` : `${duration} down · 1 incident`,
+    providerWords: (name: string) => `Published by ${name}`,
     kpiUptime: "90-day uptime",
     kpiIncidents: "Incidents (90d)",
     kpiLast: "Last incident",
-    uptimeTitle: "Uptime over 90 days",
+    uptimeTitle: "Downtime over 90 days",
     historyTitle: "Incident history",
     noIncidents: (name: string) => `${name} published no incident over the collected period.`,
     duration: "Duration:",
     officialPost: "official post",
     sourceTitle: "Official source",
-    sourceBody: (name: string) =>
-      `Everything on this page comes from ${name}'s public status page, and nowhere else.`,
+    sourceBody: (name: string) => `Data from ${name}'s public status page.`,
     sourceCta: "Official status page",
     watchers: (n: number, name: string, site: string) =>
       n === 0
@@ -767,7 +768,7 @@ const en: typeof fr = {
     kpiLast: "Last",
     readingTitle: "How to read this",
     reading: (a: string, sa: string, b: string, sb: string) =>
-      `${a} currently reports “${sa}”, ${b} reports “${sb}”. A provider that publishes a lot of incidents is not necessarily less reliable — it is often the sign of an honest, granular status page. The number that matters is total downtime, shown above.`,
+      `${a} reports “${sa}”, ${b} reports “${sb}”. Publishing more incidents does not mean being less reliable: it often means a more detailed status page. Compare total downtime instead.`,
   },
   watch: {
     titleService: (name: string) => `Get alerted when ${name} goes down`,
@@ -786,7 +787,7 @@ const en: typeof fr = {
     metaDescription:
       "Free for 3 providers. Pro at €19/month for 50 providers, instant alerts, Slack and webhooks. Team at €49/month with SLA reports and API access.",
     h1: "One subscription, zero maintenance",
-    lead: "One hour of an outage you did not see coming costs more than a year of this. No commitment, cancel in one click from the billing portal.",
+    lead: "No commitment, cancel in one click from the billing portal.",
     leadNoAccount:
       "No account to create before paying: it is created for you from your billing email.",
     mostChosen: "Most popular",
@@ -915,9 +916,9 @@ const en: typeof fr = {
     welcomeTitleService: (name: string) => `You will hear about it the moment ${name} goes down`,
     welcomeTitle: "Monitoring is live",
     welcomeBody1:
-      "We read your providers' official status pages every 5 minutes. The moment an incident is published, the alert reaches you — with nothing to open or check.",
+      "We read your providers' official status pages every 5 minutes. The moment an incident is published, you get the alert.",
     welcomeBody2:
-      "<strong>Add the rest of your stack</strong>: the outage that costs you is rarely the one you were already watching.",
+      "<strong>Add the rest of your stack</strong> to be covered on every provider, not just the first one.",
     welcomeCta: "Add my providers",
     welcomeText: (url: string) => `Monitoring is live. Add your providers: ${url}`,
     incidentVerb: { opened: "ongoing", updated: "updated", resolved: "resolved" },
@@ -998,7 +999,7 @@ const en: typeof fr = {
     limitCta: "Move up a plan",
     limitSuffix: " to add more.",
     alertsTitle: "Latest alerts sent",
-    noAlerts: "No alert yet — which is rather good news.",
+    noAlerts: "No alert sent.",
   },
 };
 
