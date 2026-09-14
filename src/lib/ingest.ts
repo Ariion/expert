@@ -3,6 +3,7 @@ import { ops } from "./ops";
 import { fetchFeed, hashIncident, type RawIncident, type ServiceStatus } from "./feeds";
 import { PLANS } from "./plans";
 import { SEED_SERVICES } from "@/data/services";
+import { discoverFeeds, feedKindOf } from "./discover";
 
 export interface ServiceRow {
   id: string;
@@ -25,13 +26,6 @@ function nextDelayMinutes(status: ServiceStatus, failures: number): number {
   return status === "operational" || status === "unknown" ? 5 : 2;
 }
 
-/** Le format d'un flux se déduit de son adresse : rien à maintenir à la main. */
-function kindOfFeed(url: string): string {
-  if (/summary\.json|\/api\/v2\//.test(url)) return "statuspage_v2";
-  if (/\.atom(\?|$)/.test(url)) return "atom";
-  return "rss";
-}
-
 /**
  * Réparation automatique d'un flux devenu injoignable.
  *
@@ -50,10 +44,18 @@ function kindOfFeed(url: string): string {
  */
 async function tryRecoverFeed(service: ServiceRow): Promise<string | null> {
   const seed = SEED_SERVICES.find((s) => s.slug === service.slug);
-  const candidates = (seed?.alt_feeds ?? []).filter((u) => u !== service.feed_url);
+
+  // D'abord les adresses connues, instantanées. Ensuite seulement, on lit la
+  // status page pour lui demander où elle publie désormais son flux : c'est un
+  // appel réseau de plus, qui ne se justifie que si les pistes gratuites ont
+  // échoué — mais c'est le seul chemin qui marche pour un fournisseur dont
+  // personne n'a écrit l'adresse de secours à l'avance.
+  const known = (seed?.alt_feeds ?? []).filter((u) => u !== service.feed_url);
+  const declared = seed?.status_page_url ? await discoverFeeds(seed.status_page_url) : [];
+  const candidates = [...new Set([...known, ...declared])].filter((u) => u !== service.feed_url);
 
   for (const url of candidates) {
-    const kind = kindOfFeed(url);
+    const kind = feedKindOf(url);
     try {
       await fetchFeed({ feed_url: url, feed_kind: kind, http_etag: null, http_last_modified: null });
     } catch {

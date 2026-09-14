@@ -184,7 +184,12 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
         </div>
 
         <div className="stack">
-          <WatchForm locale={locale} serviceId={service.id} serviceName={service.name} />
+          <WatchForm
+            locale={locale}
+            serviceId={service.id}
+            serviceName={service.name}
+            ongoing={open.length > 0}
+          />
           <div className="card">
             <h3>{t.service.sourceTitle}</h3>
             <p style={{ fontSize: 13.5 }}>{t.service.sourceBody(service.name)}</p>

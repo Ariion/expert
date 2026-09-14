@@ -31,6 +31,7 @@ import { SEED_SERVICES } from "../src/data/services";
 import { readEnvFile, writeEnvFile, type EnvMap } from "../src/lib/envfile";
 import { splitSqlStatements } from "../src/lib/sqlfile";
 import { fetchFeed } from "../src/lib/feeds";
+import { discoverFeeds } from "../src/lib/discover";
 
 // Un rejet de promesse non intercepté fait tomber le processus Node et emporte
 // toutes les étapes suivantes. Une installation doit au contraire aller au bout
@@ -495,8 +496,12 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
         if (await probe(svc.feed_url, svc.feed_kind)) return;
 
         // L'adresse d'une status page change (rachat, migration, refonte).
-        // On essaie les adresses de secours connues avant d'abandonner.
-        for (const candidate of svc.alt_feeds ?? []) {
+        // On essaie d'abord les adresses de secours connues, puis on demande à
+        // la page elle-même où elle publie son flux : c'est ce qui permet de
+        // récupérer un fournisseur dont personne n'a écrit l'adresse à
+        // l'avance, et donc de ne pas perdre sa page au premier déménagement.
+        const declared = await discoverFeeds(svc.status_page_url);
+        for (const candidate of [...new Set([...(svc.alt_feeds ?? []), ...declared])]) {
           if (await probe(candidate, kindOf(candidate))) {
             await sql`
               update services

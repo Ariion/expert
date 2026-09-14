@@ -13,20 +13,24 @@ export function WatchForm({
   serviceId,
   serviceName,
   source = "status_page",
+  ongoing = false,
 }: {
   locale: Locale;
   serviceId?: string;
   serviceName?: string;
   source?: string;
+  /** Une panne est en cours sur ce fournisseur : la promesse change. */
+  ongoing?: boolean;
 }) {
   const t = dict(locale).watch;
+  const live = ongoing && Boolean(serviceName);
 
   return (
     <form action="/api/subscribe" method="post" className="card" style={{ background: "var(--bg-soft)" }}>
       <h3 style={{ marginBottom: 4 }}>
-        {serviceName ? t.titleService(serviceName) : t.titleGeneric}
+        {live ? t.titleOngoing(serviceName!) : serviceName ? t.titleService(serviceName) : t.titleGeneric}
       </h3>
-      <p style={{ fontSize: 13.5, margin: "0 0 12px" }}>{t.body}</p>
+      <p style={{ fontSize: 13.5, margin: "0 0 12px" }}>{live ? t.bodyOngoing : t.body}</p>
       <input type="hidden" name="service_id" value={serviceId ?? ""} />
       <input type="hidden" name="source" value={source} />
       <input type="hidden" name="locale" value={locale} />
@@ -41,7 +45,7 @@ export function WatchForm({
           aria-label={t.emailLabel}
         />
         <button className="btn" type="submit">
-          {t.submit}
+          {live ? t.submitOngoing : t.submit}
         </button>
       </div>
     </form>

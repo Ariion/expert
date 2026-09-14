@@ -278,6 +278,12 @@ const fr = {
   watch: {
     titleService: (name: string) => `Être alerté quand ${name} tombe`,
     titleGeneric: "Être alerté en cas de panne",
+    // Pendant une panne en cours, la promesse utile n'est pas « la prochaine
+    // fois » : c'est « maintenant ». Le visiteur cherche quand ce sera réparé.
+    titleOngoing: (name: string) => `Être prévenu dès que ${name} est rétabli`,
+    bodyOngoing:
+      "Laissez votre email : vous recevez un message dès que le fournisseur publie la résolution. Inutile de rafraîchir cette page. Gratuit, sans carte bancaire.",
+    submitOngoing: "Me prévenir du rétablissement",
     body: "Gratuit, 3 fournisseurs, sans carte bancaire. Vous recevez un email dès qu'un incident est publié sur la page de statut officielle.",
     placeholder: "vous@entreprise.com",
     emailLabel: "Adresse email",
@@ -700,6 +706,10 @@ const en: typeof fr = {
   watch: {
     titleService: (name: string) => `Get alerted when ${name} goes down`,
     titleGeneric: "Get alerted when a provider goes down",
+    titleOngoing: (name: string) => `Get told the moment ${name} is back up`,
+    bodyOngoing:
+      "Leave your email and we will message you as soon as the provider publishes the all-clear. No need to keep refreshing this page. Free, no credit card.",
+    submitOngoing: "Tell me when it is fixed",
     body: "Free, 3 providers, no credit card. You get an email as soon as an incident is published on the official status page.",
     placeholder: "you@company.com",
     emailLabel: "Email address",

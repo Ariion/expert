@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { DICT, LOCALES, href, translatePath, categoryLabel, asLocale } from "../src/lib/i18n";
 import { SEED_SERVICES } from "../src/data/services";
 import { DESCRIPTIONS_EN } from "../src/data/descriptions.en";
+import { extractFeedCandidates, feedKindOf } from "../src/lib/discover";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -269,6 +270,46 @@ async function main() {
   ok("les commentaires seuls ne produisent pas d'instruction vide", () =>
     assert.equal(splitSqlStatements("-- rien du tout\n\n-- non plus\n").length, 0),
   );
+
+  console.log("\nDécouverte de flux");
+  ok("le flux déclaré en <link rel=alternate> est trouvé", () => {
+    const html = `<html><head>
+      <link rel="alternate" type="application/atom+xml" href="/history.atom" title="Incidents">
+      <link rel="icon" href="/favicon.ico"></head><body></body></html>`;
+    const found = extractFeedCandidates(html, "https://status.example.com/");
+    assert.ok(found.includes("https://status.example.com/history.atom"));
+  });
+  ok("une status page hébergée ailleurs est suivie sur son vrai domaine", () => {
+    const html = `<script src="https://acme.instatus.com/embed.js"></script>`;
+    const found = extractFeedCandidates(html, "https://status.acme.io/");
+    assert.ok(found.includes("https://acme.instatus.com/summary.json"));
+  });
+  ok("un lien « RSS » de pied de page est retenu", () => {
+    const html = `<footer><a href="https://status.example.com/history.rss">Subscribe via RSS</a></footer>`;
+    const found = extractFeedCandidates(html, "https://status.example.com/");
+    assert.ok(found.includes("https://status.example.com/history.rss"));
+  });
+  ok("les liens sans rapport sont ignorés", () => {
+    const html = `<a href="/support">Aide</a><a href="https://twitter.com/acme">X</a>
+      <link rel="stylesheet" href="/style.css">`;
+    assert.deepEqual(extractFeedCandidates(html, "https://status.example.com/"), []);
+  });
+  ok("aucun doublon, et la liste reste bornée", () => {
+    const html = Array.from({ length: 40 }, (_, i) => `<a href="/f${i}.rss">f</a>`).join("") +
+      `<a href="/f1.rss">doublon</a>`;
+    const found = extractFeedCandidates(html, "https://status.example.com/");
+    assert.equal(found.length, 10);
+    assert.equal(new Set(found).size, found.length);
+  });
+  ok("une page illisible ne fait rien planter", () => {
+    assert.deepEqual(extractFeedCandidates("", "https://status.example.com/"), []);
+    assert.deepEqual(extractFeedCandidates("<link href=", "https://x.test/"), []);
+  });
+  ok("le format se déduit de l'adresse", () => {
+    assert.equal(feedKindOf("https://x.test/api/v2/summary.json"), "statuspage_v2");
+    assert.equal(feedKindOf("https://x.test/history.atom"), "atom");
+    assert.equal(feedKindOf("https://x.test/history.rss"), "rss");
+  });
 
   console.log("\nBilingue");
   ok("le français reste à la racine, l'anglais sous /en", () => {
