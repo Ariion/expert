@@ -1,6 +1,30 @@
 import type { Metadata } from "next";
-import { APP_URL } from "./env";
+import { APP_URL, envOr } from "./env";
 import { LOCALES, href, translatePath, type Locale } from "./i18n";
+
+/**
+ * Jetons de vérification Search Console — un par propriété déclarée.
+ *
+ * Google attribue un jeton distinct à chaque propriété et refuse la
+ * vérification s'il ne trouve sur la page que celui d'une autre. Les deux
+ * cohabitent donc : l'ancienne propriété (sous-domaine Vercel) est conservée
+ * parce que c'est elle qui montre la redirection s'opérer et qui garde
+ * l'historique d'avant la migration.
+ *
+ * Ces valeurs ne sont pas des secrets — elles figurent dans le code source de
+ * chaque page. La variable d'environnement, si elle est renseignée, les
+ * remplace toutes (liste séparée par des virgules).
+ */
+const GOOGLE_VERIFICATION = [
+  "UQz3B2Rz2749O39UP8ew7f8NkLYZ0h7Don-xU4iMozA", // upstreamstatus.vercel.app
+  "_BrNc7EkTft1fQFvfcAfDw2H_d9KUoYmN9nkVvypjlA", // upstreamstatus.com
+];
+
+export function googleVerification(): string[] {
+  const override = envOr("GOOGLE_SITE_VERIFICATION", "");
+  if (!override) return GOOGLE_VERIFICATION;
+  return override.split(",").map((s) => s.trim()).filter(Boolean);
+}
 
 /**
  * Balises `alternates` d'une page, dans les deux langues.
