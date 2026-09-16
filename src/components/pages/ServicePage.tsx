@@ -188,6 +188,52 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
         </div>
       </section>
 
+      {/* Placé juste avant le formulaire de surveillance : la quatrième étape
+          est précisément ce que ce formulaire fait. */}
+      <section className="section">
+        <h2>{t.service.troubleshootTitle(service.name)}</h2>
+        <div className="grid four">
+          <div className="card">
+            <h3>{t.service.troubleshoot1Title}</h3>
+            <p style={{ fontSize: 13.5, margin: 0 }}>{t.service.troubleshoot1Body}</p>
+          </div>
+          <div className="card">
+            <h3>{t.service.troubleshoot2Title}</h3>
+            <p style={{ fontSize: 13.5, margin: 0 }}>
+              {t.service.troubleshoot2Body(service.name)}
+            </p>
+            <a
+              className="dim"
+              href={service.status_page_url}
+              rel="nofollow noopener"
+              target="_blank"
+              style={{ display: "inline-block", marginTop: 8, fontSize: 13 }}
+            >
+              {t.service.sourceCta} →
+            </a>
+          </div>
+          <div className="card">
+            <h3>{t.service.troubleshoot3Title}</h3>
+            <p style={{ fontSize: 13.5, margin: 0 }}>
+              {t.service.troubleshoot3Body(service.name)}
+            </p>
+            <a
+              className="dim"
+              href={`https://x.com/search?q=${encodeURIComponent(`${service.name} down`)}&f=live`}
+              rel="nofollow noopener"
+              target="_blank"
+              style={{ display: "inline-block", marginTop: 8, fontSize: 13 }}
+            >
+              {t.service.troubleshoot3Cta(service.name)} →
+            </a>
+          </div>
+          <div className="card">
+            <h3>{t.service.troubleshoot4Title}</h3>
+            <p style={{ fontSize: 13.5, margin: 0 }}>{t.service.troubleshoot4Body}</p>
+          </div>
+        </div>
+      </section>
+
       <section className="section grid two">
         <div>
           <h2 style={{ marginTop: 0 }}>{t.service.historyTitle}</h2>

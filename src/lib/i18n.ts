@@ -285,6 +285,22 @@ const fr = {
           : `${n} personnes surveillent ${name} via ${site}.`,
     relatedTitle: (label: string) => `Autres services ${label}`,
     compareCta: (a: string, b: string) => `Comparer ${a} et ${b} →`,
+    // Ce que fait réellement quelqu'un qui vient de taper « X est en panne » :
+    // les quatre gestes suivants, dans cet ordre. La page les donne plutôt que
+    // de le laisser repartir les chercher ailleurs.
+    troubleshootTitle: (name: string) => `Que faire si ${name} est en panne`,
+    troubleshoot1Title: "Vérifier que ça ne vient pas de chez vous",
+    troubleshoot1Body: "Ouvrez un autre site. S'il se charge, votre connexion va bien.",
+    troubleshoot2Title: "Lire la source officielle",
+    troubleshoot2Body: (name: string) =>
+      `La page de statut de ${name} fait foi. C'est elle que nous relevons toutes les 5 minutes.`,
+    troubleshoot3Title: "Voir ce qui se dit en direct",
+    troubleshoot3Body: (name: string) =>
+      `Une panne apparaît souvent sur X avant que ${name} ne la publie.`,
+    troubleshoot3Cta: (name: string) => `Signalements « ${name} down » sur X`,
+    troubleshoot4Title: "Savoir quand c'est rétabli",
+    troubleshoot4Body:
+      "Plutôt que de recharger cette page, laissez votre adresse : l'alerte part dès la mise à jour.",
     faqTitle: "Questions fréquentes",
     faq: {
       q1: (name: string) => `${name} est-il en panne actuellement ?`,
@@ -749,6 +765,19 @@ const en: typeof fr = {
           : `${n} people watch ${name} through ${site}.`,
     relatedTitle: (label: string) => `Other ${label.toLowerCase()} services`,
     compareCta: (a: string, b: string) => `Compare ${a} and ${b} →`,
+    troubleshootTitle: (name: string) => `What to do if ${name} is down`,
+    troubleshoot1Title: "Check it isn't your side",
+    troubleshoot1Body: "Open another site. If it loads, your connection is fine.",
+    troubleshoot2Title: "Read the official source",
+    troubleshoot2Body: (name: string) =>
+      `${name}'s status page is authoritative. It is the one we poll every 5 minutes.`,
+    troubleshoot3Title: "See what people are reporting",
+    troubleshoot3Body: (name: string) =>
+      `Outages often surface on X before ${name} publishes them.`,
+    troubleshoot3Cta: (name: string) => `“${name} down” reports on X`,
+    troubleshoot4Title: "Know when it is back",
+    troubleshoot4Body:
+      "Rather than reloading this page, leave your address: the alert goes out as soon as it updates.",
     faqTitle: "Frequently asked questions",
     faq: {
       q1: (name: string) => `Is ${name} down right now?`,

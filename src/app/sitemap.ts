@@ -69,13 +69,26 @@ async function buildUrls(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Comparatifs intra-catégorie : la surface longue traîne.
+  //
+  // Volontairement bornée à quatre services par catégorie, soit six paires.
+  // À dix, la combinatoire produisait 45 paires par catégorie — près de trois
+  // quarts du sitemap en pages dérivées des mêmes données, sur un site encore
+  // sans autorité. Deux conséquences, toutes deux coûteuses : le budget de
+  // crawl part dans des pages que personne ne cherche au lieu des pages
+  // fournisseur, et une majorité de pages quasi identiques dégrade la lecture
+  // que le moteur fait du domaine entier.
+  //
+  // Les pages elles-mêmes restent servies et liées depuis chaque fiche
+  // fournisseur : seule la demande explicite d'indexation disparaît. Le tri
+  // étant `watcher_count desc`, la sélection cesse d'être alphabétique dès les
+  // premiers utilisateurs et suit alors la demande réelle.
   const byCat = new Map<string, Service[]>();
   for (const s of services) {
     if (!byCat.has(s.category)) byCat.set(s.category, []);
     byCat.get(s.category)!.push(s);
   }
   for (const list of byCat.values()) {
-    const top = list.slice(0, 10);
+    const top = list.slice(0, 4);
     for (let i = 0; i < top.length; i++) {
       for (let j = i + 1; j < top.length; j++) {
         push(`/compare/${top[i].slug}-vs-${top[j].slug}`, {
