@@ -20,6 +20,7 @@ import { SEED_SERVICES } from "../src/data/services";
 import { DESCRIPTIONS_EN } from "../src/data/descriptions.en";
 import { extractFeedCandidates, feedKindOf } from "../src/lib/discover";
 import { asBilling, planFromPriceId, yearlyAvailable, yearlySavingEuros } from "../src/lib/plans";
+import { csvCell, toCsv } from "../src/lib/csv";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -347,6 +348,28 @@ async function main() {
     assert.equal(feedKindOf("https://x.test/api/v2/summary.json"), "statuspage_v2");
     assert.equal(feedKindOf("https://x.test/history.atom"), "atom");
     assert.equal(feedKindOf("https://x.test/history.rss"), "rss");
+  });
+
+  console.log("\nExport CSV");
+  ok("un titre d'incident ne peut pas décaler les colonnes", () => {
+    // Les trois caractères qui cassent un CSV, et qu'on trouve réellement dans
+    // les titres publiés par les fournisseurs.
+    assert.equal(csvCell("Erreurs EU-West, read replica"), '"Erreurs EU-West, read replica"');
+    assert.equal(csvCell('Panne "majeure"'), '"Panne ""majeure"""');
+    assert.equal(csvCell("ligne1\nligne2"), '"ligne1\nligne2"');
+    assert.equal(csvCell("simple"), "simple");
+    assert.equal(csvCell(null), "");
+    assert.equal(csvCell(undefined), "");
+  });
+
+  ok("le fichier reste lisible par un tableur", () => {
+    const csv = toCsv(["a", "b"], [["x,1", 'y"2']]);
+    assert.ok(csv.startsWith("\uFEFF"), "BOM absent : accents cassés dans Excel");
+    const [header, row] = csv.replace("\uFEFF", "").trim().split("\r\n");
+    assert.equal(header, "a,b");
+    assert.equal(row, '"x,1","y""2"');
+    // Une ligne = un enregistrement : le compte de colonnes doit tenir.
+    assert.equal(row.split('","').length, 2);
   });
 
   console.log("\nFacturation");

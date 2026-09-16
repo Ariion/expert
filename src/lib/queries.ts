@@ -291,3 +291,41 @@ export async function getUserAlertHistory(userId: string, limit = 10) {
      limit ${limit}
   `;
 }
+
+export interface ExportRow {
+  service_name: string;
+  service_slug: string;
+  category: string;
+  title: string;
+  impact: string;
+  state: string;
+  started_at: Date;
+  resolved_at: Date | null;
+  minutes: number | null;
+  url: string | null;
+}
+
+/**
+ * Historique des incidents des fournisseurs surveillés par un compte.
+ *
+ * La donnée existe déjà ; ce qui manquait, c'est de pouvoir la sortir. C'est
+ * ce qu'on vient chercher le jour où l'on rédige un post-mortem et qu'il faut
+ * dater précisément la panne d'un prestataire — et c'est ce qui donne une
+ * valeur au fait d'avoir accumulé cet historique plutôt que de le consulter.
+ */
+export async function getExportIncidents(userId: string, days = 365): Promise<ExportRow[]> {
+  return sql<ExportRow[]>`
+    select s.name as service_name, s.slug as service_slug, s.category,
+           i.title, i.impact, i.state, i.started_at, i.resolved_at, i.url,
+           case
+             when i.resolved_at is null then null
+             else round(extract(epoch from (i.resolved_at - i.started_at)) / 60)::int
+           end as minutes
+      from watch_items w
+      join services s on s.id = w.service_id
+      join incidents i on i.service_id = s.id
+     where w.user_id = ${userId}
+       and i.started_at > now() - ${`${days} days`}::interval
+     order by i.started_at desc
+  `;
+}

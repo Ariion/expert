@@ -159,9 +159,21 @@ export async function Dashboard({
       <section className="section">
         <div className="between">
           <h2 style={{ margin: 0 }}>{t.dashboard.watchedTitle}</h2>
-          <span className="dim">
-            {watchlist.length}/{plan.maxServices}
-          </span>
+          <div className="flex" style={{ gap: 14 }}>
+            <span className="dim">
+              {watchlist.length}/{plan.maxServices}
+            </span>
+            {/* Réservé aux plans payants : la page de tarifs le promet, et
+                jusqu'ici elle le promettait sans le livrer. */}
+            {plan.id !== "free" && (
+              <a
+                className="btn ghost sm"
+                href={`/api/export/incidents?from=${encodeURIComponent(href(locale, "/dashboard"))}`}
+              >
+                {t.dashboard.exportCta}
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="card" style={{ marginTop: 12, padding: 6 }}>
