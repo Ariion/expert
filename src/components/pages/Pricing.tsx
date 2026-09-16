@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { PLANS, type PlanId } from "@/lib/plans";
+import { PAID_PLANS, PLANS, yearlyAvailable, yearlySavingEuros, type PlanId } from "@/lib/plans";
 import { WatchForm } from "@/components/WatchForm";
+import { PricingPlans, type PlanCard } from "@/components/PricingPlans";
 import { dict, href, type Locale } from "@/lib/i18n";
 
 /**
@@ -12,6 +12,37 @@ import { dict, href, type Locale } from "@/lib/i18n";
  */
 export function Pricing({ locale }: { locale: Locale }) {
   const t = dict(locale);
+
+  // Libellés calculés ici, jamais dans le composant client : les montants sont
+  // la source de vérité de `plans.ts`, et une fonction de formatage ne peut pas
+  // traverser la frontière serveur/client.
+  const showYearly = yearlyAvailable();
+  const euros = (cents: number) => (cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2));
+
+  const cards: PlanCard[] = (Object.keys(PLANS) as PlanId[]).map((id) => {
+    const plan = PLANS[id];
+    const copy = t.plans[id];
+    const paid = PAID_PLANS.includes(id);
+    const monthlyPerMonth = plan.monthlyCents
+      ? `${t.pricing.money(euros(plan.monthlyCents))}${t.pricing.perMonth}`
+      : copy.priceLabel;
+    return {
+      id,
+      name: copy.name,
+      features: copy.features,
+      highlight: Boolean(plan.highlight),
+      paid,
+      monthlyLabel: monthlyPerMonth,
+      yearlyLabel: plan.yearlyCents
+        ? `${t.pricing.money(euros(plan.yearlyCents))}${t.pricing.perYear}`
+        : null,
+      yearlyEquivalent: plan.yearlyCents
+        ? t.pricing.yearlyEquivalent(euros(Math.round(plan.yearlyCents / 12)))
+        : null,
+      yearlySaving: paid ? t.pricing.yearlySaving(yearlySavingEuros(id)) : null,
+      cta: paid ? t.pricing.upgradeCta(copy.name) : t.pricing.freeCta,
+    };
+  });
 
   return (
     <div className="wrap">
@@ -34,49 +65,18 @@ export function Pricing({ locale }: { locale: Locale }) {
         <WatchForm locale={locale} source="pricing" />
       </section>
 
-      <section className="grid three">
-        {(Object.keys(PLANS) as PlanId[]).map((id) => {
-          const plan = PLANS[id];
-          const copy = t.plans[id];
-          return (
-            <div
-              className="card"
-              key={id}
-              style={plan.highlight ? { borderColor: "var(--brand)" } : undefined}
-            >
-              {plan.highlight && <span className="pill">{t.pricing.mostChosen}</span>}
-              <h2 style={{ margin: "10px 0 2px", fontSize: 19 }}>{copy.name}</h2>
-              <div style={{ fontSize: 30, fontWeight: 750, letterSpacing: "-0.02em" }}>
-                {copy.priceLabel}
-              </div>
-              <ul className="muted" style={{ fontSize: 14, paddingLeft: 18, minHeight: 150 }}>
-                {copy.features.map((f) => (
-                  <li key={f} style={{ marginBottom: 6 }}>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {id === "free" ? (
-                <Link
-                  className="btn ghost"
-                  href={href(locale, "/login")}
-                  style={{ width: "100%", textAlign: "center" }}
-                >
-                  {t.pricing.freeCta}
-                </Link>
-              ) : (
-                <form action="/api/stripe/checkout" method="post">
-                  <input type="hidden" name="plan" value={id} />
-                  <input type="hidden" name="locale" value={locale} />
-                  <button className="btn" type="submit" style={{ width: "100%" }}>
-                    {t.pricing.upgradeCta(copy.name)}
-                  </button>
-                </form>
-              )}
-            </div>
-          );
-        })}
-      </section>
+      <PricingPlans
+        plans={cards}
+        copy={{
+          monthly: t.pricing.billingMonthly,
+          yearly: t.pricing.billingYearly,
+          saveBadge: t.pricing.billingSaveBadge,
+          mostChosen: t.pricing.mostChosen,
+          freeHref: href(locale, "/login"),
+          locale,
+        }}
+        yearlyAvailable={showYearly}
+      />
 
       <section className="section">
         <h2>{t.pricing.faqTitle}</h2>

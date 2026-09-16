@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { sql } from "./db";
 import { env, APP_URL } from "./env";
-import { PLANS, planFromPriceId, type PlanId } from "./plans";
+import { PLANS, planFromPriceId, type Billing, type PlanId } from "./plans";
 import { DEFAULT_LOCALE, href, type Locale } from "./i18n";
 
 let client: Stripe | null = null;
@@ -20,8 +20,19 @@ export function stripe(): Stripe {
   return client;
 }
 
-export function priceIdFor(plan: PlanId): string {
-  const key = PLANS[plan].priceEnvKey;
+/**
+ * Identifiant du tarif Stripe pour un plan et une périodicité.
+ *
+ * L'annuel retombe sur le mensuel s'il n'a pas été créé dans Stripe : mieux
+ * vaut encaisser au mois qu'échouer au paiement parce qu'une variable manque.
+ */
+export function priceIdFor(plan: PlanId, billing: Billing = "monthly"): string {
+  const p = PLANS[plan];
+  if (billing === "yearly" && p.yearlyEnvKey) {
+    const yearly = env()[p.yearlyEnvKey];
+    if (yearly) return yearly;
+  }
+  const key = p.priceEnvKey;
   if (!key) throw new Error(`Le plan ${plan} n'est pas facturable.`);
   return env()[key];
 }
@@ -46,12 +57,13 @@ export async function createCheckoutSession(
   user: { id: string; email: string; stripe_customer_id: string | null },
   plan: PlanId,
   locale: Locale = DEFAULT_LOCALE,
+  billing: Billing = "monthly",
 ): Promise<string> {
   const customerId = await ensureCustomer(user);
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    line_items: [{ price: priceIdFor(plan), quantity: 1 }],
+    line_items: [{ price: priceIdFor(plan, billing), quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
     // Stripe Tax n'est pas actif par défaut sur un compte neuf, et l'activer
@@ -63,8 +75,8 @@ export async function createCheckoutSession(
     // langue du navigateur, qui n'est pas forcément celle de la page d'où
     // vient l'acheteur.
     locale,
-    subscription_data: { metadata: { user_id: user.id, plan, locale } },
-    metadata: { user_id: user.id, plan, locale },
+    subscription_data: { metadata: { user_id: user.id, plan, locale, billing } },
+    metadata: { user_id: user.id, plan, locale, billing },
     client_reference_id: user.id,
     success_url: `${APP_URL()}${href(locale, "/dashboard")}?upgraded=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_URL()}${href(locale, "/pricing")}?canceled=1`,
@@ -86,19 +98,20 @@ export async function createAnonymousCheckoutSession(
   plan: PlanId,
   locale: Locale = DEFAULT_LOCALE,
   email?: string,
+  billing: Billing = "monthly",
 ): Promise<string> {
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     // Pas de `customer` : Stripe en crée un à partir de l'email saisi. Les
     // paramètres `customer_update` ne sont donc pas applicables ici.
     customer_email: email && email.includes("@") ? email : undefined,
-    line_items: [{ price: priceIdFor(plan), quantity: 1 }],
+    line_items: [{ price: priceIdFor(plan, billing), quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
     automatic_tax: { enabled: process.env.STRIPE_AUTOMATIC_TAX === "true" },
     locale,
-    subscription_data: { metadata: { plan, signup: "checkout_first", locale } },
-    metadata: { plan, signup: "checkout_first", locale },
+    subscription_data: { metadata: { plan, signup: "checkout_first", locale, billing } },
+    metadata: { plan, signup: "checkout_first", locale, billing },
     // La langue voyage dans les métadonnées ET dans l'URL de retour : le
     // webhook crée le compte à partir des premières, l'acheteur revient par la
     // seconde, et les deux doivent concorder.

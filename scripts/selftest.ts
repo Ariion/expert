@@ -19,6 +19,7 @@ import { DICT, LOCALES, href, translatePath, categoryLabel, asLocale } from "../
 import { SEED_SERVICES } from "../src/data/services";
 import { DESCRIPTIONS_EN } from "../src/data/descriptions.en";
 import { extractFeedCandidates, feedKindOf } from "../src/lib/discover";
+import { asBilling, planFromPriceId, yearlyAvailable, yearlySavingEuros } from "../src/lib/plans";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -346,6 +347,53 @@ async function main() {
     assert.equal(feedKindOf("https://x.test/api/v2/summary.json"), "statuspage_v2");
     assert.equal(feedKindOf("https://x.test/history.atom"), "atom");
     assert.equal(feedKindOf("https://x.test/history.rss"), "rss");
+  });
+
+  console.log("\nFacturation");
+  ok("un tarif annuel est reconnu comme payant, jamais rétrogradé en Free", () => {
+    // LE test qui compte : un identifiant annuel non reconnu ferait retomber
+    // en Free, silencieusement, un client qui vient de payer douze mois.
+    const saved = { ...process.env };
+    process.env.STRIPE_PRICE_PRO = "price_pro_m";
+    process.env.STRIPE_PRICE_PRO_YEARLY = "price_pro_y";
+    process.env.STRIPE_PRICE_TEAM = "price_team_m";
+    process.env.STRIPE_PRICE_TEAM_YEARLY = "price_team_y";
+    try {
+      assert.equal(planFromPriceId("price_pro_m"), "pro");
+      assert.equal(planFromPriceId("price_pro_y"), "pro");
+      assert.equal(planFromPriceId("price_team_m"), "team");
+      assert.equal(planFromPriceId("price_team_y"), "team");
+      assert.equal(planFromPriceId("price_inconnu"), "free");
+      assert.equal(planFromPriceId(null), "free");
+    } finally {
+      process.env = saved;
+    }
+  });
+
+  ok("l'annuel n'est proposé que si les deux tarifs existent", () => {
+    const saved = { ...process.env };
+    try {
+      delete process.env.STRIPE_PRICE_PRO_YEARLY;
+      delete process.env.STRIPE_PRICE_TEAM_YEARLY;
+      assert.equal(yearlyAvailable(), false, "aucun tarif annuel : ne rien proposer");
+
+      process.env.STRIPE_PRICE_PRO_YEARLY = "price_pro_y";
+      assert.equal(yearlyAvailable(), false, "un seul tarif sur deux : ne rien proposer");
+
+      process.env.STRIPE_PRICE_TEAM_YEARLY = "price_team_y";
+      assert.equal(yearlyAvailable(), true);
+    } finally {
+      process.env = saved;
+    }
+  });
+
+  ok("deux mois offerts, et rien d'autre n'est accepté comme périodicité", () => {
+    assert.equal(yearlySavingEuros("pro"), 38); // 19x12 = 228 -> 190
+    assert.equal(yearlySavingEuros("team"), 98); // 49x12 = 588 -> 490
+    assert.equal(asBilling("yearly"), "yearly");
+    assert.equal(asBilling("monthly"), "monthly");
+    assert.equal(asBilling("annuel"), "monthly");
+    assert.equal(asBilling(null), "monthly");
   });
 
   console.log("\nBilingue");

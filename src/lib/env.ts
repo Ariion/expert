@@ -16,6 +16,13 @@ const schema = z.object({
   STRIPE_PRICE_PRO: z.string().min(3),
   STRIPE_PRICE_TEAM: z.string().min(3),
 
+  // Tarifs annuels : optionnels à dessein. Une installation antérieure à leur
+  // introduction ne les a pas, et doit continuer de vendre au mois sans rien
+  // signaler. Tant que les deux ne sont pas présents, la périodicité annuelle
+  // n'est simplement pas proposée.
+  STRIPE_PRICE_PRO_YEARLY: z.string().min(3).optional(),
+  STRIPE_PRICE_TEAM_YEARLY: z.string().min(3).optional(),
+
   RESEND_API_KEY: z.string().min(10),
   EMAIL_FROM: z.string().min(5),
 

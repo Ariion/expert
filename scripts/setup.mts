@@ -645,9 +645,20 @@ if (!args.has("--skip-db") && env.DATABASE_URL) {
 if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
   const stripe = new Stripe(env.STRIPE_SECRET_KEY, { maxNetworkRetries: 3, timeout: 30000, telemetry: false });
 
+  // Un produit, deux tarifs : mensuel et annuel (douze mois pour le prix de
+  // dix). L'annuel est ce qui fait la différence sur la durée de vie d'un
+  // client — encaissé d'avance, et non résiliable avant l'échéance.
   const CATALOG = [
-    { id: "upstreamstatus_pro", key: "STRIPE_PRICE_PRO", lookup: "upstreamstatus_pro_monthly", name: "Upstream Status Pro", amount: 1900, desc: "50 fournisseurs surveillés, alertes instantanées, Slack et webhooks." },
-    { id: "upstreamstatus_team", key: "STRIPE_PRICE_TEAM", lookup: "upstreamstatus_team_monthly", name: "Upstream Status Team", amount: 4900, desc: "500 fournisseurs, 25 canaux, rapports SLA et accès API." },
+    { id: "upstreamstatus_pro", name: "Upstream Status Pro", desc: "50 fournisseurs surveillés, alertes instantanées, Slack et webhooks.",
+      prices: [
+        { key: "STRIPE_PRICE_PRO", lookup: "upstreamstatus_pro_monthly", amount: 1900, interval: "month" as const },
+        { key: "STRIPE_PRICE_PRO_YEARLY", lookup: "upstreamstatus_pro_yearly", amount: 19000, interval: "year" as const },
+      ] },
+    { id: "upstreamstatus_team", name: "Upstream Status Team", desc: "500 fournisseurs, 25 canaux, rapports SLA et accès API.",
+      prices: [
+        { key: "STRIPE_PRICE_TEAM", lookup: "upstreamstatus_team_monthly", amount: 4900, interval: "month" as const },
+        { key: "STRIPE_PRICE_TEAM_YEARLY", lookup: "upstreamstatus_team_yearly", amount: 49000, interval: "year" as const },
+      ] },
   ];
 
   try {
@@ -661,25 +672,27 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
         ).id;
       }
 
-      const existing = await stripe.prices.list({ lookup_keys: [p.lookup], active: true, limit: 1 });
-      const price =
-        existing.data[0] ??
-        (await stripe.prices.create({
-          product: productId,
-          unit_amount: p.amount,
-          currency: "eur",
-          recurring: { interval: "month" },
-          lookup_key: p.lookup,
-          transfer_lookup_key: true,
-          // Prix TTC : évite un échec de paiement le jour où Stripe Tax est activé.
-          tax_behavior: "inclusive",
-        }));
-      env[p.key] = price.id;
+      for (const price of p.prices) {
+        const existing = await stripe.prices.list({ lookup_keys: [price.lookup], active: true, limit: 1 });
+        const created =
+          existing.data[0] ??
+          (await stripe.prices.create({
+            product: productId,
+            unit_amount: price.amount,
+            currency: "eur",
+            recurring: { interval: price.interval },
+            lookup_key: price.lookup,
+            transfer_lookup_key: true,
+            // Prix TTC : évite un échec de paiement le jour où Stripe Tax est activé.
+            tax_behavior: "inclusive",
+          }));
+        env[price.key] = created.id;
+      }
     }
     record({
       name: "Produits et tarifs Stripe",
       status: "ok",
-      detail: `Pro 19 €/mois et Team 49 €/mois prêts (${env.STRIPE_PRICE_PRO}, ${env.STRIPE_PRICE_TEAM})`,
+      detail: "Pro 19 €/mois ou 190 €/an, Team 49 €/mois ou 490 €/an",
     });
   } catch (err) {
     record({ name: "Produits et tarifs Stripe", status: "err", detail: describe(err).slice(0, 160) });
@@ -737,8 +750,8 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
           default_allowed_updates: ["price"],
           proration_behavior: "create_prorations",
           products: [
-            { product: "upstreamstatus_pro", prices: [env.STRIPE_PRICE_PRO] },
-            { product: "upstreamstatus_team", prices: [env.STRIPE_PRICE_TEAM] },
+            { product: "upstreamstatus_pro", prices: [env.STRIPE_PRICE_PRO, env.STRIPE_PRICE_PRO_YEARLY].filter(Boolean) },
+            { product: "upstreamstatus_team", prices: [env.STRIPE_PRICE_TEAM, env.STRIPE_PRICE_TEAM_YEARLY].filter(Boolean) },
           ],
         },
       },
@@ -803,7 +816,8 @@ if (env.RESEND_API_KEY) {
 // ---------------------------------------------------------------------------
 const VERCEL_KEYS = [
   "DATABASE_URL", "APP_URL", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-  "STRIPE_PRICE_PRO", "STRIPE_PRICE_TEAM", "STRIPE_AUTOMATIC_TAX",
+  "STRIPE_PRICE_PRO", "STRIPE_PRICE_TEAM",
+  "STRIPE_PRICE_PRO_YEARLY", "STRIPE_PRICE_TEAM_YEARLY", "STRIPE_AUTOMATIC_TAX",
   "RESEND_API_KEY", "EMAIL_FROM", "AUTH_SECRET", "CRON_SECRET",
   "OPS_ALERT_EMAIL", "OPS_ALERT_WEBHOOK",
   "LEGAL_PUBLISHER", "LEGAL_REGISTRATION", "LEGAL_CONTACT_EMAIL", "LEGAL_ADDRESS",

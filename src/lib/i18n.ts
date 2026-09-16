@@ -359,6 +359,14 @@ const fr = {
     mostChosen: "Le plus choisi",
     freeCta: "Créer un compte gratuit",
     upgradeCta: (plan: string) => `Passer en ${plan}`,
+    billingMonthly: "Mensuel",
+    billingYearly: "Annuel",
+    billingSaveBadge: "2 mois offerts",
+    money: (amount: string) => `${amount} €`,
+    perMonth: "/mois",
+    perYear: "/an",
+    yearlyEquivalent: (monthly: string) => `soit ${monthly} €/mois`,
+    yearlySaving: (euros: number) => `${euros} € économisés sur l'année`,
     faqTitle: "Questions fréquentes",
     faq: [
       [
@@ -835,6 +843,14 @@ const en: typeof fr = {
     mostChosen: "Most popular",
     freeCta: "Create a free account",
     upgradeCta: (plan: string) => `Upgrade to ${plan}`,
+    billingMonthly: "Monthly",
+    billingYearly: "Yearly",
+    billingSaveBadge: "2 months free",
+    money: (amount: string) => `€${amount}`,
+    perMonth: "/mo",
+    perYear: "/yr",
+    yearlyEquivalent: (monthly: string) => `that is €${monthly}/mo`,
+    yearlySaving: (euros: number) => `€${euros} saved over the year`,
     faqTitle: "Frequently asked questions",
     faq: [
       [

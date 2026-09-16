@@ -2,7 +2,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createAnonymousCheckoutSession, createCheckoutSession } from "@/lib/stripe";
 import { fail, str } from "@/lib/http";
 import { ops } from "@/lib/ops";
-import { PAID_PLANS, type PlanId } from "@/lib/plans";
+import { PAID_PLANS, asBilling, type Billing, type PlanId } from "@/lib/plans";
 import { asLocale, dict, href, type Locale } from "@/lib/i18n";
 
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  * formulaire de carte se paie en conversions perdues. Le compte est fabriqué
  * après l'encaissement, par le webhook, à partir de l'email de facturation.
  */
-async function start(plan: string, locale: Locale, email?: string) {
+async function start(plan: string, locale: Locale, email?: string, billing: Billing = "monthly") {
   const t = dict(locale).errors;
   const pricing = href(locale, "/pricing");
   if (!PAID_PLANS.includes(plan as PlanId)) return fail(pricing, t.unknownPlan);
@@ -25,14 +25,15 @@ async function start(plan: string, locale: Locale, email?: string) {
 
   try {
     const url = user
-      ? await createCheckoutSession(user, plan as PlanId, user.locale)
-      : await createAnonymousCheckoutSession(plan as PlanId, locale, email);
+      ? await createCheckoutSession(user, plan as PlanId, user.locale, billing)
+      : await createAnonymousCheckoutSession(plan as PlanId, locale, email, billing);
     return Response.redirect(url, 303);
   } catch (err) {
     await ops.critical("stripe", `Création du checkout impossible : ${String(err)}`, {
       user_id: user?.id ?? null,
       plan,
       locale,
+      billing,
     });
     return fail(pricing, t.paymentUnavailable);
   }
@@ -40,7 +41,12 @@ async function start(plan: string, locale: Locale, email?: string) {
 
 export async function POST(req: Request) {
   const form = await req.formData();
-  return start(str(form, "plan"), asLocale(str(form, "locale")), str(form, "email"));
+  return start(
+    str(form, "plan"),
+    asLocale(str(form, "locale")),
+    str(form, "email"),
+    asBilling(str(form, "billing")),
+  );
 }
 
 export async function GET(req: Request) {
@@ -49,5 +55,6 @@ export async function GET(req: Request) {
     params.get("plan") ?? "pro",
     asLocale(params.get("locale")),
     params.get("email") ?? undefined,
+    asBilling(params.get("billing")),
   );
 }

@@ -221,6 +221,46 @@ footer a { color: var(--muted); }
   font-size: 14.5px;
 }
 
+/* ----- Sélecteur de périodicité (tarifs) ----- */
+.billing-switch {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 0 0 18px;
+}
+.billing-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.billing-switch button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.billing-switch button:hover:not(.on) { border-color: var(--brand-soft); color: var(--text); }
+.billing-switch button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.billing-switch .save {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #052e16;
+  color: #86efac;
+  border: 1px solid #14532d;
+}
+.billing-switch button.on .save { background: rgba(255,255,255,0.16); color: #fff; border-color: transparent; }
+
+/* Hauteur réservée : changer de périodicité ne doit pas décaler les cartes. */
+.billing-note { min-height: 20px; font-size: 13px; margin-top: 2px; }
+.billing-note .save-note { color: #86efac; font-weight: 600; }
+
 /* ----- Graphique des interruptions ----- */
 .chart { display: flex; flex-direction: column; }
 
