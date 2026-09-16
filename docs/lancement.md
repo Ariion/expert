@@ -58,7 +58,7 @@ fil tient la première page. Publier sur https://news.ycombinator.com/submit
 
     Next.js on Vercel, Postgres on Supabase, no server to babysit.
 
-    https://upstreamstatus.vercel.app/en
+    https://upstreamstatus.com/en
 
 ## 2. Reddit — r/devops
 
@@ -91,7 +91,7 @@ technique, le lien en dernière ligne. Publier sur https://reddit.com/r/devops
 
     If you poll status pages yourself, those three things will save you a
     weekend. If you would rather not, that is what I built:
-    https://upstreamstatus.vercel.app/en — free for 3 providers.
+    https://upstreamstatus.com/en — free for 3 providers.
 
 ## 3. LinkedIn
 
@@ -110,7 +110,7 @@ premières lignes : l'algorithme les pénalise.
     Brevo…) toutes les 5 minutes, et envoie une alerte par email, Slack ou
     webhook dès qu'un incident est publié. Rien à installer.
 
-    Gratuit pour 3 fournisseurs : upstreamstatus.vercel.app
+    Gratuit pour 3 fournisseurs : upstreamstatus.com
 
     Si vous surveillez déjà vos fournisseurs, je suis curieux de savoir comment.
     C'est typiquement la tâche qu'on repousse jusqu'au jour où elle se rappelle
@@ -146,7 +146,7 @@ https://www.indiehackers.com/post/new
       every conversion; the account is now created from the billing email after
       payment.
 
-    Live here: https://upstreamstatus.vercel.app/en — free for 3 providers. Happy
+    Live here: https://upstreamstatus.com/en — free for 3 providers. Happy
     to go into detail on any of the four.
 
 ## 5. Product Hunt
@@ -156,7 +156,7 @@ https://www.indiehackers.com/post/new
 
 **Nom** : Upstream Status
 **Accroche** : One alert when any of your SaaS providers goes down
-**Lien** : https://upstreamstatus.vercel.app/en
+**Lien** : https://upstreamstatus.com/en
 **Description**
 
     Every provider you depend on publishes a status page. Nobody watches twenty

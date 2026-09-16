@@ -16,6 +16,7 @@
  * d'adresses de secours écrites à la main, et un déménagement se répare sans
  * intervention.
  */
+import { APP_URL } from "./env";
 
 /** Limite de lecture : une status page fait quelques dizaines de Ko, pas plus. */
 const MAX_HTML_BYTES = 400_000;
@@ -87,7 +88,7 @@ export async function discoverFeeds(statusPageUrl: string): Promise<string[]> {
   try {
     const res = await fetch(statusPageUrl, {
       headers: {
-        "user-agent": "UpstreamStatusBot/1.0 (+https://upstreamstatus.vercel.app; feed discovery)",
+        "user-agent": `UpstreamStatusBot/1.0 (+${APP_URL()}; feed discovery)`,
         accept: "text/html,application/xhtml+xml",
       },
       signal: AbortSignal.timeout(10000),

@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { createHash } from "node:crypto";
+import { APP_URL } from "./env";
 
 export type ServiceStatus =
   | "operational"
@@ -37,8 +38,17 @@ export interface FeedResult {
   incidents: RawIncident[];
 }
 
-const USER_AGENT =
-  "UpstreamStatusBot/1.0 (+https://upstreamstatus.vercel.app; vendor status aggregation)";
+/**
+ * Identité annoncée aux fournisseurs qu'on interroge.
+ *
+ * L'adresse suit `APP_URL` plutôt que d'être écrite en dur : un fournisseur
+ * qui veut savoir qui le sollicite doit tomber sur le site en service, pas sur
+ * une ancienne adresse abandonnée après un changement de domaine. Évaluée à
+ * chaque appel, jamais au chargement du module : pendant le build, APP_URL
+ * vaut encore son repli local.
+ */
+const userAgent = () =>
+  `UpstreamStatusBot/1.0 (+${APP_URL()}; vendor status aggregation)`;
 
 const INDICATOR_TO_STATUS: Record<string, ServiceStatus> = {
   none: "operational",
@@ -64,7 +74,7 @@ async function httpGet(
   conditional: { etag?: string | null; lastModified?: string | null },
 ): Promise<{ status: number; body: string; etag: string | null; lastModified: string | null }> {
   const headers: Record<string, string> = {
-    "user-agent": USER_AGENT,
+    "user-agent": userAgent(),
     accept: "application/json, application/atom+xml, application/rss+xml, text/xml;q=0.9, */*;q=0.5",
   };
   if (conditional.etag) headers["if-none-match"] = conditional.etag;

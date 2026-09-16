@@ -190,7 +190,7 @@ await ask("DATABASE_URL", "URL Postgres (Supabase > Database > Transaction poole
 });
 await ask("APP_URL", "URL publique du site, sans slash final", {
   required: true,
-  example: "https://upstreamstatus.vercel.app",
+  example: "https://upstreamstatus.com",
 });
 await ask("STRIPE_SECRET_KEY", "Clé secrète Stripe (Développeurs > Clés API)", {
   required: !args.has("--skip-stripe"),
@@ -269,7 +269,7 @@ const RULES: Rule[] = [
   {
     key: "APP_URL",
     label: "URL publique du site, sans slash final",
-    // « upstreamstatus.vercel.app » est ce que les hébergeurs affichent ; on
+    // « upstreamstatus.com » est ce que les hébergeurs affichent ; on
     // complète le protocole plutôt que de rejeter la valeur. Règle partagée
     // avec l'application, pour qu'elles ne puissent pas diverger.
     normalize: normalizeUrl,
