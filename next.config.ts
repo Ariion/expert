@@ -40,13 +40,24 @@ const config: NextConfig = {
      * `/api/` est exclu : les tâches planifiées externes appellent ces
      * adresses, et un planificateur qui ne suit pas les redirections
      * arrêterait silencieusement la collecte.
+     *
+     * La règle vise TOUS les sous-domaines `.vercel.app`, pas seulement celui
+     * qu'on a choisi : un projet en sert plusieurs en production (l'adresse
+     * courte, celle dérivée du dépôt, celle de chaque déploiement), et chacune
+     * servirait autrement le site entier en double.
+     *
+     * Elle n'est posée que sur un build de production : les déploiements de
+     * prévisualisation vivent eux aussi sur `.vercel.app`, et les rediriger
+     * vers la production rendrait toute relecture avant mise en ligne
+     * impossible.
      */
     const canonical = (process.env.APP_URL ?? "").trim().replace(/\/+$/, "");
     const isCustomDomain = /^https?:\/\/[^\s/]+$/.test(canonical) && !canonical.includes(".vercel.app");
-    if (isCustomDomain) {
+    const isProductionBuild = process.env.VERCEL_ENV === "production";
+    if (isCustomDomain && isProductionBuild) {
       rules.push({
         source: "/:path((?!api/).*)",
-        has: [{ type: "host", value: "upstreamstatus.vercel.app" }],
+        has: [{ type: "host", value: "(?<vercelHost>.*\\.vercel\\.app)" }],
         destination: `${canonical}/:path*`,
         permanent: true,
       });
