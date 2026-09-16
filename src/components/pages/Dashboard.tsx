@@ -9,6 +9,10 @@ import {
   getUserWatchlist,
 } from "@/lib/queries";
 import { planFor } from "@/lib/plans";
+import { listApiKeys, MAX_KEYS } from "@/lib/apikeys";
+import { NEW_KEY_COOKIE } from "@/app/api/keys/create/route";
+import { cookies } from "next/headers";
+import { APP_URL } from "@/lib/env";
 import { fmtDate, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
@@ -35,6 +39,13 @@ export async function Dashboard({
     getAllServices().catch(() => []),
     getUserAlertHistory(user.id, 8).catch(() => []),
   ]);
+
+  // Clés d'API : chargées seulement pour le plan qui y a droit, et la clé
+  // fraîchement créée est reprise dans son cookie éphémère — c'est le seul
+  // instant où elle est lisible, elle n'existe nulle part ailleurs en clair.
+  const isTeam = user.plan === "team";
+  const apiKeys = isTeam ? await listApiKeys(user.id).catch(() => []) : [];
+  const freshKey = isTeam ? ((await cookies()).get(NEW_KEY_COOKIE)?.value ?? null) : null;
 
   const plan = planFor(user.plan);
   const copy = t.plans[plan.id];
@@ -240,6 +251,94 @@ export async function Dashboard({
           )}
         </form>
       </section>
+
+      {isTeam && (
+        <section className="section">
+          <div className="between">
+            <h2 style={{ margin: 0 }}>{t.dashboard.apiTitle}</h2>
+            <span className="dim">
+              {apiKeys.length}/{MAX_KEYS}
+            </span>
+          </div>
+          <p className="dim" style={{ margin: "6px 0 12px", fontSize: 13.5 }}>
+            {t.dashboard.apiIntro}
+          </p>
+
+          {freshKey && (
+            <div className="notice ok" style={{ marginBottom: 12 }}>
+              <strong>{t.dashboard.apiNewKey}</strong>
+              <div className="mono" style={{ margin: "8px 0", wordBreak: "break-all", fontSize: 13 }}>
+                {freshKey}
+              </div>
+              <span className="dim">{t.dashboard.apiNewKeyWarning}</span>
+            </div>
+          )}
+
+          <div className="card" style={{ padding: 6 }}>
+            <table>
+              <tbody>
+                {apiKeys.map((k) => (
+                  <tr key={k.id}>
+                    <td>{k.name}</td>
+                    <td className="mono dim">{k.prefix}…</td>
+                    <td className="dim">
+                      {k.last_used_at ? t.dashboard.apiLastUsed(timeAgo(k.last_used_at, locale)) : t.dashboard.apiNeverUsed}
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <form method="POST" action="/api/keys/revoke">
+                        <input type="hidden" name="id" value={k.id} />
+                        <input type="hidden" name="locale" value={locale} />
+                        <button className="btn danger sm" type="submit">
+                          {t.dashboard.apiRevoke}
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+                {apiKeys.length === 0 && (
+                  <tr>
+                    <td className="dim">{t.dashboard.apiNoKeys}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {apiKeys.length < MAX_KEYS && (
+            <form method="POST" action="/api/keys/create" className="row" style={{ marginTop: 12 }}>
+              <input type="hidden" name="locale" value={locale} />
+              <input type="text" name="name" placeholder={t.dashboard.apiNamePlaceholder} maxLength={60} />
+              <button className="btn" type="submit">
+                {t.dashboard.apiCreate}
+              </button>
+            </form>
+          )}
+
+          <details style={{ marginTop: 14 }}>
+            <summary className="dim" style={{ cursor: "pointer", fontSize: 13 }}>
+              {t.dashboard.apiDocs}
+            </summary>
+            <pre
+              className="mono"
+              style={{
+                marginTop: 10,
+                padding: 14,
+                background: "var(--bg-soft)",
+                border: "1px solid var(--line)",
+                borderRadius: 10,
+                overflowX: "auto",
+                fontSize: 12.5,
+              }}
+            >
+{`curl -H "Authorization: Bearer usk_…" \\
+  ${APP_URL()}/api/v1/status
+
+curl -H "Authorization: Bearer usk_…" \\
+  ${APP_URL()}/api/v1/incidents?days=30&limit=100`}
+            </pre>
+          </details>
+        </section>
+      )}
 
       <section className="section">
         <h2>{t.dashboard.alertsTitle}</h2>

@@ -309,6 +309,35 @@ create table if not exists stripe_events (
 );
 
 -- ---------------------------------------------------------------------------
+-- CLÉS D'API (plan Team) — accès en lecture aux données du compte
+--
+-- Seule l'empreinte de la clé est stockée, jamais la clé elle-même : une fuite
+-- de cette table ne donne accès à rien. La clé complète n'est affichée qu'une
+-- fois, à sa création — la retrouver ensuite est impossible, y compris pour
+-- nous, et c'est exactement la propriété recherchée.
+--
+-- `prefix` garde les premiers caractères en clair, pour que son propriétaire
+-- puisse reconnaître laquelle révoquer sans avoir à la relire en entier.
+--
+-- Révocation par date plutôt que par suppression : on veut pouvoir constater
+-- qu'une clé a existé et quand elle a cessé de servir.
+-- ---------------------------------------------------------------------------
+create table if not exists api_keys (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references users(id) on delete cascade,
+  name         text not null default 'Clé API',
+  key_hash     text not null unique,
+  prefix       text not null,
+  created_at   timestamptz not null default now(),
+  last_used_at timestamptz,
+  revoked_at   timestamptz
+);
+create index if not exists api_keys_user_idx on api_keys (user_id, created_at desc);
+-- L'index ne couvre que les clés vivantes : c'est la seule lecture du chemin
+-- chaud, exécutée à chaque appel d'API.
+create index if not exists api_keys_live_idx on api_keys (key_hash) where revoked_at is null;
+
+-- ---------------------------------------------------------------------------
 -- ANALYTIQUE : visites anonymes, sans cookie
 --
 -- `visitor_hash` est un hachage à sens unique (adresse IP + agent utilisateur
@@ -401,7 +430,7 @@ begin
   foreach t in array array['services','incidents','users','auth_tokens','sessions',
                            'watch_items','alert_channels','alert_deliveries',
                            'service_daily_uptime','cron_runs','ops_events','stripe_events',
-                           'page_views']
+                           'page_views','api_keys']
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

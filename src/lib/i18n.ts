@@ -543,6 +543,8 @@ const fr = {
     internalAddress: "Adresse interne refusée.",
     channelLimit: (max: number, plan: string) =>
       `Limite de ${max} canaux atteinte sur le plan ${plan}.`,
+    apiTeamOnly: "L'accès API est inclus dans le plan Team.",
+    apiKeyLimit: (max: number) => `Vous avez atteint la limite de ${max} clés actives. Révoquez-en une pour en créer une nouvelle.`,
     generic: "Une erreur est survenue, réessayez dans un instant.",
   },
   dashboard: {
@@ -572,6 +574,19 @@ const fr = {
     add: "Ajouter",
     paidChannels: "Les canaux Slack et webhook nécessitent un plan payant.",
     exportCta: "Exporter en CSV",
+    apiTitle: "Clés d'API",
+    apiIntro:
+      "Accès en lecture au statut de vos fournisseurs et à leur historique, depuis vos propres outils.",
+    apiNewKey: "Votre clé, affichée une seule fois",
+    apiNewKeyWarning:
+      "Copiez-la maintenant : elle n'est stockée nulle part en clair et ne pourra pas être réaffichée.",
+    apiNoKeys: "Aucune clé active.",
+    apiNamePlaceholder: "Nom de la clé (ex. tableau de bord interne)",
+    apiCreate: "Créer une clé",
+    apiRevoke: "Révoquer",
+    apiLastUsed: (ago: string) => `utilisée ${ago}`,
+    apiNeverUsed: "jamais utilisée",
+    apiDocs: "Voir comment l'appeler",
     watchedTitle: "Fournisseurs surveillés",
     lastIncident: "Dernier incident :",
     unwatch: "Ne plus suivre",
@@ -1021,6 +1036,8 @@ const en: typeof fr = {
     internalAddress: "Internal address refused.",
     channelLimit: (max: number, plan: string) =>
       `You have reached the ${max}-channel limit on the ${plan} plan.`,
+    apiTeamOnly: "API access is included in the Team plan.",
+    apiKeyLimit: (max: number) => `You have reached the limit of ${max} active keys. Revoke one to create another.`,
     generic: "Something went wrong, please try again in a moment.",
   },
   dashboard: {
@@ -1048,6 +1065,19 @@ const en: typeof fr = {
     add: "Add",
     paidChannels: "Slack and webhook channels require a paid plan.",
     exportCta: "Export as CSV",
+    apiTitle: "API keys",
+    apiIntro:
+      "Read access to your providers' status and incident history, from your own tools.",
+    apiNewKey: "Your key, shown once",
+    apiNewKeyWarning:
+      "Copy it now: it is stored nowhere in clear text and cannot be shown again.",
+    apiNoKeys: "No active key.",
+    apiNamePlaceholder: "Key name (e.g. internal dashboard)",
+    apiCreate: "Create a key",
+    apiRevoke: "Revoke",
+    apiLastUsed: (ago: string) => `used ${ago}`,
+    apiNeverUsed: "never used",
+    apiDocs: "See how to call it",
     watchedTitle: "Monitored providers",
     lastIncident: "Last incident:",
     unwatch: "Stop watching",
