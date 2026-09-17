@@ -21,6 +21,7 @@ import { DESCRIPTIONS_EN } from "../src/data/descriptions.en";
 import { extractFeedCandidates, feedKindOf } from "../src/lib/discover";
 import { asBilling, planFromPriceId, yearlyAvailable, yearlySavingEuros } from "../src/lib/plans";
 import { csvCell, toCsv } from "../src/lib/csv";
+import { isBot } from "../src/lib/analytics";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -348,6 +349,31 @@ async function main() {
     assert.equal(feedKindOf("https://x.test/api/v2/summary.json"), "statuspage_v2");
     assert.equal(feedKindOf("https://x.test/history.atom"), "atom");
     assert.equal(feedKindOf("https://x.test/history.rss"), "rss");
+  });
+
+  console.log("\nMesure d'audience");
+  ok("les robots ne sont pas comptés comme des visiteurs", () => {
+    // Googlebot exécute le JavaScript : sans ce filtre, il apparaît comme un
+    // visiteur et gonfle les chiffres sur lesquels on décide quoi construire.
+    const bots = [
+      "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+      "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)",
+      "Mozilla/5.0 (X11; Linux x86_64) HeadlessChrome/120.0.0.0 Safari/537.36",
+      "curl/8.4.0",
+      "python-requests/2.31.0",
+      "",
+    ];
+    for (const ua of bots) assert.equal(isBot(ua), true, `non filtré : ${ua || "(vide)"}`);
+  });
+
+  ok("un vrai navigateur reste compté", () => {
+    const humans = [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
+    ];
+    for (const ua of humans) assert.equal(isBot(ua), false, `humain écarté à tort : ${ua}`);
   });
 
   console.log("\nExport CSV");

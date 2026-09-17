@@ -20,6 +20,29 @@ export function visitorHash(ip: string, userAgent: string): string {
     .slice(0, 32);
 }
 
+/**
+ * Robot ou personne ?
+ *
+ * La mesure passe par du JavaScript, ce qui écarte les crawlers les plus
+ * simples — mais pas Googlebot, qui exécute la page pour l'indexer, ni les
+ * sondes de disponibilité. Sur un site jeune, ils forment l'essentiel du
+ * trafic : comptés comme des visiteurs, ils font croire à une audience qui
+ * n'existe pas, et c'est sur ce chiffre qu'on déciderait quoi construire
+ * ensuite. Un tableau de bord qui ment coûte plus cher qu'un tableau de bord
+ * vide.
+ *
+ * Liste volontairement large : rater un humain de temps en temps est sans
+ * conséquence, compter un robot fausse toutes les décisions.
+ */
+const BOT_UA =
+  /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|embedly|quora link preview|showyoubot|outbrain|pinterest|vkshare|w3c_validator|whatsapp|telegram|discordbot|headless|phantomjs|lighthouse|pagespeed|gtmetrix|pingdom|uptime|monitor|curl|wget|python-requests|axios|go-http-client|java\/|okhttp|postman|scrapy|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|applebot|yandex|baiduspider|duckduckbot|sogou|exabot|ia_archiver/i;
+
+export function isBot(userAgent: string): boolean {
+  // Un agent absent ou minuscule n'est jamais un navigateur réel.
+  if (!userAgent || userAgent.length < 15) return true;
+  return BOT_UA.test(userAgent);
+}
+
 /** Première adresse d'une chaîne `x-forwarded-for` — celle du visiteur, pas du proxy. */
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");

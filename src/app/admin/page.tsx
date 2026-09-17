@@ -78,7 +78,7 @@ export default async function AdminPage() {
 
   return (
     <div className="wrap" style={{ paddingTop: 40, paddingBottom: 60 }}>
-      <AdminHeader subtitle="Visites anonymes, sans cookie — aucune adresse IP conservée." />
+      <AdminHeader subtitle="Visites anonymes, sans cookie — aucune adresse IP conservée. Robots exclus." />
 
       <div className="grid four" style={{ marginBottom: 26 }}>
         <AdminLive initial={live} />
@@ -87,7 +87,7 @@ export default async function AdminPage() {
           <strong style={{ fontSize: 30, lineHeight: 1 }}>{kpis7.views}</strong>
         </div>
         <div className="card">
-          <div className="dim" style={{ fontSize: 12.5, marginBottom: 6 }}>VISITEURS (7 J)</div>
+          <div className="dim" style={{ fontSize: 12.5, marginBottom: 6 }}>VISITEURS-JOURS (7 J)</div>
           <strong style={{ fontSize: 30, lineHeight: 1 }}>{kpis7.visitors}</strong>
         </div>
         <div className="card">
@@ -156,7 +156,9 @@ export default async function AdminPage() {
       </div>
 
       <p className="dim" style={{ marginTop: 26, fontSize: 12.5 }}>
-        30 jours : {kpis30.views} vues · {kpis30.visitors} visiteurs · rebond {kpis30.bounceRate}%.
+        30 jours : {kpis30.views} vues · {kpis30.visitors} visiteurs-jours · rebond{" "}
+        {kpis30.bounceRate}%. L'empreinte tourne chaque jour pour rester
+        non-traçante : une même personne revenue trois jours compte trois fois.
       </p>
     </div>
   );

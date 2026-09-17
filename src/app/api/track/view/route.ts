@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { APP_URL } from "@/lib/env";
-import { clientIp, recordView, referrerHost, visitorHash } from "@/lib/analytics";
+import { clientIp, isBot, recordView, referrerHost, visitorHash } from "@/lib/analytics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +24,12 @@ export async function POST(req: Request) {
         ? referrerHost(body.referrer, new URL(APP_URL()).hostname)
         : null;
 
-    const hash = visitorHash(clientIp(req), req.headers.get("user-agent") ?? "");
+    const ua = req.headers.get("user-agent") ?? "";
+    // Écarté avant toute écriture : un robot ne doit laisser aucune trace,
+    // pas même une ligne qu'il faudrait filtrer ensuite à chaque lecture.
+    if (isBot(ua)) return NextResponse.json({ id: null });
+
+    const hash = visitorHash(clientIp(req), ua);
     const id = await recordView({ visitorHash: hash, path, locale, referrerHost: ref });
     return NextResponse.json({ id });
   } catch {
