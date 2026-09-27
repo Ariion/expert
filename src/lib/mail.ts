@@ -190,3 +190,66 @@ export function dunningEmail(locale: Locale = DEFAULT_LOCALE) {
     text: `${t.dunningSubject}\n${t.dunningBody}\n${url}`,
   };
 }
+
+export function slaReportEmail(args: {
+  period: string;
+  rows: Array<{
+    name: string;
+    uptime: number;
+    incidents: number;
+    downtimeMinutes: number;
+    worstMinutes: number | null;
+  }>;
+  locale?: Locale;
+}) {
+  const locale = args.locale ?? DEFAULT_LOCALE;
+  const t = dict(locale).email;
+
+  const dur = (min: number | null) =>
+    min === null || min <= 0
+      ? "—"
+      : min < 60
+        ? `${Math.round(min)} min`
+        : `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, "0")}`;
+
+  const header = `<tr>
+    <th align="left" style="padding:6px 0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em">${esc(t.slaColService)}</th>
+    <th align="right" style="padding:6px 0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em">${esc(t.slaColUptime)}</th>
+    <th align="right" style="padding:6px 0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em">${esc(t.slaColIncidents)}</th>
+    <th align="right" style="padding:6px 0;font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em">${esc(t.slaColDowntime)}</th>
+  </tr>`;
+
+  const lines = args.rows
+    .map((r) => {
+      // Un mois sans interruption est l'information la plus utile du tableau :
+      // il doit se repérer sans lire les chiffres.
+      const color = r.downtimeMinutes > 0 ? "#b45309" : "#047857";
+      return `<tr>
+        <td style="padding:7px 0;font-size:13px;color:#111827;border-top:1px solid #e5e7eb">${esc(r.name)}</td>
+        <td align="right" style="padding:7px 0;font-size:13px;color:${color};border-top:1px solid #e5e7eb">${r.uptime.toFixed(2)} %</td>
+        <td align="right" style="padding:7px 0;font-size:13px;color:#6b7280;border-top:1px solid #e5e7eb">${r.incidents}</td>
+        <td align="right" style="padding:7px 0;font-size:13px;color:#6b7280;border-top:1px solid #e5e7eb">${dur(r.downtimeMinutes)}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const totalDown = args.rows.reduce((a, r) => a + r.downtimeMinutes, 0);
+  const totalIncidents = args.rows.reduce((a, r) => a + r.incidents, 0);
+
+  return {
+    subject: t.slaSubject(args.period),
+    html: layout(
+      t.slaTitle(args.period),
+      P(t.slaIntro(args.rows.length, totalIncidents, dur(totalDown))) +
+        `<table role="presentation" width="100%" style="border-collapse:collapse">${header}${lines}</table>` +
+        button(`${APP_URL()}${href(locale, "/dashboard")}`, t.slaCta),
+      locale,
+      t.slaFooter,
+    ),
+    text:
+      `${t.slaTitle(args.period)}\n\n` +
+      args.rows
+        .map((r) => `${r.name}: ${r.uptime.toFixed(2)}% — ${r.incidents} incident(s), ${dur(r.downtimeMinutes)}`)
+        .join("\n"),
+  };
+}

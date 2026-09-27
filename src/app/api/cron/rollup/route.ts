@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedCron, runCron, unauthorizedCron } from "@/lib/http";
-import { rebuildUptime, sendDailyDigests } from "@/lib/rollup";
+import { rebuildUptime, sendDailyDigests, sendMonthlySlaReports } from "@/lib/rollup";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,11 @@ export async function GET(req: Request) {
   return runCron("rollup", async () => {
     const rows = await rebuildUptime(90);
     const digests = await sendDailyDigests();
-    return { rows, digests };
+    // Ne fait quelque chose qu'une fois par mois : la garde vit dans la
+    // requête, pas dans une condition de date ici, pour qu'un jour manqué
+    // (panne de la tâche le 1er) soit rattrapé le lendemain.
+    const slaReports = await sendMonthlySlaReports();
+    return { rows, digests, slaReports };
   });
 
 }

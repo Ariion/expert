@@ -1,5 +1,5 @@
 import { sql } from "./db";
-import { digestEmail, sendEmail } from "./mail";
+import { digestEmail, sendEmail, slaReportEmail } from "./mail";
 import { ops } from "./ops";
 import { statusLabel } from "./format";
 import { asLocale } from "./i18n";
@@ -122,6 +122,102 @@ export async function sendDailyDigests(): Promise<number> {
       sent++;
     } catch (err) {
       await ops.warn("digest", `Digest non envoyé à ${user.id} : ${String(err)}`);
+    }
+  }
+
+  return sent;
+}
+
+/**
+ * Rapport SLA mensuel — plan Team.
+ *
+ * Greffé sur la tâche nocturne plutôt que sur une tâche planifiée dédiée :
+ * une cinquième entrée à configurer chez l'hébergeur de cron serait une
+ * occasion de plus de se tromper, et une panne de plus à diagnostiquer. La
+ * tâche tourne chaque nuit, ce code ne fait quelque chose qu'une fois par mois.
+ *
+ * `last_sla_report_at` garantit l'unicité : rejouer la tâche, ou la voir
+ * s'exécuter deux fois le 1er du mois, n'envoie pas deux rapports. Un client
+ * qui reçoit deux fois le même email doute de tout le reste.
+ *
+ * Valeur réelle de cette fonctionnalité : elle rappelle chaque mois ce que
+ * l'abonnement a détecté. Un outil qu'on voit travailler est un outil qu'on
+ * ne résilie pas — et le rapport se transfère tel quel à une direction qui
+ * demande à quoi sert la ligne budgétaire.
+ */
+export async function sendMonthlySlaReports(now = new Date()): Promise<number> {
+  // Bornes du mois ÉCOULÉ, en UTC comme tout le reste du produit.
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+
+  const users = await sql<{ id: string; email: string; locale: string }[]>`
+    select id, email, locale from users
+     where plan = 'team'
+       and email_verified
+       and unsubscribed_at is null
+       and plan_status in ('active','trialing')
+       and (last_sla_report_at is null or last_sla_report_at < ${end})
+  `;
+
+  let sent = 0;
+  for (const user of users) {
+    try {
+      const rows = await sql<
+        { name: string; uptime: number; incidents: number; downtime: number; worst: number | null }[]
+      >`
+        select s.name,
+               coalesce(agg.incidents, 0)::int as incidents,
+               coalesce(agg.downtime, 0)::numeric as downtime,
+               agg.worst::numeric as worst,
+               greatest(0, 100 - (coalesce(agg.downtime, 0) / ${
+                 (end.getTime() - start.getTime()) / 60000
+               } * 100))::numeric as uptime
+          from watch_items w
+          join services s on s.id = w.service_id
+          left join lateral (
+            select count(*)::int as incidents,
+                   sum(extract(epoch from (
+                     least(coalesce(i.resolved_at, ${end}), ${end})
+                     - greatest(i.started_at, ${start})
+                   )) / 60) as downtime,
+                   max(extract(epoch from (
+                     least(coalesce(i.resolved_at, ${end}), ${end})
+                     - greatest(i.started_at, ${start})
+                   )) / 60) as worst
+              from incidents i
+             where i.service_id = s.id
+               and i.impact <> 'maintenance'
+               and i.started_at < ${end}
+               and coalesce(i.resolved_at, ${end}) > ${start}
+          ) agg on true
+         where w.user_id = ${user.id}
+         order by coalesce(agg.downtime, 0) desc, s.name asc
+      `;
+      if (rows.length === 0) continue;
+
+      const locale = asLocale(user.locale);
+      const period = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(start);
+
+      const tpl = slaReportEmail({
+        period,
+        locale,
+        rows: rows.map((r) => ({
+          name: r.name,
+          uptime: Number(r.uptime),
+          incidents: r.incidents,
+          downtimeMinutes: Number(r.downtime),
+          worstMinutes: r.worst === null ? null : Number(r.worst),
+        })),
+      });
+      await sendEmail({ to: user.email, ...tpl, tag: "sla-report" });
+      await sql`update users set last_sla_report_at = now() where id = ${user.id}`;
+      sent++;
+    } catch (err) {
+      await ops.warn("sla", `Rapport SLA non envoyé à ${user.id} : ${String(err)}`);
     }
   }
 

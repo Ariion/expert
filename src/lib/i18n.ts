@@ -517,6 +517,18 @@ const fr = {
       "Passez en Pro pour surveiller jusqu'à 50 fournisseurs, recevoir les alertes <strong>sans délai de 15 minutes</strong>, et les router vers Slack ou un webhook.",
     limitCta: "Passer en Pro — 19 €/mois",
     limitText: (url: string) => `Limite Free atteinte. Passez en Pro : ${url}`,
+    slaSubject: (period: string) => `Rapport de disponibilité — ${period}`,
+    slaTitle: (period: string) => `Disponibilité de vos fournisseurs — ${period}`,
+    slaIntro: (services: number, incidents: number, downtime: string) =>
+      incidents === 0
+        ? `${services} fournisseurs surveillés. Aucun incident publié sur la période.`
+        : `${services} fournisseurs surveillés, ${incidents} incident(s) publiés, ${downtime} d'indisponibilité cumulée.`,
+    slaColService: "Fournisseur",
+    slaColUptime: "Disponibilité",
+    slaColIncidents: "Incidents",
+    slaColDowntime: "Indisponibilité",
+    slaCta: "Voir le détail",
+    slaFooter: "Calculé sur les incidents publiés par les fournisseurs eux-mêmes. Maintenances exclues.",
     digestSubject: (date: string) => `Disponibilité de votre stack — ${date}`,
     digestTitle: (date: string) => `Récapitulatif du ${date}`,
     digestCta: "Ouvrir le tableau de bord",
@@ -1011,6 +1023,18 @@ const en: typeof fr = {
       "Upgrade to Pro to watch up to 50 providers, get alerts <strong>without the 15-minute delay</strong>, and route them to Slack or a webhook.",
     limitCta: "Upgrade to Pro — €19/month",
     limitText: (url: string) => `Free limit reached. Upgrade to Pro: ${url}`,
+    slaSubject: (period: string) => `Availability report — ${period}`,
+    slaTitle: (period: string) => `Your providers' availability — ${period}`,
+    slaIntro: (services: number, incidents: number, downtime: string) =>
+      incidents === 0
+        ? `${services} providers monitored. No incident published over the period.`
+        : `${services} providers monitored, ${incidents} incident(s) published, ${downtime} of cumulative downtime.`,
+    slaColService: "Provider",
+    slaColUptime: "Uptime",
+    slaColIncidents: "Incidents",
+    slaColDowntime: "Downtime",
+    slaCta: "See the details",
+    slaFooter: "Computed from incidents published by the providers themselves. Maintenance excluded.",
     digestSubject: (date: string) => `Your stack's uptime — ${date}`,
     digestTitle: (date: string) => `Summary for ${date}`,
     digestCta: "Open the dashboard",

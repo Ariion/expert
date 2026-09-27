@@ -149,6 +149,11 @@ create table if not exists users (
 -- reçoit une alerte de panne en français ne la lit pas.
 alter table users add column if not exists locale text not null default 'fr';
 
+-- Dernier rapport SLA mensuel envoyé. Sert de garde d'idempotence : la tâche
+-- nocturne tourne tous les jours, le rapport ne part qu'une fois par mois même
+-- si elle est rejouée. Ajoutée après coup, donc explicitement.
+alter table users add column if not exists last_sla_report_at timestamptz;
+
 create unique index if not exists users_email_key on users (lower(email));
 create index if not exists users_plan_idx on users (plan, plan_status);
 
