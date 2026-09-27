@@ -1,1 +1,1 @@
-https://upstreamstatus.vercel.app
+https://upstreamstatus.com
