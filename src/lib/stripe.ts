@@ -37,17 +37,29 @@ export function priceIdFor(plan: PlanId, billing: Billing = "monthly"): string {
   return env()[key];
 }
 
-/** Un seul customer Stripe par utilisateur, réutilisé à vie. */
-export async function ensureCustomer(user: {
-  id: string;
-  email: string;
-  stripe_customer_id: string | null;
-}): Promise<string> {
-  if (user.stripe_customer_id) return user.stripe_customer_id;
+/**
+ * Un seul customer Stripe par utilisateur, réutilisé à vie.
+ *
+ * `force` ignore l'identifiant déjà enregistré et en crée un nouveau : c'est
+ * le rattrapage après une bascule test → réel. Un identifiant de client
+ * Stripe n'existe que dans le mode où il a été créé, donc un compte qui a
+ * payé (ou tenté de payer) pendant que le site tournait encore en test porte
+ * un identifiant que la clé réelle ne reconnaîtra jamais. Sans ce rattrapage,
+ * ce compte reste bloqué en permanence, silencieusement, jusqu'à une
+ * intervention manuelle en base.
+ */
+export async function ensureCustomer(
+  user: { id: string; email: string; stripe_customer_id: string | null },
+  force = false,
+): Promise<string> {
+  if (user.stripe_customer_id && !force) return user.stripe_customer_id;
 
   const customer = await stripe().customers.create(
     { email: user.email, metadata: { user_id: user.id } },
-    { idempotencyKey: `customer:${user.id}` },
+    // La clé d'idempotence inclut le mode implicitement : Stripe la scope déjà
+    // par clé API, donc une même clé en test et en réel ne se marchent jamais
+    // dessus pour un même utilisateur.
+    { idempotencyKey: `customer:${user.id}:${Date.now()}` },
   );
   await sql`update users set stripe_customer_id = ${customer.id} where id = ${user.id}`;
   return customer.id;
@@ -59,18 +71,17 @@ export async function createCheckoutSession(
   locale: Locale = DEFAULT_LOCALE,
   billing: Billing = "monthly",
 ): Promise<string> {
-  const customerId = await ensureCustomer(user);
-  const session = await stripe().checkout.sessions.create({
-    mode: "subscription",
+  const build = (customerId: string) => ({
+    mode: "subscription" as const,
     customer: customerId,
     line_items: [{ price: priceIdFor(plan, billing), quantity: 1 }],
     allow_promotion_codes: true,
-    billing_address_collection: "auto",
+    billing_address_collection: "auto" as const,
     // Stripe Tax n'est pas actif par défaut sur un compte neuf, et l'activer
     // sans inscription fiscale fait échouer le paiement. On l'allume par
     // variable d'environnement, le jour où le seuil de TVA l'impose.
     automatic_tax: { enabled: process.env.STRIPE_AUTOMATIC_TAX === "true" },
-    customer_update: { address: "auto", name: "auto" },
+    customer_update: { address: "auto" as const, name: "auto" as const },
     // Stripe traduit son propre tunnel ; sans ce réglage il le rend dans la
     // langue du navigateur, qui n'est pas forcément celle de la page d'où
     // vient l'acheteur.
@@ -81,6 +92,19 @@ export async function createCheckoutSession(
     success_url: `${APP_URL()}${href(locale, "/dashboard")}?upgraded=1&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_URL()}${href(locale, "/pricing")}?canceled=1`,
   });
+
+  const customerId = await ensureCustomer(user);
+  let session;
+  try {
+    session = await stripe().checkout.sessions.create(build(customerId));
+  } catch (err) {
+    if (!isStaleCustomerError(err)) throw err;
+    // Rattrapage à la volée : un nouveau client est créé dans le mode
+    // courant, et l'acheteur ne voit jamais l'échec — juste un tunnel qui
+    // s'ouvre normalement.
+    const freshId = await ensureCustomer(user, true);
+    session = await stripe().checkout.sessions.create(build(freshId));
+  }
   if (!session.url) throw new Error("Stripe n'a pas renvoyé d'URL de checkout.");
   return session.url;
 }
@@ -130,6 +154,12 @@ export async function createPortalSession(customerId: string): Promise<string> {
     return_url: `${APP_URL()}/dashboard`,
   });
   return session.url;
+}
+
+/** Vrai si l'erreur signale un client Stripe introuvable dans le mode courant. */
+export function isStaleCustomerError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | undefined;
+  return e?.code === "resource_missing" && /no such customer/i.test(e?.message ?? "");
 }
 
 /**

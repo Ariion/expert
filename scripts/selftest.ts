@@ -22,6 +22,7 @@ import { extractFeedCandidates, feedKindOf } from "../src/lib/discover";
 import { asBilling, planFromPriceId, yearlyAvailable, yearlySavingEuros } from "../src/lib/plans";
 import { csvCell, toCsv } from "../src/lib/csv";
 import { isBot } from "../src/lib/analytics";
+import { isStaleCustomerError } from "../src/lib/stripe";
 
 const SUMMARY = {
   status: { indicator: "major", description: "Partial System Outage" },
@@ -396,6 +397,28 @@ async function main() {
     assert.equal(row, '"x,1","y""2"');
     // Une ligne = un enregistrement : le compte de colonnes doit tenir.
     assert.equal(row.split('","').length, 2);
+  });
+
+  console.log("\nRattrapage client Stripe (bascule test -> réel)");
+  ok("un client introuvable dans le mode courant est reconnu", () => {
+    // Forme réelle observée : Stripe.errors.StripeInvalidRequestError avec ce
+    // code et ce message quand un identifiant de client appartient à l'autre
+    // mode (test <-> réel).
+    assert.equal(
+      isStaleCustomerError({
+        code: "resource_missing",
+        message: "No such customer: 'cus_test123'; a similar object exists in test mode, but a live mode key was used to make this request.",
+      }),
+      true,
+    );
+  });
+  ok("une autre erreur resource_missing n'est pas prise pour celle-ci", () => {
+    assert.equal(isStaleCustomerError({ code: "resource_missing", message: "No such price: 'price_x'" }), false);
+  });
+  ok("une erreur sans forme reconnue est ignorée plutôt que mal classée", () => {
+    assert.equal(isStaleCustomerError(new Error("network timeout")), false);
+    assert.equal(isStaleCustomerError(null), false);
+    assert.equal(isStaleCustomerError(undefined), false);
   });
 
   console.log("\nFacturation");
