@@ -689,10 +689,22 @@ if (!args.has("--skip-stripe") && env.STRIPE_SECRET_KEY) {
         env[price.key] = created.id;
       }
     }
+    // Le mode vient de la clé, et il décide dans quel univers Stripe les
+    // produits sont créés. Ne pas l'annoncer, c'est laisser quelqu'un croire
+    // qu'il vient de passer en production alors qu'il a rejoué le test.
+    const testMode = env.STRIPE_SECRET_KEY.startsWith("sk_test_");
     record({
       name: "Produits et tarifs Stripe",
       status: "ok",
-      detail: "Pro 19 €/mois ou 190 €/an, Team 49 €/mois ou 490 €/an",
+      detail:
+        `Pro 19 €/mois ou 190 €/an, Team 49 €/mois ou 490 €/an — ` +
+        (testMode ? "MODE TEST (aucun paiement réel possible)" : "MODE RÉEL"),
+      todo: testMode
+        ? "Pour encaisser réellement : remplacez le secret GitHub STRIPE_SECRET_KEY " +
+          "(Settings > Secrets and variables > Actions) par la clé sk_live_…, PUIS relancez " +
+          "« 1. Installation ». C'est le secret GitHub qui compte, pas la variable Vercel : " +
+          "ce script écrase celle de Vercel avec celle-ci."
+        : undefined,
     });
   } catch (err) {
     record({ name: "Produits et tarifs Stripe", status: "err", detail: describe(err).slice(0, 160) });
@@ -860,8 +872,62 @@ if (!args.has("--skip-vercel") && env.VERCEL_TOKEN && env.VERCEL_PROJECT_ID) {
     return last;
   }
 
+  /**
+   * Lecture de ce que Vercel détient DÉJÀ, avant d'écrire.
+   *
+   * Sert un seul garde-fou, mais un garde-fou qui a coûté une heure à
+   * quelqu'un : ne jamais remplacer une clé Stripe de production par une clé
+   * de test. Quelqu'un qui bascule son site en réel via Vercel puis relance
+   * cette installation verrait sinon son site revenir en test sans le moindre
+   * message — et conclurait que la bascule ne fonctionne pas.
+   */
+  async function readVercelEnv(): Promise<Record<string, string>> {
+    try {
+      const res = await fetch(
+        `https://api.vercel.com/v9/projects/${env.VERCEL_PROJECT_ID}/env?decrypt=true${teamQS}`,
+        { headers: { authorization: `Bearer ${env.VERCEL_TOKEN}` }, signal: AbortSignal.timeout(20000) },
+      );
+      if (!res.ok) return {};
+      const { envs = [] } = (await res.json()) as { envs?: Array<{ key: string; value?: string | null }> };
+      const out: Record<string, string> = {};
+      for (const e of envs) if (e.value) out[e.key] = e.value;
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
   try {
-    const wanted = VERCEL_KEYS.filter((k) => env[k]);
+    const remote = await readVercelEnv();
+    const skipped: string[] = [];
+
+    const wanted = VERCEL_KEYS.filter((k) => {
+      if (!env[k]) return false;
+      // Le seul cas où l'on refuse d'écrire : dégrader du réel vers du test.
+      // L'inverse (pousser une clé live par-dessus une clé test) est
+      // exactement ce qu'on vient faire, et doit passer.
+      if (
+        k === "STRIPE_SECRET_KEY" &&
+        env[k].startsWith("sk_test_") &&
+        remote[k]?.startsWith("sk_live_")
+      ) {
+        skipped.push(k);
+        return false;
+      }
+      return true;
+    });
+
+    if (skipped.length > 0) {
+      record({
+        name: "Clé Stripe de production préservée",
+        status: "warn",
+        detail: "Vercel détient une clé sk_live_ ; ce script tourne avec une clé sk_test_ et ne l'a pas écrasée.",
+        todo: "Les produits et tarifs viennent d'être créés en MODE TEST, mais votre site reste en réel " +
+          "avec des identifiants de tarifs de test : les paiements échoueront. Mettez la clé sk_live_ " +
+          "dans le secret GitHub STRIPE_SECRET_KEY et relancez « 1. Installation ».",
+      });
+    }
+
     const failures: string[] = [];
     let pushed = 0;
 

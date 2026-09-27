@@ -162,9 +162,22 @@ produit qui tourne tout seul. Le workflow « 4. Maintien de l'automatisation »
 2. **Stripe en mode réel** : tant que vous utilisez une clé `sk_test_`, aucun
    euro n'est encaissé — c'est parfait pour tester le tunnel avec la carte
    `4242 4242 4242 4242`. Pour encaisser réellement, terminez la vérification
-   d'identité Stripe (pièce d'identité + IBAN, obligation légale), remplacez
-   le secret `STRIPE_SECRET_KEY` par la clé `sk_live_…` et relancez
-   « 1. Installation ».
+   d'identité Stripe (pièce d'identité + IBAN, obligation légale), puis :
+
+   ⚠️ **Changez la clé dans le secret GitHub, pas dans Vercel.** *Settings >
+   Secrets and variables > Actions > `STRIPE_SECRET_KEY`* → clé `sk_live_…`,
+   **puis** relancez « 1. Installation ».
+
+   C'est le secret GitHub que lit l'installation, et c'est elle qui écrit
+   ensuite dans Vercel. Ne changer que la variable Vercel ne suffit pas : la
+   prochaine installation la remplacerait par la clé des secrets GitHub, et le
+   site repasserait en test sans un mot. (Le script refuse désormais cette
+   dégradation précise et le signale, mais l'ordre reste : GitHub d'abord.)
+
+   Basculer la clé ne suffit jamais seul, quelle que soit la méthode : les
+   produits, tarifs et webhook n'existent que dans l'environnement où ils ont
+   été créés. Seule l'installation les recrée en réel et remet les bons
+   identifiants en place.
 
 ### « Je mets juste mon PayPal et l'argent rentre ? »
 
