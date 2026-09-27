@@ -135,7 +135,7 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
           <h1 style={{ margin: 0 }}>{t.service.h1(service.name)}</h1>
         </div>
         <div className="row" style={{ marginTop: 16, alignItems: "center" }}>
-          <StatusBadge status={service.current_status} locale={locale} />
+          <StatusBadge status={service.current_status} locale={locale} quiet={false} />
           <span className="dim">
             {t.service.unchangedSince(timeAgo(service.current_status_since, locale))}
             {" · "}

@@ -18,8 +18,14 @@ export function LocaleSwitch({ locale }: { locale: Locale }) {
   const bare = locale === "en" ? pathname.replace(/^\/en(?=\/|$)/, "") || "/" : pathname;
 
   return (
-    <Link className="link" href={translatePath(bare, target)} hrefLang={target} prefetch={false}>
-      {target === "en" ? "English" : "Français"}
+    <Link
+      className="link locale-switch"
+      href={translatePath(bare, target)}
+      hrefLang={target}
+      aria-label={target === "en" ? "Switch to English" : "Passer en français"}
+      prefetch={false}
+    >
+      {target === "en" ? "EN" : "FR"}
     </Link>
   );
 }
