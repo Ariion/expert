@@ -93,11 +93,32 @@ jobs:
           FAILED=0
           for JOB in $JOBS; do
             echo "── $JOB"
-            CODE=$(curl -sS -o /tmp/out.json -w "%{http_code}" --max-time 300 \
+            # --location-trusted et non -L : un apex qui redirige vers son www
+            # change d'hôte, et curl retire alors l'en-tête d'autorisation par
+            # sécurité — la tâche recevrait un 401 au lieu du 308. La
+            # destination est décidée par notre propre configuration de
+            # domaine, donc lui transmettre la clé ne l'expose à personne
+            # d'autre. Sans ceci, une simple bascule apex/www coupe toute la
+            # collecte en silence : c'est exactement ce qui est arrivé.
+            # Un seul appel : le code ET l'adresse finalement atteinte sortent
+            # de la même requête. Refaire une requête pour savoir où l'on a
+            # atterri déclencherait la tâche deux fois par tick — collecte en
+            # double, et alertes potentiellement dupliquées.
+            OUT=$(curl -sS -o /tmp/out.json -w "%{http_code} %{url_effective}" --max-time 300 \
+                    --location-trusted --max-redirs 3 \
                     -H "authorization: Bearer $CRON_SECRET" \
-                    "$APP_URL/api/cron/$JOB" || echo "000")
+                    "$APP_URL/api/cron/$JOB" || echo "000 ")
+            CODE="${OUT%% *}"
+            FINAL="${OUT#* }"
             echo "HTTP $CODE"
             head -c 600 /tmp/out.json; echo
+            # La tâche aboutit malgré la redirection, mais on le signale :
+            # sinon personne ne corrige l'adresse, et le jour où le site ne
+            # redirige plus, tout s'arrête sans prévenir.
+            case "$FINAL" in
+              "$APP_URL/api/cron/$JOB"|"") ;;
+              *) echo "::warning::APP_URL redirige vers ${FINAL%/api/cron/*}. Mettez le secret APP_URL à cette valeur." ;;
+            esac
             # Une erreur serveur est déjà signalée par l'alerting interne ;
             # on fait quand même échouer le run pour qu'elle soit visible ici.
             [ "$CODE" = "200" ] || FAILED=1

@@ -398,6 +398,45 @@ record({
 });
 
 // ---------------------------------------------------------------------------
+// APP_URL pointe-t-elle vraiment sur l'adresse servie ?
+//
+// Un apex qui redirige vers son www est invisible dans un navigateur, mais
+// coûte cher ailleurs : les tâches planifiées reçoivent un 308 au lieu d'un
+// 200 et s'arrêtent, tandis que les URL canoniques et le sitemap désignent une
+// adresse qui n'est pas celle réellement servie. Le cas s'est produit, et rien
+// ne le signalait — d'où cette vérification, qui coûte une requête.
+// ---------------------------------------------------------------------------
+if (env.APP_URL) {
+  try {
+    const res = await fetch(env.APP_URL, {
+      method: "HEAD",
+      redirect: "manual",
+      signal: AbortSignal.timeout(15000),
+    });
+    const location = res.headers.get("location");
+    if (res.status >= 300 && res.status < 400 && location) {
+      const target = new URL(location, env.APP_URL);
+      const canonical = `${target.protocol}//${target.host}`;
+      record({
+        name: "Adresse publique",
+        status: "warn",
+        detail: `${env.APP_URL} redirige (${res.status}) vers ${canonical}`,
+        todo:
+          `Mettez le secret GitHub APP_URL à « ${canonical} ». Tant qu'il désigne une adresse ` +
+          `qui redirige, les tâches planifiées reçoivent un 308 au lieu d'un 200 et la collecte ` +
+          `s'arrête, et vos pages annoncent une URL canonique différente de celle servie.`,
+      });
+    } else {
+      record({ name: "Adresse publique", status: "ok", detail: `${env.APP_URL} répond directement` });
+    }
+  } catch (err) {
+    // Une installation ne doit pas échouer parce qu'une vérification de
+    // confort n'a pas abouti.
+    record({ name: "Adresse publique", status: "warn", detail: `non vérifiée : ${describe(err).slice(0, 90)}` });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // 1 & 2. Base de données : schéma + catalogue
 // ---------------------------------------------------------------------------
 if (!args.has("--skip-db") && env.DATABASE_URL) {
