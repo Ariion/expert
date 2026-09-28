@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ServiceBoard, type BoardRow } from "@/components/ServiceBoard";
-import { getAllServices } from "@/lib/queries";
+import { getAllServices, getRecentIncidents } from "@/lib/queries";
 import { STATUS_TONE, faviconFor, isDown, statusLabel, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
@@ -17,7 +17,10 @@ import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
  */
 export async function Home({ locale }: { locale: Locale }) {
   const t = dict(locale);
-  const services = await getAllServices().catch(() => []);
+  const [services, recentIncidents] = await Promise.all([
+    getAllServices().catch(() => []),
+    getRecentIncidents(6).catch(() => []),
+  ]);
 
   const down = services.filter((s) => isDown(s.current_status));
   const ok = services.length - down.length;
@@ -102,6 +105,33 @@ export async function Home({ locale }: { locale: Locale }) {
           catAll={t.home.catAll}
         />
       </section>
+
+      {recentIncidents.length > 0 && (
+        <section style={{ marginTop: 8 }}>
+          <div className="between" style={{ marginBottom: 12 }}>
+            <h2 style={{ fontSize: 17, margin: 0 }}>{t.home.recentIncidents}</h2>
+            <Link className="dim" href={href(locale, "/incidents")}>
+              {t.home.seeAll}
+            </Link>
+          </div>
+          <div className="incident-compact">
+            {recentIncidents.map((i) => (
+              <Link
+                className="incident-compact-row"
+                key={i.id}
+                href={href(locale, `/status/${i.service_slug}`)}
+              >
+                <img className="logo-img" src={faviconFor(i.logo_domain)} alt="" loading="lazy" />
+                <span className="incident-compact-name">
+                  {i.title}
+                  <span className="dim">{i.service_name}</span>
+                </span>
+                <span className="pill">{i.is_resolved ? t.home.resolved : t.home.ongoing}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="strip">
         <span>{t.home.pitch}</span>

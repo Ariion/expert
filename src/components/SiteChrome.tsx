@@ -33,6 +33,12 @@ export function SiteChrome({ locale, children }: { locale: Locale; children: Rea
           <Link href={L("/pricing")} className="link">
             {t.nav.pricing}
           </Link>
+          <Link href={L("/incidents")} className="link">
+            {t.nav.incidents}
+          </Link>
+          <Link href={L("/api")} className="link">
+            {t.nav.api}
+          </Link>
           <div className="spacer" />
           <LocaleSwitch locale={locale} />
           <Link href={L("/dashboard")} className="link">

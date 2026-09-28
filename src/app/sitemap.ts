@@ -45,6 +45,8 @@ async function buildUrls(): Promise<MetadataRoute.Sitemap> {
   push("/status", { changeFrequency: "hourly", priority: 0.9, lastModified: now });
   push("/categories", { changeFrequency: "daily", priority: 0.7, lastModified: now });
   push("/pricing", { changeFrequency: "weekly", priority: 0.8, lastModified: now });
+  push("/incidents", { changeFrequency: "hourly", priority: 0.7, lastModified: now });
+  push("/api", { changeFrequency: "monthly", priority: 0.5, lastModified: now });
 
   const [services, categories] = await Promise.all([
     getAllServices().catch((): Service[] => []),

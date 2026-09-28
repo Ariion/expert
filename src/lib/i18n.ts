@@ -103,6 +103,8 @@ const fr = {
     providers: "Fournisseurs",
     categories: "Catégories",
     pricing: "Tarifs",
+    incidents: "Incidents",
+    api: "API",
     login: "Connexion",
     start: "Surveiller ma stack",
     switchTo: "English",
@@ -239,6 +241,35 @@ const fr = {
     thLast: "Dernier incident",
     thStatus: "Statut",
     comparisons: "Comparatifs",
+  },
+  incidentsPage: {
+    metaTitle: "Incidents récents chez vos fournisseurs SaaS",
+    metaDescription:
+      "Les derniers incidents publiés par les fournisseurs surveillés par Upstream Status — cloud, paiement, email, communication — relevés sur leurs pages de statut officielles.",
+    h1: "Incidents récents",
+    lead: "Tous les incidents publiés par les fournisseurs surveillés, sur les 30 derniers jours, classés du plus récent au plus ancien.",
+    empty: "Aucun incident publié sur les 30 derniers jours.",
+    viewService: "Voir la fiche →",
+  },
+  apiPage: {
+    metaTitle: "API — statut et incidents de vos fournisseurs en JSON",
+    metaDescription:
+      "Deux endpoints en lecture seule pour interroger, en JSON, le statut et l'historique d'incidents des fournisseurs que vous surveillez. Inclus dans le plan Team.",
+    h1: "API",
+    lead: "Deux endpoints en lecture seule, au format JSON, pour interroger depuis vos propres outils le statut et l'historique des fournisseurs que vous surveillez. Inclus dans le plan Team.",
+    authTitle: "Authentification",
+    authBody:
+      "Chaque requête porte un en-tête Authorization avec une clé générée depuis votre tableau de bord. Une clé révoquée ou un compte hors plan Team reçoit une réponse 401 immédiate.",
+    scopeTitle: "Portée",
+    scopeBody:
+      "Les deux endpoints ne renvoient que les fournisseurs que vous avez ajoutés à votre tableau de bord — jamais le catalogue entier.",
+    statusTitle: "GET /api/v1/status",
+    statusBody:
+      "Statut actuel de chaque fournisseur surveillé : état, depuis quand, disponibilité et incidents sur 90 jours.",
+    incidentsTitle: "GET /api/v1/incidents",
+    incidentsBody:
+      "Historique des incidents des fournisseurs surveillés. Paramètres optionnels : days (1 à 365, 90 par défaut) et limit (1 à 1000, 200 par défaut).",
+    getKeyCta: "Générer une clé depuis le tableau de bord",
   },
   service: {
     notFound: "Fournisseur introuvable",
@@ -635,6 +666,8 @@ const en: typeof fr = {
     providers: "Providers",
     categories: "Categories",
     pricing: "Pricing",
+    incidents: "Incidents",
+    api: "API",
     login: "Sign in",
     start: "Monitor my stack",
     switchTo: "Français",
@@ -765,6 +798,35 @@ const en: typeof fr = {
     thLast: "Last incident",
     thStatus: "Status",
     comparisons: "Comparisons",
+  },
+  incidentsPage: {
+    metaTitle: "Recent incidents across your SaaS providers",
+    metaDescription:
+      "The latest incidents published by the providers monitored by Upstream Status — cloud, payments, email, communication — read from their official status pages.",
+    h1: "Recent incidents",
+    lead: "Every incident published by a monitored provider over the last 30 days, newest first.",
+    empty: "No incident published over the last 30 days.",
+    viewService: "View provider →",
+  },
+  apiPage: {
+    metaTitle: "API — your providers' status and incidents in JSON",
+    metaDescription:
+      "Two read-only endpoints to query, in JSON, the status and incident history of the providers you monitor. Included in the Team plan.",
+    h1: "API",
+    lead: "Two read-only JSON endpoints so you can query the status and history of the providers you monitor from your own tools. Included in the Team plan.",
+    authTitle: "Authentication",
+    authBody:
+      "Every request carries an Authorization header with a key generated from your dashboard. A revoked key or an account outside the Team plan gets an immediate 401.",
+    scopeTitle: "Scope",
+    scopeBody:
+      "Both endpoints only return the providers you have added to your dashboard — never the full catalog.",
+    statusTitle: "GET /api/v1/status",
+    statusBody:
+      "Current status of every provider you monitor: state, since when, uptime and incidents over 90 days.",
+    incidentsTitle: "GET /api/v1/incidents",
+    incidentsBody:
+      "Incident history for your monitored providers. Optional parameters: days (1 to 365, default 90) and limit (1 to 1000, default 200).",
+    getKeyCta: "Generate a key from your dashboard",
   },
   service: {
     notFound: "Provider not found",
