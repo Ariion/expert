@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { WatchForm } from "@/components/WatchForm";
 import { getServicesByCategory } from "@/lib/queries";
-import { faviconFor, timeAgo } from "@/lib/format";
+import { faviconFor, isDown, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
 export async function CategoryPage({ locale, slug }: { locale: Locale; slug: string }) {
@@ -14,7 +14,7 @@ export async function CategoryPage({ locale, slug }: { locale: Locale; slug: str
   if (services.length === 0) notFound();
 
   const label = categoryLabel(slug, locale);
-  const down = services.filter((s) => s.current_status !== "operational");
+  const down = services.filter((s) => isDown(s.current_status));
 
   return (
     <div className="wrap">

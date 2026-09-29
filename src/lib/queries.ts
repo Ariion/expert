@@ -132,10 +132,15 @@ export async function getCategories(): Promise<
   { category: string; count: number; degraded: number }[]
 > {
   if (isBuildPhase()) return [];
+  // Même trois états que `isDown()` — jamais `<> 'operational'` : un
+  // fournisseur pas encore interrogé ('unknown') ou en maintenance annoncée
+  // compterait sinon comme un incident, et gonflerait ce chiffre à chaque
+  // service tout juste ajouté au catalogue.
   return sql`
     select category,
            count(*)::int as count,
-           count(*) filter (where current_status <> 'operational')::int as degraded
+           count(*) filter (where current_status in ('degraded', 'partial_outage', 'major_outage'))::int
+             as degraded
       from services
      where is_active
      group by category
@@ -181,7 +186,8 @@ export async function getGlobalStats(): Promise<{
   const [row] = await sql<any[]>`
     select (select count(*)::int from services where is_active) as services,
            (select count(*)::int from incidents where started_at > now() - interval '30 days') as incidents_30d,
-           (select count(*)::int from services where is_active and current_status <> 'operational') as degraded_now,
+           (select count(*)::int from services
+             where is_active and current_status in ('degraded', 'partial_outage', 'major_outage')) as degraded_now,
            (select coalesce(sum(watcher_count),0)::int from services) as watchers
   `;
   return row;
