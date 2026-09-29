@@ -433,6 +433,7 @@ const fr = {
   plans: {
     free: {
       name: "Free",
+      tagline: "Pour voir si un fournisseur vous a déjà lâché sans le dire.",
       priceLabel: "0 €",
       features: [
         "3 fournisseurs surveillés",
@@ -442,6 +443,7 @@ const fr = {
     },
     pro: {
       name: "Pro",
+      tagline: "Pour ne plus l'apprendre par vos propres clients.",
       priceLabel: "19 €/mois",
       features: [
         "50 fournisseurs surveillés",
@@ -453,6 +455,7 @@ const fr = {
     },
     team: {
       name: "Team",
+      tagline: "Pour toute l'équipe, avec API et rapports mensuels.",
       priceLabel: "49 €/mois",
       features: [
         "Fournisseurs illimités en pratique (500)",
@@ -983,11 +986,13 @@ const en: typeof fr = {
   plans: {
     free: {
       name: "Free",
+      tagline: "See whether a provider has already let you down quietly.",
       priceLabel: "€0",
       features: ["3 providers monitored", "Email alerts (delayed by 15 min)", "90 days of incident history"],
     },
     pro: {
       name: "Pro",
+      tagline: "Stop hearing it from your own customers first.",
       priceLabel: "€19/month",
       features: [
         "50 providers monitored",
@@ -999,6 +1004,7 @@ const en: typeof fr = {
     },
     team: {
       name: "Team",
+      tagline: "For the whole team, with API access and monthly reports.",
       priceLabel: "€49/month",
       features: [
         "Effectively unlimited providers (500)",

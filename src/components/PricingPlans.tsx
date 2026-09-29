@@ -7,6 +7,7 @@ import type { Billing, PlanId } from "@/lib/plans";
 export interface PlanCard {
   id: PlanId;
   name: string;
+  tagline: string;
   features: string[];
   highlight: boolean;
   /** Libellés pré-calculés côté serveur : une fonction ne traverse pas la frontière. */
@@ -71,17 +72,14 @@ export function PricingPlans({
         </div>
       )}
 
-      <section className="grid three">
+      <section className="grid three plan-grid">
         {plans.map((plan) => {
           const showYearly = yearly && plan.yearlyLabel !== null;
           return (
-            <div
-              className="card"
-              key={plan.id}
-              style={plan.highlight ? { borderColor: "var(--brand)" } : undefined}
-            >
-              {plan.highlight && <span className="pill">{copy.mostChosen}</span>}
-              <h2 style={{ margin: "10px 0 2px", fontSize: 19 }}>{plan.name}</h2>
+            <div className={`card plan-card${plan.highlight ? " highlight" : ""}`} key={plan.id}>
+              {plan.highlight && <span className="plan-badge">{copy.mostChosen}</span>}
+              <h2 style={{ margin: "10px 0 0", fontSize: 19 }}>{plan.name}</h2>
+              <p className="plan-tagline">{plan.tagline}</p>
               <div style={{ fontSize: 30, fontWeight: 750, letterSpacing: "-0.02em" }}>
                 {showYearly ? plan.yearlyLabel : plan.monthlyLabel}
               </div>
@@ -97,11 +95,9 @@ export function PricingPlans({
                 ) : null}
               </div>
 
-              <ul className="muted" style={{ fontSize: 14, paddingLeft: 18, minHeight: 150 }}>
+              <ul className="plan-features" style={{ minHeight: 150 }}>
                 {plan.features.map((f) => (
-                  <li key={f} style={{ marginBottom: 6 }}>
-                    {f}
-                  </li>
+                  <li key={f}>{f}</li>
                 ))}
               </ul>
 

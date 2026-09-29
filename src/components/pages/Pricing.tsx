@@ -29,6 +29,7 @@ export function Pricing({ locale }: { locale: Locale }) {
     return {
       id,
       name: copy.name,
+      tagline: copy.tagline,
       features: copy.features,
       highlight: Boolean(plan.highlight),
       paid,
