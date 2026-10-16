@@ -21,6 +21,50 @@
   --bad: #ef4444;
   --radius: 14px;
   --max: 1120px;
+
+  /* Accent secondaire — réservé au motif de marque (le pouls du hero) et à
+     quelques détails de graphique non sémantiques. Jamais pour un statut :
+     le vert est déjà pris par « opérationnel », ajouter un second accent
+     chaud ou vif créerait une confusion que plusieurs concurrents du secteur
+     ont (eux prennent souvent le vert comme couleur de marque). Doit rester
+     identique à `BRAND.accent2`/`accent2Soft` dans src/lib/brand.tsx — ce
+     fichier n'a aucun moyen de lire ces variables CSS (next/og ne les voit
+     pas), donc toute valeur changée ici doit être recopiée à la main. */
+  --accent-2: #5eead4;
+  --accent-2-soft: #99f6e4;
+
+  /* Échelle typographique — remplace les tailles éparpillées en style inline
+     au fil des pages. Les titres (h1/h2/h3) gardent leurs propres règles
+     ci-dessous, ces tokens servent au texte courant et aux composants. */
+  --text-xs: 12px;
+  --text-sm: 13.5px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 21px;
+  --text-xl: 28px;
+  --text-2xl: 34px;
+  --text-3xl: 40px;
+
+  /* Échelle d'espacement — même logique, pour remplacer au fil de l'eau les
+     marginTop/gap ad hoc. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  /* Second niveau de carte — neutre, pas teinté. Sert à ce qui doit mener
+     visuellement (le chiffre du hero, les KPI de tête d'une fiche
+     fournisseur) sans emprunter le dégradé violet de `.plan-card.highlight`,
+     qui lui porte un sens différent (« ce plan est recommandé »). */
+  --card-elevated-bg: var(--card-hover);
+  --card-elevated-border: #2e3a63;
+  --card-elevated-shadow: 0 16px 36px -20px rgba(0, 0, 0, 0.55);
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +76,9 @@ body {
   background: radial-gradient(1200px 600px at 50% -200px, #1b2444 0%, var(--bg) 60%);
   background-attachment: fixed;
   color: var(--text);
-  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -90,6 +136,14 @@ a:hover { text-decoration: underline; }
   border-radius: var(--radius); padding: 20px;
 }
 .card.link:hover { background: var(--card-hover); }
+
+/* Niveau "élevé" — pour ce qui doit mener visuellement (chiffre du hero, KPI
+   de tête), sans le dégradé teinté réservé au plan tarifaire recommandé. */
+.card.elevated {
+  background: var(--card-elevated-bg);
+  border-color: var(--card-elevated-border);
+  box-shadow: var(--card-elevated-shadow);
+}
 .grid { display: grid; gap: 14px; }
 .grid.two { grid-template-columns: repeat(2, 1fr); }
 .grid.three { grid-template-columns: repeat(3, 1fr); }
@@ -105,8 +159,31 @@ h3 { font-size: 16px; margin: 0 0 8px; }
 p { color: var(--muted); }
 .lead { font-size: 17px; color: var(--muted); max-width: 640px; }
 .muted { color: var(--muted); }
-.dim { color: var(--dim); font-size: 13px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.dim { color: var(--dim); font-size: var(--text-sm); }
+.mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+}
+
+/* ----- Bloc de code (exemples curl, extraits d'API) -----
+   Remplace le <pre style={{...}}> dupliqué à l'identique dans ApiDocs.tsx et
+   Dashboard.tsx — un seul endroit à ajuster plutôt que deux copies qui
+   dérivent avec le temps. */
+.code-block {
+  padding: 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+
+/* ----- Texte courant long (mentions légales, pages de contenu) -----
+   Remplace les `style={{ fontSize: 14 }}` répétés sur chaque <p>. */
+.prose { font-size: var(--text-sm); line-height: 1.65; }
+.prose.dim { color: var(--dim); }
 
 /* ----- Badges de statut ----- */
 .badge {
@@ -253,9 +330,9 @@ footer a { color: var(--muted); }
   background: var(--bg-soft);
   color: var(--muted);
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 16px;
+  font-size: var(--text-md);
+  font-weight: 700;
+  padding: 9px 18px;
   border-radius: 999px;
   cursor: pointer;
 }
@@ -335,26 +412,33 @@ footer a { color: var(--muted); }
 /* ----- Graphique des interruptions ----- */
 .chart { display: flex; flex-direction: column; }
 
+/* Contrôle segmenté, pas une rangée de pastilles : un bascule entre trois
+   vues du même graphique se lit mieux comme un seul objet accolé que comme
+   trois filtres indépendants — ça le distingue aussi visuellement de
+   `.cat-nav` (des filtres, eux, bien indépendants). */
 .chart-range {
-  display: flex;
-  gap: 6px;
+  display: inline-flex;
   margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
 }
 .chart-range button {
   appearance: none;
-  border: 1px solid var(--line);
+  border: 0;
+  border-left: 1px solid var(--line);
   background: var(--bg-soft);
   color: var(--muted);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 999px;
+  padding: 6px 14px;
   cursor: pointer;
 }
-.chart-range button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
-.chart-range button:hover:not(.on) { border-color: var(--brand-soft); color: var(--text); }
-.chart-range button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.chart-range button:first-child { border-left: 0; }
+.chart-range button.on { background: var(--brand); color: #fff; }
+.chart-range button:hover:not(.on) { color: var(--text); }
+.chart-range button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 
 .chart-titles {
   display: flex;
@@ -365,6 +449,7 @@ footer a { color: var(--muted); }
 }
 .chart-title-pill {
   font-size: 12.5px;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
   background: var(--bg-soft);
   border: 1px solid var(--line);
@@ -382,6 +467,7 @@ footer a { color: var(--muted); }
   min-height: 24px;
   margin-bottom: 10px;
   font-size: 14px;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   row-gap: 6px;
 }
 
@@ -455,7 +541,9 @@ footer a { color: var(--muted); }
 .status-hero-figure {
   margin: 10px 0 2px;
   font-size: clamp(30px, 5vw, 42px);
-  letter-spacing: -0.02em;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.1;
 }
 .status-hero-figure.ok { color: var(--ok); }
