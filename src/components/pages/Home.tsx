@@ -48,8 +48,8 @@ export async function Home({ locale }: { locale: Locale }) {
     <div className="wrap">
       <section className="status-hero">
         <div className="status-hero-pulse" aria-hidden="true">
-          <svg viewBox="0 0 420 140">
-            <path d="M0 70 L40 70 L55 30 L75 110 L95 50 L115 70 L170 70 L185 35 L205 95 L225 70 L420 70" />
+          <svg viewBox="0 0 640 220">
+            <path d="M0 110 L70 110 L95 40 L130 170 L160 70 L190 110 L280 110 L305 45 L335 160 L365 110 L640 110" />
           </svg>
           <span className="pulse-dot" />
         </div>

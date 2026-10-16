@@ -324,6 +324,9 @@ const fr = {
           : `${n} personnes surveillent ${name} via ${site}.`,
     relatedTitle: (label: string) => `Autres services ${label}`,
     compareCta: (a: string, b: string) => `Comparer ${a} et ${b} →`,
+    badgeTitle: "Badge pour votre site",
+    badgeBody: (name: string) =>
+      `Affichez le statut de ${name} chez vous. Mis à jour automatiquement, même adresse que cette page.`,
     // Ce que fait réellement quelqu'un qui vient de taper « X est en panne » :
     // les quatre gestes suivants, dans cet ordre. La page les donne plutôt que
     // de le laisser repartir les chercher ailleurs.
@@ -883,6 +886,9 @@ const en: typeof fr = {
           : `${n} people watch ${name} through ${site}.`,
     relatedTitle: (label: string) => `Other ${label.toLowerCase()} services`,
     compareCta: (a: string, b: string) => `Compare ${a} and ${b} →`,
+    badgeTitle: "Badge for your site",
+    badgeBody: (name: string) =>
+      `Show ${name}'s status on your own site. Updates automatically, same address as this page.`,
     troubleshootTitle: (name: string) => `What to do if ${name} is down`,
     troubleshoot1Title: "Check it isn't your side",
     troubleshoot1Body: "Open another site. If it loads, your connection is fine.",

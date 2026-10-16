@@ -53,6 +53,9 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
 
   const catLabel = categoryLabel(service.category, locale);
   const status = statusLabel(service.current_status, locale);
+  const pageUrl = `${APP_URL()}${L(`/status/${service.slug}`)}`;
+  const badgeUrl = `${APP_URL()}/badge/${service.slug}${locale === "en" ? "?locale=en" : ""}`;
+  const embedSnippet = `<a href="${pageUrl}"><img src="${badgeUrl}" width="280" height="64" alt="${service.name} status" /></a>`;
 
   // Données structurées : FAQ + fil d'Ariane. Ce sont elles qui décrochent les
   // rich results sur les requêtes « <service> down ».
@@ -297,6 +300,19 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
             <div className="dim" style={{ marginTop: 10 }}>
               {t.service.watchers(service.watcher_count, service.name, SITE_NAME)}
             </div>
+          </div>
+
+          <div className="card">
+            <h3>{t.service.badgeTitle}</h3>
+            <p style={{ fontSize: 13.5 }}>{t.service.badgeBody(service.name)}</p>
+            <img
+              src={`${badgeUrl}`}
+              alt={`${service.name} — ${status}`}
+              width={280}
+              height={64}
+              style={{ display: "block", margin: "10px 0" }}
+            />
+            <pre className="code-block">{embedSnippet}</pre>
           </div>
 
           {related.length > 0 && (
