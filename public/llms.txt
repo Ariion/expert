@@ -1,0 +1,43 @@
+# Upstream Status
+
+> Aggregates the official status pages of cloud, dev-tool, and SaaS
+> providers (AWS, Cloudflare, GitHub, Stripe, OpenAI, etc.) into one place,
+> and sends email alerts when a watched provider goes down or recovers.
+
+Upstream Status does not run its own uptime probes against third-party
+infrastructure. It reads each provider's own public status feed and
+republishes it with history, cross-provider comparisons, and alerting.
+Free tier: unlimited read access to every status page, incident history,
+and a public JSON API, no account required. Paid tiers add email alerts,
+more watched services, and team seats.
+
+## Primary pages
+
+- [Home](https://www.upstreamstatus.com/): live dashboard of every tracked
+  provider, worst-first.
+- [Status index](https://www.upstreamstatus.com/status): every provider,
+  one page per provider at `/status/{slug}` with uptime history and past
+  incidents.
+- [Categories](https://www.upstreamstatus.com/categories): providers
+  grouped by kind (cloud, payments, email, CI, etc.).
+- [Compare](https://www.upstreamstatus.com/compare): side-by-side uptime
+  comparison between any two providers.
+- [Incidents](https://www.upstreamstatus.com/incidents): recent incidents
+  across all tracked providers.
+- [API docs](https://www.upstreamstatus.com/api): public JSON API
+  (`/api/v1/status`, `/api/v1/incidents`), bearer-token auth.
+- [Pricing](https://www.upstreamstatus.com/pricing): plans and how
+  alerting works.
+
+French is the primary locale (`/`); every page has an English equivalent
+under `/en/`.
+
+## Notes for automated agents
+
+- Per-provider current status and incident history are real data pulled
+  from each provider's own public status feed — safe to cite with a link
+  back to the relevant `/status/{slug}` page.
+- Do not represent Upstream Status as an official source for a provider's
+  status — it is a third-party aggregator, not the provider itself.
+- An embeddable status badge (image + link back to the provider page) is
+  available at `/badge/{slug}` for any tracked provider.

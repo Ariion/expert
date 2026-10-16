@@ -19,10 +19,37 @@ export const metadata: Metadata = {
   verification: { google: googleVerification() },
 };
 
+// Site-level structured data: read by engines/agents, not by visitors. Only
+// facts already true elsewhere on the site (name, URL, icon, description) —
+// never a fabricated rating, review count, or stat to look more established.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: APP_URL(),
+      logo: `${APP_URL()}/icon`,
+    },
+    {
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: APP_URL(),
+      description: t.home.metaDescription,
+      inLanguage: HTML_LANG[LOCALE],
+    },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang={HTML_LANG[LOCALE]} className={`${sans.variable} ${mono.variable}`}>
       <body>
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <SiteChrome locale={LOCALE}>{children}</SiteChrome>
       </body>
     </html>
