@@ -60,7 +60,7 @@ export async function ComparePage({ locale, pair }: { locale: Locale; pair: stri
           { s: a, u: ua, pct: ua90 },
           { s: b, u: ub, pct: ub90 },
         ].map(({ s, u, pct }) => (
-          <div className="card" key={s.id}>
+          <div className="card elevated" key={s.id}>
             <div className="between">
               <h3 style={{ margin: 0 }}>
                 <Link href={L(`/status/${s.slug}`)}>{s.name}</Link>
@@ -70,15 +70,15 @@ export async function ComparePage({ locale, pair }: { locale: Locale; pair: stri
             <div className="grid three" style={{ marginTop: 16 }}>
               <div>
                 <div className="dim">{t.compare.kpiUptime}</div>
-                <strong>{pct ? `${pct.toFixed(2)} %` : "—"}</strong>
+                <strong className="mono">{pct ? `${pct.toFixed(2)} %` : "—"}</strong>
               </div>
               <div>
                 <div className="dim">{t.compare.kpiIncidents}</div>
-                <strong>{s.incident_count_90d}</strong>
+                <strong className="mono">{s.incident_count_90d}</strong>
               </div>
               <div>
                 <div className="dim">{t.compare.kpiLast}</div>
-                <strong>{timeAgo(s.last_incident_at, locale)}</strong>
+                <strong className="mono">{timeAgo(s.last_incident_at, locale)}</strong>
               </div>
             </div>
             <div style={{ marginTop: 18 }}>
@@ -91,7 +91,7 @@ export async function ComparePage({ locale, pair }: { locale: Locale; pair: stri
       <section className="section grid two">
         <div className="card">
           <h3>{t.compare.readingTitle}</h3>
-          <p style={{ fontSize: 14 }}>
+          <p className="prose">
             {t.compare.reading(
               a.name,
               statusLabel(a.current_status, locale),

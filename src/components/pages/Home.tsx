@@ -47,6 +47,12 @@ export async function Home({ locale }: { locale: Locale }) {
   return (
     <div className="wrap">
       <section className="status-hero">
+        <div className="status-hero-pulse" aria-hidden="true">
+          <svg viewBox="0 0 420 140">
+            <path d="M0 70 L40 70 L55 30 L75 110 L95 50 L115 70 L170 70 L185 35 L205 95 L225 70 L420 70" />
+          </svg>
+          <span className="pulse-dot" />
+        </div>
         <span className="status-hero-eyebrow">
           <i className="dot ok" />
           {t.home.heroEyebrow}

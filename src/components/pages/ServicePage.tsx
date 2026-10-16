@@ -155,9 +155,11 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
           [t.service.kpiIncidents, String(service.incident_count_90d)],
           [t.service.kpiLast, timeAgo(service.last_incident_at, locale)],
         ].map(([k, v]) => (
-          <div className="card" key={k}>
+          <div className="card elevated" key={k}>
             <div className="dim">{k}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{v}</div>
+            <div className="mono" style={{ fontSize: 20, fontWeight: 600, marginTop: 4 }}>
+              {v}
+            </div>
           </div>
         ))}
       </section>

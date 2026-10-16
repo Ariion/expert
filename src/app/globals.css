@@ -523,9 +523,65 @@ footer a { color: var(--muted); }
 
 /* ----- Bloc d'état global (accueil) ----- */
 .status-hero {
-  padding: 40px 0 30px;
-  border-bottom: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  padding: 36px 36px 30px;
   margin-bottom: 30px;
+  background: var(--card-elevated-bg);
+  border: 1px solid var(--card-elevated-border);
+  border-radius: var(--radius);
+  box-shadow: var(--card-elevated-shadow);
+}
+@media (max-width: 640px) {
+  .status-hero { padding: 28px 22px 24px; }
+}
+
+/* ----- Motif de marque : la ligne d'impulsion du hero -----
+   Extension du tracé du favicon (src/lib/brand.tsx), pas un nouveau motif :
+   le produit s'appelle Upstream, le pouls est déjà son identité. Un point
+   lumineux parcourt la ligne en boucle — la seule animation du site, et la
+   seule chose que `prefers-reduced-motion` doit geler. Coordonnées de
+   `.pulse-dot` en pixels CSS natifs (aucune mise à l'échelle du SVG) pour
+   que son `offset-path` reste calé sur le tracé dessiné. */
+.status-hero-pulse {
+  position: absolute;
+  top: -10px;
+  right: -30px;
+  width: 420px;
+  height: 140px;
+  pointer-events: none;
+}
+.status-hero-pulse svg { display: block; width: 420px; height: 140px; }
+.status-hero-pulse path {
+  fill: none;
+  stroke: var(--accent-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.22;
+}
+.status-hero-pulse .pulse-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 12px 2px var(--accent-2-soft);
+  offset-path: path("M0 70 L40 70 L55 30 L75 110 L95 50 L115 70 L170 70 L185 35 L205 95 L225 70 L420 70");
+  offset-rotate: 0deg;
+  animation: pulse-travel 4.2s linear infinite;
+}
+@keyframes pulse-travel {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-hero-pulse .pulse-dot { animation: none; offset-distance: 55%; }
+}
+@media (max-width: 760px) {
+  .status-hero-pulse { display: none; }
 }
 .status-hero-eyebrow {
   display: inline-flex;
