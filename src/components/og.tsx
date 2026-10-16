@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { BRAND, toneColor } from "@/lib/brand";
+import { BRAND, Mark, toneColor } from "@/lib/brand";
 import { dict, type Locale } from "@/lib/i18n";
 import { statusLabel } from "@/lib/format";
 import type { ServiceStatus } from "@/lib/feeds";
@@ -15,18 +15,6 @@ export const OG_SIZE = { width: 1200, height: 630 };
  * s'y lit seule, et la carte d'une page fournisseur affiche son état réel au
  * moment du partage.
  */
-const MARK = (
-  <svg width="40" height="40" viewBox="0 0 44 44" fill="none">
-    <path
-      d="M4 26 H13 L18 12 L25 33 L30 24 H40"
-      stroke={BRAND.accentSoft}
-      strokeWidth="4.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 function frame(children: React.ReactNode) {
   return (
     <div
@@ -44,7 +32,7 @@ function frame(children: React.ReactNode) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        {MARK}
+        <Mark size={40} />
         <div style={{ display: "flex", fontSize: 30, fontWeight: 700, letterSpacing: "-0.01em" }}>
           Upstream Status
         </div>

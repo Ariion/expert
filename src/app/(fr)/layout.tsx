@@ -3,6 +3,7 @@ import { APP_URL, SITE_NAME } from "@/lib/env";
 import { SiteChrome } from "@/components/SiteChrome";
 import { dict, HTML_LANG, OG_LOCALE } from "@/lib/i18n";
 import { googleVerification } from "@/lib/seo";
+import { mono, sans } from "@/lib/fonts";
 import "../globals.css";
 
 const LOCALE = "fr" as const;
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={HTML_LANG[LOCALE]}>
+    <html lang={HTML_LANG[LOCALE]} className={`${sans.variable} ${mono.variable}`}>
       <body>
         <SiteChrome locale={LOCALE}>{children}</SiteChrome>
       </body>

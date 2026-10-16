@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { BRAND } from "@/lib/brand";
+import { BRAND, Mark } from "@/lib/brand";
 
 export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
@@ -24,15 +24,7 @@ export default function Icon() {
           borderRadius: 14,
         }}
       >
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <path
-            d="M4 26 H13 L18 12 L25 33 L30 24 H40"
-            stroke={BRAND.accentSoft}
-            strokeWidth="4.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Mark size={44} />
       </div>
     ),
     size,
