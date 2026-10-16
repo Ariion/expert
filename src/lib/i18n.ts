@@ -395,6 +395,8 @@ const fr = {
     lead: "Sans engagement, résiliable en un clic depuis le portail de facturation.",
     leadNoAccount:
       "Aucun compte à créer avant de payer : il se crée tout seul à partir de votre email de facturation.",
+    notFor:
+      "Ce que ce n'est pas : un outil de monitoring actif comme Hyperping ou Uptime.com, qui teste si votre propre site répond. Upstream Status surveille les fournisseurs dont vous dépendez, à partir de ce qu'ils publient eux-mêmes sur leur page de statut.",
     mostChosen: "Le plus choisi",
     freeCta: "Créer un compte gratuit",
     upgradeCta: (plan: string) => `Passer en ${plan}`,
@@ -948,6 +950,8 @@ const en: typeof fr = {
     lead: "No commitment, cancel in one click from the billing portal.",
     leadNoAccount:
       "No account to create before paying: it is created for you from your billing email.",
+    notFor:
+      "What this isn't: an active monitoring tool like Hyperping or Uptime.com, which tests whether your own site responds. Upstream Status watches the providers you depend on, from what they publish themselves on their status page.",
     mostChosen: "Most popular",
     freeCta: "Create a free account",
     upgradeCta: (plan: string) => `Upgrade to ${plan}`,

@@ -52,6 +52,9 @@ export function Pricing({ locale }: { locale: Locale }) {
         <p className="lead">
           {t.pricing.lead} <strong>{t.pricing.leadNoAccount}</strong>
         </p>
+        <p className="dim" style={{ maxWidth: 640, fontSize: 13.5, marginTop: 10 }}>
+          {t.pricing.notFor}
+        </p>
       </section>
 
       <section className="section grid two" style={{ marginTop: 10 }}>
