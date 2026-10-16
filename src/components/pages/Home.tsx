@@ -5,12 +5,11 @@ import { STATUS_TONE, faviconFor, isDown, statusLabel, timeAgo } from "@/lib/for
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
 /**
- * L'accueil est un tableau de bord, pas une plaquette.
- *
- * Quelqu'un qui arrive ici veut savoir si un service est en panne. Lui servir
- * d'abord un slogan, puis des arguments, puis enfin l'information, c'est le
- * faire partir avant la réponse. La vente vit sur /pricing, où va de toute
- * façon celui qui a compris à quoi sert le produit.
+ * L'accueil est un tableau de bord, pas une plaquette — mais un inconnu qui
+ * atterrit dessus doit comprendre en une phrase ce que regarde. Une ligne
+ * d'orientation précède donc le tableau de statut, et un bloc « comment ça
+ * marche » suit la liste des services : assez pour qu'un premier visiteur
+ * comprenne, sans retarder la réponse pour qui sait déjà pourquoi il est là.
  *
  * Effet secondaire utile : les cent soixante liens vers les pages fournisseur
  * partent désormais de la page la plus forte du site, dans les deux langues.
@@ -46,6 +45,10 @@ export async function Home({ locale }: { locale: Locale }) {
 
   return (
     <div className="wrap">
+      <p className="lead" style={{ margin: "28px 0 20px" }}>
+        {t.home.lead}
+      </p>
+
       <section className="status-hero">
         <div className="status-hero-pulse" aria-hidden="true">
           <svg viewBox="0 0 640 220">
@@ -110,6 +113,18 @@ export async function Home({ locale }: { locale: Locale }) {
           noMatchHint={t.home.noMatchHint}
           catAll={t.home.catAll}
         />
+      </section>
+
+      <section className="section">
+        <h2 style={{ fontSize: 17, margin: "0 0 12px" }}>{t.home.howItWorks}</h2>
+        <div className="grid three">
+          {t.home.steps.map(([title, body]) => (
+            <div className="card" key={title}>
+              <h3>{title}</h3>
+              <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {recentIncidents.length > 0 && (
