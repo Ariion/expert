@@ -59,12 +59,18 @@ export function Pricing({ locale }: { locale: Locale }) {
 
       <section className="section grid two" style={{ marginTop: 10 }}>
         <div className="stack">
-          {t.home.steps.map(([title, body]) => (
-            <div className="card" key={title}>
-              <h3>{title}</h3>
-              <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
-            </div>
-          ))}
+          {t.home.steps.map(([title, body]) => {
+            const [num, ...rest] = title.split(". ");
+            return (
+              <div className="card" key={title}>
+                <div className="step-head">
+                  <span className="step-num">{num}</span>
+                  <h3>{rest.join(". ")}</h3>
+                </div>
+                <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
+              </div>
+            );
+          })}
         </div>
         <WatchForm locale={locale} source="pricing" />
       </section>

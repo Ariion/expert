@@ -118,12 +118,18 @@ export async function Home({ locale }: { locale: Locale }) {
       <section className="section">
         <h2 style={{ fontSize: 17, margin: "0 0 12px" }}>{t.home.howItWorks}</h2>
         <div className="grid three">
-          {t.home.steps.map(([title, body]) => (
-            <div className="card" key={title}>
-              <h3>{title}</h3>
-              <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
-            </div>
-          ))}
+          {t.home.steps.map(([title, body]) => {
+            const [num, ...rest] = title.split(". ");
+            return (
+              <div className="card" key={title}>
+                <div className="step-head">
+                  <span className="step-num">{num}</span>
+                  <h3>{rest.join(". ")}</h3>
+                </div>
+                <p style={{ margin: 0, fontSize: 14 }}>{body}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
