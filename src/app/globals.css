@@ -499,8 +499,10 @@ footer a { color: var(--muted); }
 .chart-col.warn > i { background: var(--warn); }
 .chart-col.bad  > i { background: var(--bad); }
 .chart-col.none > i { background: var(--line); }
-/* Magnitude simple (ex. visites/jour) : une seule teinte, pas de sémantique de statut. */
-.chart-col.magnitude > i { background: var(--brand-soft); }
+/* Magnitude simple (ex. visites/jour) : une seule teinte, pas de sémantique de
+   statut — l'accent secondaire convient ici précisément parce qu'il est
+   réservé en dehors des couleurs ok/warn/bad, jamais utilisé pour autre chose. */
+.chart-col.magnitude > i { background: var(--accent-2); }
 .chart-col:hover > i,
 .chart-col.on > i { filter: brightness(1.45); }
 .chart-col:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
