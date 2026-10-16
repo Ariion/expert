@@ -14,7 +14,7 @@ export function Legal({ locale }: { locale: Locale }) {
         <div className="card">
           <h3>{t.publisherTitle}</h3>
           {who ? (
-            <p style={{ fontSize: 14 }}>
+            <p className="prose">
               {who.name}
               <br />
               {t.publisherRegistration} : {who.registration}
@@ -32,30 +32,28 @@ export function Legal({ locale }: { locale: Locale }) {
               )}
             </p>
           ) : (
-            <p className="dim" style={{ fontSize: 14 }}>
-              {t.publisherMissing}
-            </p>
+            <p className="prose dim">{t.publisherMissing}</p>
           )}
         </div>
         <div className="card">
           <h3>{t.hostingTitle}</h3>
-          <p style={{ fontSize: 14 }}>{t.hostingBody}</p>
+          <p className="prose">{t.hostingBody}</p>
         </div>
         <div className="card">
           <h3>{t.sourcesTitle}</h3>
-          <p style={{ fontSize: 14 }}>{t.sourcesBody(SITE_NAME)}</p>
+          <p className="prose">{t.sourcesBody(SITE_NAME)}</p>
         </div>
         <div className="card">
           <h3>{t.dataTitle}</h3>
-          <p style={{ fontSize: 14 }}>{t.dataBody}</p>
+          <p className="prose">{t.dataBody}</p>
         </div>
         <div className="card">
           <h3>{t.analyticsTitle}</h3>
-          <p style={{ fontSize: 14 }}>{t.analyticsBody}</p>
+          <p className="prose">{t.analyticsBody}</p>
         </div>
         <div className="card">
           <h3>{t.liabilityTitle}</h3>
-          <p style={{ fontSize: 14 }}>{t.liabilityBody(SITE_NAME)}</p>
+          <p className="prose">{t.liabilityBody(SITE_NAME)}</p>
         </div>
       </div>
     </div>

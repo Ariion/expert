@@ -318,18 +318,7 @@ export async function Dashboard({
             <summary className="dim" style={{ cursor: "pointer", fontSize: 13 }}>
               {t.dashboard.apiDocs}
             </summary>
-            <pre
-              className="mono"
-              style={{
-                marginTop: 10,
-                padding: 14,
-                background: "var(--bg-soft)",
-                border: "1px solid var(--line)",
-                borderRadius: 10,
-                overflowX: "auto",
-                fontSize: 12.5,
-              }}
-            >
+            <pre className="code-block" style={{ marginTop: 10 }}>
 {`curl -H "Authorization: Bearer usk_…" \\
   ${APP_URL()}/api/v1/status
 

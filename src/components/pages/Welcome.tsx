@@ -21,7 +21,7 @@ export function Welcome({ locale }: { locale: Locale }) {
       <section className="grid two">
         <div className="card">
           <h2 style={{ fontSize: 17, marginTop: 0 }}>{t.nextTitle}</h2>
-          <ol className="muted" style={{ fontSize: 14, paddingLeft: 18, margin: 0 }}>
+          <ol className="muted prose" style={{ paddingLeft: 18, margin: 0 }}>
             {t.next.map((step) => (
               <li key={step} style={{ marginBottom: 8 }}>
                 {step}
@@ -31,9 +31,7 @@ export function Welcome({ locale }: { locale: Locale }) {
         </div>
         <div className="card">
           <h2 style={{ fontSize: 17, marginTop: 0 }}>{t.missingTitle}</h2>
-          <p className="muted" style={{ fontSize: 14 }}>
-            {t.missingBody}
-          </p>
+          <p className="muted prose">{t.missingBody}</p>
           <Link className="btn" href={href(locale, "/login")} style={{ width: "100%", textAlign: "center" }}>
             {t.missingCta}
           </Link>

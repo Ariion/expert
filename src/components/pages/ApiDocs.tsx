@@ -24,19 +24,7 @@ export function ApiDocs({ locale }: { locale: Locale }) {
       <section className="section">
         <h2>{t.apiPage.authTitle}</h2>
         <p>{t.apiPage.authBody}</p>
-        <pre
-          className="mono"
-          style={{
-            padding: 14,
-            background: "var(--bg-soft)",
-            border: "1px solid var(--line)",
-            borderRadius: 10,
-            overflowX: "auto",
-            fontSize: 12.5,
-          }}
-        >
-          {`Authorization: Bearer usk_…`}
-        </pre>
+        <pre className="code-block">{`Authorization: Bearer usk_…`}</pre>
         <Link className="btn sm" href={href(locale, "/dashboard")} style={{ marginTop: 4, display: "inline-block" }}>
           {t.apiPage.getKeyCta}
         </Link>
@@ -50,37 +38,15 @@ export function ApiDocs({ locale }: { locale: Locale }) {
       <section className="section grid two">
         <div className="card">
           <h3>{t.apiPage.statusTitle}</h3>
-          <p style={{ fontSize: 13.5 }}>{t.apiPage.statusBody}</p>
-          <pre
-            className="mono"
-            style={{
-              marginTop: 10,
-              padding: 14,
-              background: "var(--bg-soft)",
-              border: "1px solid var(--line)",
-              borderRadius: 10,
-              overflowX: "auto",
-              fontSize: 12.5,
-            }}
-          >
+          <p className="prose">{t.apiPage.statusBody}</p>
+          <pre className="code-block" style={{ marginTop: 10 }}>
             {`curl -H "Authorization: Bearer usk_…" \\\n  ${base}/api/v1/status`}
           </pre>
         </div>
         <div className="card">
           <h3>{t.apiPage.incidentsTitle}</h3>
-          <p style={{ fontSize: 13.5 }}>{t.apiPage.incidentsBody}</p>
-          <pre
-            className="mono"
-            style={{
-              marginTop: 10,
-              padding: 14,
-              background: "var(--bg-soft)",
-              border: "1px solid var(--line)",
-              borderRadius: 10,
-              overflowX: "auto",
-              fontSize: 12.5,
-            }}
-          >
+          <p className="prose">{t.apiPage.incidentsBody}</p>
+          <pre className="code-block" style={{ marginTop: 10 }}>
             {`curl -H "Authorization: Bearer usk_…" \\\n  ${base}/api/v1/incidents?days=30&limit=100`}
           </pre>
         </div>
