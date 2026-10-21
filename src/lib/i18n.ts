@@ -165,7 +165,7 @@ const fr = {
     heroEyebrow: "En direct",
     heroAllOk: "Tous les systèmes sont opérationnels",
     heroOperational: (n: number) => `${n} opérationnel${n > 1 ? "s" : ""}`,
-    heroOf: (n: number) => `sur ${n} fournisseurs surveillés`,
+    heroOf: (n: number) => `sur ${n} fournisseur${n > 1 ? "s" : ""} surveillé${n > 1 ? "s" : ""}`,
     heroAffected: (n: number) => (n === 1 ? "1 fournisseur affecté" : `${n} fournisseurs affectés`),
     heroCaption:
       "Actualisé automatiquement toutes les 5 minutes, depuis les pages de statut officielles des fournisseurs.",
@@ -210,7 +210,7 @@ const fr = {
     planCta: "Voir les tarifs",
     byCategory: "Par catégorie",
     categoryCount: (count: number, degraded: number) =>
-      `${count} fournisseurs · ${degraded} en incident`,
+      `${count} fournisseur${count > 1 ? "s" : ""} · ${degraded} en incident`,
   },
   statusIndex: {
     metaTitle: "Statut en direct de 140+ fournisseurs SaaS",
@@ -243,12 +243,12 @@ const fr = {
   },
   category: {
     metaTitle: (label: string, n: number) =>
-      `Statut des fournisseurs ${label} (${n} services surveillés)`,
+      `Statut des fournisseurs ${label} (${n} service${n > 1 ? "s" : ""} surveillé${n > 1 ? "s" : ""})`,
     metaDescription: (label: string, names: string) =>
       `Statut en direct, disponibilité et historique d'incidents des principaux fournisseurs ${label} : ${names}.`,
     h1: (label: string) => `Fournisseurs ${label}`,
     lead: (n: number, down: number) =>
-      `${n} services surveillés, ${down} actuellement en incident. Données relevées automatiquement sur les pages de statut officielles.`,
+      `${n} service${n > 1 ? "s" : ""} surveillé${n > 1 ? "s" : ""}, ${down} actuellement en incident. Données relevées automatiquement sur les pages de statut officielles.`,
     explainer: (label: string) =>
       `Les fournisseurs ${label} remplissent le même rôle critique dans une stack : une panne de l'un affecte généralement tous les services qui en dépendent, même ceux qui n'utilisent pas directement ce fournisseur. Les suivre ensemble, plutôt qu'un par un, montre si un incident est isolé à un acteur ou touche toute la catégorie.`,
     thService: "Service",
@@ -376,11 +376,12 @@ const fr = {
       q1: (name: string) => `${name} est-il en panne actuellement ?`,
       a1: (name: string, date: string, status: string, open: string) =>
         `Au dernier relevé (${date}), ${name} est en état « ${status} » d'après sa page de statut officielle. ${open}`,
-      a1Open: (n: number, title: string) => `${n} incident(s) en cours : ${title}.`,
+      a1Open: (n: number, title: string) =>
+        n === 1 ? `1 incident en cours : ${title}.` : `${n} incidents en cours : ${title}.`,
       a1None: "Aucun incident en cours n'est publié.",
       q2: (name: string) => `Quelle est la disponibilité de ${name} sur 90 jours ?`,
       a2: (name: string, pct: string, count: number) =>
-        `${name} affiche ${pct} % de disponibilité sur les 90 derniers jours, avec ${count} incident(s) publiés.`,
+        `${name} affiche ${pct} % de disponibilité sur les 90 derniers jours, avec ${count} incident${count > 1 ? "s" : ""} publié${count > 1 ? "s" : ""}.`,
       a2None: (name: string, site: string) =>
         `L'historique de ${name} est en cours de constitution sur ${site}.`,
       q3: (name: string) => `Comment être prévenu automatiquement d'une panne de ${name} ?`,
@@ -776,7 +777,7 @@ const en: typeof fr = {
     heroEyebrow: "Live",
     heroAllOk: "All systems are operational",
     heroOperational: (n: number) => `${n} operational`,
-    heroOf: (n: number) => `out of ${n} monitored providers`,
+    heroOf: (n: number) => `out of ${n} monitored provider${n > 1 ? "s" : ""}`,
     heroAffected: (n: number) => (n === 1 ? "1 provider affected" : `${n} providers affected`),
     heroCaption: "Refreshed automatically every 5 minutes, from the providers' own official status pages.",
     catAll: "All",
@@ -819,7 +820,8 @@ const en: typeof fr = {
     ],
     planCta: "See pricing",
     byCategory: "By category",
-    categoryCount: (count: number, degraded: number) => `${count} providers · ${degraded} down`,
+    categoryCount: (count: number, degraded: number) =>
+      `${count} provider${count > 1 ? "s" : ""} · ${degraded} down`,
   },
   statusIndex: {
     metaTitle: "Live status of 140+ SaaS providers",
@@ -851,12 +853,13 @@ const en: typeof fr = {
       "Each category groups providers that play the same role in your stack: if one goes down, the others in the same category are often the natural fallback, and watching the whole category avoids a blind spot when you switch providers.",
   },
   category: {
-    metaTitle: (label: string, n: number) => `${label} status — ${n} providers monitored`,
+    metaTitle: (label: string, n: number) =>
+      `${label} status — ${n} provider${n > 1 ? "s" : ""} monitored`,
     metaDescription: (label: string, names: string) =>
       `Live status, uptime and incident history for the main ${label.toLowerCase()} providers: ${names}.`,
     h1: (label: string) => `${label} providers`,
     lead: (n: number, down: number) =>
-      `${n} services monitored, ${down} currently reporting an incident. Read automatically from official status pages.`,
+      `${n} service${n > 1 ? "s" : ""} monitored, ${down} currently reporting an incident. Read automatically from official status pages.`,
     explainer: (label: string) =>
       `${label} providers play the same critical role in a stack: an outage at one usually affects every service that depends on it, even ones that don't use that provider directly. Watching them together, rather than one at a time, shows whether an incident is isolated to one player or hits the whole category.`,
     thService: "Service",
@@ -983,7 +986,7 @@ const en: typeof fr = {
       a1None: "No ongoing incident is published.",
       q2: (name: string) => `What is ${name}'s uptime over the last 90 days?`,
       a2: (name: string, pct: string, count: number) =>
-        `${name} shows ${pct}% uptime over the last 90 days, across ${count} published incident(s).`,
+        `${name} shows ${pct}% uptime over the last 90 days, across ${count} published incident${count > 1 ? "s" : ""}.`,
       a2None: (name: string, site: string) =>
         `${name}'s history is still being built up on ${site}.`,
       q3: (name: string) => `How do I get notified automatically when ${name} goes down?`,
