@@ -220,6 +220,17 @@ const fr = {
     lead: "Relevé sur les pages de statut officielles, toutes les 2 à 5 minutes.",
     seeCategory: "Voir la catégorie →",
     uptimeShort: (pct: string) => `${pct} % / 90 j`,
+    faqTitle: "Questions fréquentes",
+    faq: [
+      [
+        "D'où viennent ces statuts ?",
+        "Chaque ligne est relevée directement sur la page de statut officielle du fournisseur — jamais déduite d'un test que nous ferions nous-mêmes. Upstream Status republie ce que le fournisseur publie, à la fréquence indiquée ci-dessus.",
+      ],
+      [
+        "À quelle fréquence la page se met-elle à jour ?",
+        "Toutes les 2 à 5 minutes pour chaque fournisseur, avec une cadence plus rapide dès qu'un service est dégradé. L'horodatage visible sur chaque fiche indique le dernier relevé.",
+      ],
+    ],
   },
   categories: {
     metaTitle: "Catégories de fournisseurs surveillés",
@@ -227,6 +238,8 @@ const fr = {
       "Cloud, paiement, email, authentification, CDN, observabilité : parcourez les status pages surveillées par catégorie.",
     h1: "Catégories",
     lead: "Les fournisseurs regroupés par maillon d'infrastructure.",
+    explainer:
+      "Chaque catégorie regroupe des fournisseurs qui remplissent le même rôle dans votre stack : si l'un tombe, les autres de la même catégorie sont souvent de bons candidats de repli, et surveiller toute la catégorie évite un angle mort quand vous changez de fournisseur.",
   },
   category: {
     metaTitle: (label: string, n: number) =>
@@ -236,6 +249,8 @@ const fr = {
     h1: (label: string) => `Fournisseurs ${label}`,
     lead: (n: number, down: number) =>
       `${n} services surveillés, ${down} actuellement en incident. Données relevées automatiquement sur les pages de statut officielles.`,
+    explainer: (label: string) =>
+      `Les fournisseurs ${label} remplissent le même rôle critique dans une stack : une panne de l'un affecte généralement tous les services qui en dépendent, même ceux qui n'utilisent pas directement ce fournisseur. Les suivre ensemble, plutôt qu'un par un, montre si un incident est isolé à un acteur ou touche toute la catégorie.`,
     thService: "Service",
     thUptime: "Dispo. 90 j",
     thLast: "Dernier incident",
@@ -248,6 +263,8 @@ const fr = {
       "Les derniers incidents publiés par les fournisseurs surveillés par Upstream Status — cloud, paiement, email, communication — relevés sur leurs pages de statut officielles.",
     h1: "Incidents récents",
     lead: "Tous les incidents publiés par les fournisseurs surveillés, sur les 30 derniers jours, classés du plus récent au plus ancien.",
+    explainer:
+      "Ce fil assemble les incidents de tous les fournisseurs surveillés sur une seule chronologie, exactement comme ils ont été publiés sur leur page de statut officielle respective — sans délai d'interprétation ni reformulation.",
     empty: "Aucun incident publié sur les 30 derniers jours.",
     viewService: "Voir la fiche →",
   },
@@ -270,6 +287,17 @@ const fr = {
     incidentsBody:
       "Historique des incidents des fournisseurs surveillés. Paramètres optionnels : days (1 à 365, 90 par défaut) et limit (1 à 1000, 200 par défaut).",
     getKeyCta: "Générer une clé depuis le tableau de bord",
+    faqTitle: "Questions fréquentes",
+    faq: [
+      [
+        "L'API fait-elle ses propres vérifications ?",
+        "Non. Elle expose en JSON les mêmes données que le tableau de bord, elles-mêmes relevées sur les pages de statut officielles des fournisseurs — aucun test actif n'est lancé à l'appel de l'API.",
+      ],
+      [
+        "Quelle est la fraîcheur des données renvoyées ?",
+        "Celle du dernier relevé affiché sur le tableau de bord, soit au maximum 5 minutes. L'API ne recalcule rien à la demande, elle lit l'état déjà stocké.",
+      ],
+    ],
   },
   service: {
     notFound: "Fournisseur introuvable",
@@ -375,6 +403,18 @@ const fr = {
     readingTitle: "Lecture du comparatif",
     reading: (a: string, sa: string, b: string, sb: string) =>
       `${a} est « ${sa} », ${b} est « ${sb} ». Publier beaucoup d'incidents ne veut pas dire être moins fiable : c'est souvent une status page plus détaillée. Comparez plutôt la durée cumulée.`,
+    seeCategoryCta: (label: string) => `Voir tous les fournisseurs ${label} →`,
+    faqTitle: "Questions fréquentes",
+    faq: [
+      [
+        "Comment la disponibilité sur 90 jours est-elle calculée ?",
+        "À partir des incidents que chaque fournisseur publie lui-même sur sa page de statut officielle : plus les interruptions cumulées sur 90 jours sont courtes, plus la disponibilité affichée est élevée. Aucun test actif n'est effectué de notre côté.",
+      ],
+      [
+        "Ce comparatif veut dire quoi, concrètement ?",
+        "Il place deux fournisseurs d'une même catégorie côte à côte, sur les mêmes 90 jours, pour répondre à une seule question : lequel a cumulé le moins de temps d'interruption publié.",
+      ],
+    ],
   },
   watch: {
     titleService: (name: string) => `Être alerté quand ${name} tombe`,
@@ -528,6 +568,9 @@ const fr = {
       `Le service est fourni « en l'état ». Les alertes dépendent de la publication d'incidents par les fournisseurs eux-mêmes : ${site} ne peut garantir la détection d'une panne qui n'aurait pas été publiée sur la page de statut officielle.`,
   },
   notFound: {
+    metaTitle: "Page introuvable",
+    metaDescription:
+      "Cette adresse ne correspond à aucun fournisseur ou page suivie par Upstream Status.",
     h1: "Page introuvable",
     lead: "Ce fournisseur n'est pas (encore) surveillé par Upstream Status, ou l'adresse est erronée.",
     ctaProviders: "Voir tous les fournisseurs",
@@ -786,6 +829,17 @@ const en: typeof fr = {
     lead: "Read from official status pages, every 2 to 5 minutes.",
     seeCategory: "See category →",
     uptimeShort: (pct: string) => `${pct}% / 90d`,
+    faqTitle: "Frequently asked questions",
+    faq: [
+      [
+        "Where does this status data come from?",
+        "Each row is read directly from the provider's own official status page — never inferred from a test we run ourselves. Upstream Status republishes what the provider publishes, at the frequency shown above.",
+      ],
+      [
+        "How often does this page update?",
+        "Every 2 to 5 minutes per provider, faster once a service is degraded. The timestamp on each provider card shows the last check.",
+      ],
+    ],
   },
   categories: {
     metaTitle: "Provider categories",
@@ -793,6 +847,8 @@ const en: typeof fr = {
       "Cloud, payments, email, authentication, CDN, observability: browse monitored status pages by category.",
     h1: "Categories",
     lead: "Providers grouped by infrastructure layer.",
+    explainer:
+      "Each category groups providers that play the same role in your stack: if one goes down, the others in the same category are often the natural fallback, and watching the whole category avoids a blind spot when you switch providers.",
   },
   category: {
     metaTitle: (label: string, n: number) => `${label} status — ${n} providers monitored`,
@@ -801,6 +857,8 @@ const en: typeof fr = {
     h1: (label: string) => `${label} providers`,
     lead: (n: number, down: number) =>
       `${n} services monitored, ${down} currently reporting an incident. Read automatically from official status pages.`,
+    explainer: (label: string) =>
+      `${label} providers play the same critical role in a stack: an outage at one usually affects every service that depends on it, even ones that don't use that provider directly. Watching them together, rather than one at a time, shows whether an incident is isolated to one player or hits the whole category.`,
     thService: "Service",
     thUptime: "90d uptime",
     thLast: "Last incident",
@@ -813,6 +871,8 @@ const en: typeof fr = {
       "The latest incidents published by the providers monitored by Upstream Status — cloud, payments, email, communication — read from their official status pages.",
     h1: "Recent incidents",
     lead: "Every incident published by a monitored provider over the last 30 days, newest first.",
+    explainer:
+      "This feed pulls together incidents from every monitored provider into one timeline, exactly as they were published on each provider's own official status page — no interpretation delay, no rewriting.",
     empty: "No incident published over the last 30 days.",
     viewService: "View provider →",
   },
@@ -835,6 +895,17 @@ const en: typeof fr = {
     incidentsBody:
       "Incident history for your monitored providers. Optional parameters: days (1 to 365, default 90) and limit (1 to 1000, default 200).",
     getKeyCta: "Generate a key from your dashboard",
+    faqTitle: "Frequently asked questions",
+    faq: [
+      [
+        "Does the API run its own checks?",
+        "No. It exposes the same JSON data as the dashboard, itself read from providers' official status pages — no active test runs when you call the API.",
+      ],
+      [
+        "How fresh is the data returned?",
+        "As fresh as the last check shown on the dashboard, at most 5 minutes old. The API doesn't recompute anything on request, it reads the already-stored state.",
+      ],
+    ],
   },
   service: {
     notFound: "Provider not found",
@@ -935,6 +1006,18 @@ const en: typeof fr = {
     readingTitle: "How to read this",
     reading: (a: string, sa: string, b: string, sb: string) =>
       `${a} reports “${sa}”, ${b} reports “${sb}”. Publishing more incidents does not mean being less reliable: it often means a more detailed status page. Compare total downtime instead.`,
+    seeCategoryCta: (label: string) => `See all ${label} providers →`,
+    faqTitle: "Frequently asked questions",
+    faq: [
+      [
+        "How is the 90-day uptime figure calculated?",
+        "From the incidents each provider itself publishes on its official status page: the shorter the cumulative downtime over 90 days, the higher the uptime shown. We don't run any active tests ourselves.",
+      ],
+      [
+        "What does this comparison actually mean?",
+        "It puts two providers from the same category side by side over the same 90 days, to answer one question: which one accumulated less published downtime.",
+      ],
+    ],
   },
   watch: {
     titleService: (name: string) => `Get alerted when ${name} goes down`,
@@ -1080,6 +1163,9 @@ const en: typeof fr = {
       `The service is provided “as is”. Alerts depend on the providers publishing their own incidents: ${site} cannot guarantee detection of an outage that was never published on the official status page.`,
   },
   notFound: {
+    metaTitle: "Page not found",
+    metaDescription:
+      "This address doesn't match any provider or page tracked by Upstream Status.",
     h1: "Page not found",
     lead: "This provider is not monitored by Upstream Status (yet), or the address is wrong.",
     ctaProviders: "See all providers",

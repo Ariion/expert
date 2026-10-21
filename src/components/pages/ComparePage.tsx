@@ -5,7 +5,7 @@ import { UptimeBar } from "@/components/UptimeBar";
 import { WatchForm } from "@/components/WatchForm";
 import { getDailyUptime, getServiceBySlug } from "@/lib/queries";
 import { statusLabel, timeAgo } from "@/lib/format";
-import { dict, href, type Locale } from "@/lib/i18n";
+import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
 /**
  * Pages comparatives « A vs B ».
@@ -45,8 +45,24 @@ export async function ComparePage({ locale, pair }: { locale: Locale; pair: stri
   const ub90 = b.uptime_90d ?? avg(ub);
   const winner = ua90 !== null && ub90 !== null ? (ua90 === ub90 ? null : ua90 > ub90 ? a : b) : null;
 
+  const sharedCategory = a.category === b.category ? a.category : null;
+  const sharedCategoryLabel = sharedCategory ? categoryLabel(sharedCategory, locale) : null;
+
+  // FAQ dédiée au comparatif : même modèle JSON-LD que ServicePage.tsx/Pricing.tsx.
+  const faq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    inLanguage: locale,
+    mainEntity: t.compare.faq.map(([q, a2]) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a2 },
+    })),
+  };
+
   return (
     <div className="wrap">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
       <section className="hero" style={{ paddingBottom: 10 }}>
         <h1>{t.compare.h1(a.name, b.name)}</h1>
         <p className="lead">
@@ -99,8 +115,27 @@ export async function ComparePage({ locale, pair }: { locale: Locale; pair: stri
               statusLabel(b.current_status, locale),
             )}
           </p>
+          {sharedCategory && sharedCategoryLabel && (
+            <Link className="dim" href={L(`/categories/${sharedCategory}`)}>
+              {t.compare.seeCategoryCta(sharedCategoryLabel)}
+            </Link>
+          )}
         </div>
         <WatchForm locale={locale} source={`compare:${pair}`} />
+      </section>
+
+      <section className="section">
+        <h2>{t.compare.faqTitle}</h2>
+        <div className="grid two">
+          {t.compare.faq.map(([q, a3]) => (
+            <div className="card" key={q}>
+              <h3>{q}</h3>
+              <p className="prose" style={{ margin: 0 }}>
+                {a3}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );

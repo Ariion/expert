@@ -19,6 +19,9 @@ export async function IncidentsIndex({ locale }: { locale: Locale }) {
       <section className="hero" style={{ paddingBottom: 10 }}>
         <h1>{t.incidentsPage.h1}</h1>
         <p className="lead">{t.incidentsPage.lead}</p>
+        <p className="prose" style={{ marginTop: 10 }}>
+          {t.incidentsPage.explainer}
+        </p>
       </section>
 
       {incidents.length === 0 ? (

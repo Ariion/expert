@@ -11,6 +11,9 @@ export async function CategoriesIndex({ locale }: { locale: Locale }) {
       <section className="hero" style={{ paddingBottom: 10 }}>
         <h1>{t.categories.h1}</h1>
         <p className="lead">{t.categories.lead}</p>
+        <p className="prose" style={{ marginTop: 10 }}>
+          {t.categories.explainer}
+        </p>
       </section>
       <div className="grid three">
         {categories.map((c) => (

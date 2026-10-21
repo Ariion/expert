@@ -55,6 +55,20 @@ export async function StatusIndex({ locale }: { locale: Locale }) {
           </div>
         </section>
       ))}
+
+      <section className="section">
+        <h2>{t.statusIndex.faqTitle}</h2>
+        <div className="grid two">
+          {t.statusIndex.faq.map(([q, a]) => (
+            <div className="card" key={q}>
+              <h3>{q}</h3>
+              <p className="prose" style={{ margin: 0 }}>
+                {a}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

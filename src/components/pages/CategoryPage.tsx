@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { WatchForm } from "@/components/WatchForm";
 import { getServicesByCategory } from "@/lib/queries";
+import { APP_URL } from "@/lib/env";
 import { faviconFor, isDown, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
@@ -16,14 +17,36 @@ export async function CategoryPage({ locale, slug }: { locale: Locale; slug: str
   const label = categoryLabel(slug, locale);
   const down = services.filter((s) => isDown(s.current_status));
 
+  // Fil d'Ariane réel (catégories › catégorie) — même modèle que ServicePage.tsx.
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: t.nav.categories, item: `${APP_URL()}${L("/categories")}` },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: label,
+        item: `${APP_URL()}${L(`/categories/${slug}`)}`,
+      },
+    ],
+  };
+
   return (
     <div className="wrap">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
+      />
       <section className="hero" style={{ paddingBottom: 10 }}>
         <div className="dim">
           <Link href={L("/categories")}>{t.nav.categories}</Link>
         </div>
         <h1>{t.category.h1(label)}</h1>
         <p className="lead">{t.category.lead(services.length, down.length)}</p>
+        <p className="prose" style={{ marginTop: 10 }}>
+          {t.category.explainer(label)}
+        </p>
       </section>
 
       <section className="grid two">

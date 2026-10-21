@@ -45,8 +45,23 @@ export function Pricing({ locale }: { locale: Locale }) {
     };
   });
 
+  // Données structurées pour la FAQ déjà écrite et rendue plus bas — même
+  // modèle que ServicePage.tsx, construit à partir du même tableau que le
+  // rendu visible, sans aucun nouveau texte.
+  const faq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    inLanguage: locale,
+    mainEntity: t.pricing.faq.map(([q, a]) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+
   return (
     <div className="wrap">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
       <section className="hero" style={{ paddingBottom: 14 }}>
         <h1>{t.pricing.h1}</h1>
         <p className="lead">
