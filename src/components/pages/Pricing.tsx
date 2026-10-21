@@ -1,6 +1,7 @@
 import { PAID_PLANS, PLANS, yearlyAvailable, yearlySavingEuros, type PlanId } from "@/lib/plans";
 import { WatchForm } from "@/components/WatchForm";
 import { PricingPlans, type PlanCard } from "@/components/PricingPlans";
+import { APP_URL, SITE_NAME } from "@/lib/env";
 import { dict, href, type Locale } from "@/lib/i18n";
 
 /**
@@ -59,9 +60,31 @@ export function Pricing({ locale }: { locale: Locale }) {
     })),
   };
 
+  // Offres réelles, lues dans plans.ts (source de vérité Stripe) — jamais de
+  // prix recopié à la main, jamais de plan inventé.
+  const offers = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: SITE_NAME,
+    url: `${APP_URL()}${href(locale, "/pricing")}`,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    offers: (Object.keys(PLANS) as PlanId[]).map((id) => ({
+      "@type": "Offer",
+      name: t.plans[id].name,
+      price: euros(PLANS[id].monthlyCents ?? 0),
+      priceCurrency: "EUR",
+      url: `${APP_URL()}${href(locale, "/pricing")}`,
+    })),
+  };
+
   return (
     <div className="wrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(offers) }}
+      />
       <section className="hero" style={{ paddingBottom: 14 }}>
         <h1>{t.pricing.h1}</h1>
         <p className="lead">
