@@ -76,6 +76,86 @@ export function siteImage(locale: Locale) {
   );
 }
 
+/** Carte d'une catégorie : combien de services, combien en incident au moment du partage. */
+export function categoryImage(args: { locale: Locale; label: string; total: number; down: number }) {
+  const { locale, label, total, down } = args;
+  const t = dict(locale);
+  const tone = down > 0 ? toneColor("major_outage") : toneColor("operational");
+
+  return new ImageResponse(
+    frame(
+      <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 60,
+            fontWeight: 700,
+            letterSpacing: "-0.025em",
+            lineHeight: 1.1,
+            maxWidth: 1000,
+          }}
+        >
+          {t.category.h1(label)}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", width: 20, height: 20, borderRadius: 20, backgroundColor: tone }} />
+          <div style={{ display: "flex", fontSize: 34, fontWeight: 600, color: tone }}>
+            {t.category.lead(total, down)}
+          </div>
+        </div>
+      </div>,
+    ),
+    OG_SIZE,
+  );
+}
+
+/** Carte d'un comparatif : les deux fournisseurs, statut réel côte à côte. */
+export function compareImage(args: {
+  locale: Locale;
+  a: { name: string; status: ServiceStatus };
+  b: { name: string; status: ServiceStatus };
+}) {
+  const { locale, a, b } = args;
+
+  const side = (s: { name: string; status: ServiceStatus }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+      <div style={{ display: "flex", fontSize: 42, fontWeight: 700, letterSpacing: "-0.02em" }}>
+        {s.name}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            width: 16,
+            height: 16,
+            borderRadius: 16,
+            backgroundColor: toneColor(s.status),
+          }}
+        />
+        <div style={{ display: "flex", fontSize: 26, fontWeight: 600, color: toneColor(s.status) }}>
+          {statusLabel(s.status, locale)}
+        </div>
+      </div>
+    </div>
+  );
+
+  return new ImageResponse(
+    frame(
+      <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+        <div style={{ display: "flex", fontSize: 30, color: BRAND.muted }}>
+          {locale === "en" ? "Reliability compared" : "Fiabilité comparée"}
+        </div>
+        <div style={{ display: "flex", gap: 56, paddingTop: 10, borderTop: `2px solid ${BRAND.line}` }}>
+          {side(a)}
+          {side(b)}
+        </div>
+      </div>,
+    ),
+    OG_SIZE,
+  );
+}
+
 /** Carte d'une page fournisseur : elle porte l'état réel au moment du partage. */
 export function serviceImage(args: {
   locale: Locale;
