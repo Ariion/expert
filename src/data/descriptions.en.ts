@@ -126,7 +126,6 @@ export const DESCRIPTIONS_EN: Record<string, string> = {
   "1password": "Team password manager.",
   bitwarden: "Open-source password manager.",
   dashlane: "Password manager, built in France.",
-  "cloudflare-zero-trust": "Network access without implicit trust.",
 
   // --- Productivity --------------------------------------------------------
   jira: "Issue tracking and project management.",
@@ -226,7 +225,6 @@ export const DESCRIPTIONS_EN: Record<string, string> = {
   prismic: "Headless CMS for marketing sites.",
   storyblok: "Visual headless CMS.",
   datocms: "Performance-focused headless CMS.",
-  "webflow-cms": "Website building without code.",
 
   // --- Product analytics & UX (more) --------------------------------------
   mixpanel: "Product event analytics.",

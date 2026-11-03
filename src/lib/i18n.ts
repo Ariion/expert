@@ -214,6 +214,7 @@ const fr = {
     kpiIncidents24h: "Incidents (24 h)",
     kpiMaintenance: "En maintenance",
     kpiUnknown: "Statut inconnu",
+    kpiUnknownHint: "Flux cassé ou jamais interrogé avec succès",
   },
   statusIndex: {
     metaTitle: "Statut en direct de 140+ fournisseurs SaaS",
@@ -828,6 +829,7 @@ const en: typeof fr = {
     kpiIncidents24h: "Incidents (24h)",
     kpiMaintenance: "In maintenance",
     kpiUnknown: "Unknown status",
+    kpiUnknownHint: "Feed broken or never successfully polled",
   },
   statusIndex: {
     metaTitle: "Live status of 140+ SaaS providers",

@@ -127,6 +127,14 @@ alter table incidents alter column last_seen_in_feed_at set default now();
 create index if not exists incidents_open_stale_idx
   on incidents (service_id, last_seen_in_feed_at) where not is_resolved;
 
+-- Doublons de catalogue retirés de src/data/services.ts (noms affichés
+-- identiques à un autre fournisseur déjà suivi, ou flux partagé non
+-- documenté) — déjà semés en base par `ensureCatalog()`, qui n'efface
+-- jamais une ligne existante. Désactivation plutôt que suppression : garde
+-- l'historique, réversible, idempotent (no-op une fois déjà inactif).
+update services set is_active = false
+ where slug in ('webflow-cms', 'cloudflare-zero-trust') and is_active;
+
 do $$
 begin
   if not exists (

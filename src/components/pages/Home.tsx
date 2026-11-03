@@ -102,6 +102,9 @@ export async function Home({ locale }: { locale: Locale }) {
             <strong className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
               {stats.unknown_now}
             </strong>
+            <div className="dim" style={{ fontSize: 12, marginTop: 4 }}>
+              {t.home.kpiUnknownHint}
+            </div>
           </div>
         </section>
       )}

@@ -178,7 +178,11 @@ const STATUSPAGE: Row[] = [
   ["1password", "1Password", "securite", "status.1password.com", "1password.com", "Gestionnaire de mots de passe d'équipe."],
   ["bitwarden", "Bitwarden", "securite", "status.bitwarden.com", "bitwarden.com", "Gestionnaire de mots de passe open source."],
   ["dashlane", "Dashlane", "securite", "status.dashlane.com", "dashlane.com", "Gestionnaire de mots de passe français."],
-  ["cloudflare-zero-trust", "Cloudflare Zero Trust", "securite", "www.cloudflarestatus.com", "cloudflare.com", "Accès réseau sans confiance implicite."],
+  // "cloudflare-zero-trust" retiré : partageait le même flux que "cloudflare"
+  // (www.cloudflarestatus.com) sans raison documentée — contrairement au cas
+  // google-gemini/google-cloud, affichait les mêmes incidents sous un nom et
+  // une catégorie différents (Sécurité au lieu de Cloud), donc trompeur plutôt
+  // que simplement redondant.
 
   // --- Productivité --------------------------------------------------------
   ["monday", "monday.com", "productivite", "status.monday.com", "monday.com", "Gestion de projet visuelle."],
@@ -244,7 +248,8 @@ const STATUSPAGE: Row[] = [
   ["prismic", "Prismic", "productivite", "status.prismic.io", "prismic.io", "CMS headless pour sites marketing."],
   ["storyblok", "Storyblok", "productivite", "status.storyblok.com", "storyblok.com", "CMS headless visuel."],
   ["datocms", "DatoCMS", "productivite", "status.datocms.com", "datocms.com", "CMS headless orienté performance."],
-  ["webflow-cms", "Webflow", "no-code", "status.webflow.com", "webflow.com", "Création de sites sans code."],
+  // "webflow-cms" retiré : doublon exact de "webflow" plus bas dans ce
+  // fichier (même nom affiché, même catégorie, même page de statut).
 
   // --- Analyse produit et expérience utilisateur ------------------------------
   ["mixpanel", "Mixpanel", "marketing", "status.mixpanel.com", "mixpanel.com", "Analyse d'événements produit."],

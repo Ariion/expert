@@ -220,10 +220,19 @@ export async function ingestService(service: ServiceRow): Promise<{
     const message = err instanceof Error ? err.message : String(err);
     const failures = service.consecutive_failures + 1;
 
+    // Trois échecs d'affilée (même seuil que la tentative de récupération de
+    // flux plus bas) : on ne sait plus vraiment où en est ce fournisseur.
+    // Laisser `current_status` figé sur sa dernière valeur réussie le ferait
+    // passer pour une donnée fraîche — y compris « en incident » — alors que
+    // plus rien ne la confirme. Basculer sur « inconnu » le dit honnêtement.
+    const shouldMarkUnknown = failures >= 3 && service.current_status !== "unknown";
+
     await sql`
       update services
          set consecutive_failures = ${failures},
              last_error = ${message.slice(0, 500)},
+             current_status = ${shouldMarkUnknown ? "unknown" : sql`current_status`},
+             current_status_since = ${shouldMarkUnknown ? new Date() : sql`current_status_since`},
              next_fetch_at = now() + ${`${nextDelayMinutes(service.current_status, failures)} minutes`}::interval
        where id = ${service.id}
     `.catch(() => {});
