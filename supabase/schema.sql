@@ -108,6 +108,25 @@ create index if not exists incidents_service_time_idx on incidents (service_id, 
 create index if not exists incidents_open_idx         on incidents (started_at desc) where not is_resolved;
 create index if not exists incidents_recent_idx       on incidents (started_at desc);
 
+-- Dernière fois où cet incident était encore présent dans le relevé du
+-- fournisseur. Sans elle, rien ne distingue « disparu du flux depuis 10
+-- minutes » de « disparu depuis 3 semaines » — et `updated_at` ne suit pas
+-- fidèlement la présence dans le flux, puisque l'ingestion n'écrit pas en
+-- base quand le hash de contenu est inchangé. Sert à fermer automatiquement
+-- les incidents qu'un fournisseur a cessé de publier sans jamais les marquer
+-- résolus explicitement (cas des flux RSS/Atom à fenêtre glissante).
+alter table incidents add column if not exists last_seen_in_feed_at timestamptz;
+
+update incidents
+   set last_seen_in_feed_at = coalesce(updated_at, started_at)
+ where last_seen_in_feed_at is null;
+
+alter table incidents alter column last_seen_in_feed_at set not null;
+alter table incidents alter column last_seen_in_feed_at set default now();
+
+create index if not exists incidents_open_stale_idx
+  on incidents (service_id, last_seen_in_feed_at) where not is_resolved;
+
 do $$
 begin
   if not exists (

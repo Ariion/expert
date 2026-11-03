@@ -11,7 +11,13 @@
  */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { fetchFeed, guessImpact, hashIncident, isResolvedEntry } from "../src/lib/feeds";
+import {
+  fetchFeed,
+  guessImpact,
+  hashIncident,
+  isResolvedEntry,
+  shouldAutoClose,
+} from "../src/lib/feeds";
 import { APP_URL, normalizeUrl } from "../src/lib/env";
 import { splitSqlStatements } from "../src/lib/sqlfile";
 import { readFileSync } from "node:fs";
@@ -56,6 +62,18 @@ const SUMMARY = {
       created_at: new Date().toISOString(),
       scheduled_for: new Date(Date.now() + 86_400_000).toISOString(),
       scheduled_until: null,
+      incident_updates: [{ body: "Planned maintenance window." }],
+    },
+    {
+      // Régression réelle : certains fournisseurs laissent `status` à
+      // "scheduled" bien après la fin de la fenêtre annoncée — la fenêtre
+      // passée doit suffire à elle seule à déduire la clôture.
+      id: "mnt_2",
+      name: "Network maintenance (overdue status)",
+      status: "scheduled",
+      created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      scheduled_for: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+      scheduled_until: new Date(Date.now() - 86_400_000).toISOString(),
       incident_updates: [{ body: "Planned maintenance window." }],
     },
   ],
@@ -142,7 +160,7 @@ async function main() {
   ok("indicateur global traduit en statut interne", () =>
     assert.equal(sp.status, "partial_outage"),
   );
-  ok("incidents + maintenances normalisés", () => assert.equal(sp.incidents.length, 3));
+  ok("incidents + maintenances normalisés", () => assert.equal(sp.incidents.length, 4));
   ok("incident ouvert non marqué résolu", () => {
     const open = sp.incidents.find((i) => i.externalId === "inc_1")!;
     assert.equal(open.resolvedAt, null);
@@ -156,6 +174,16 @@ async function main() {
     const mnt = sp.incidents.find((i) => i.externalId === "mnt_1")!;
     assert.equal(mnt.impact, "maintenance");
     assert.equal(mnt.state, "scheduled");
+  });
+  ok("maintenance dont la fenêtre est passée se ferme même si 'status' ne suit pas", () => {
+    const mnt = sp.incidents.find((i) => i.externalId === "mnt_2")!;
+    assert.equal(mnt.state, "completed");
+    assert.ok(mnt.resolvedAt instanceof Date);
+  });
+  ok("clôture par fenêtre passée n'entre pas dans l'empreinte (pas de diff parasite)", () => {
+    const a = sp.incidents.find((i) => i.externalId === "mnt_2")!;
+    const b = { ...a, scheduledUntil: new Date(a.scheduledUntil!.getTime() + 60_000) };
+    assert.equal(hashIncident(a), hashIncident(b));
   });
   ok("ETag renvoyé pour la requête conditionnelle suivante", () =>
     assert.equal(sp.etag, '"v1"'),
@@ -296,6 +324,20 @@ async function main() {
   );
   ok("une entrée vieille de plusieurs jours est un événement passé", () =>
     assert.equal(isResolvedEntry("Service disruption", "We are investigating", hoursAgo(24 * 5)), true),
+  );
+
+  console.log("\nRéconciliation des incidents disparus du flux");
+  // Régression réelle : des incidents restaient « en cours » des semaines
+  // après leur résolution chez le fournisseur, simplement parce qu'ils
+  // avaient disparu du relevé sans que rien ne les referme.
+  ok("statuspage_v2 : l'absence du relevé ferme sans délai", () =>
+    assert.equal(shouldAutoClose("statuspage_v2", hoursAgo(0.1)), true),
+  );
+  ok("rss : une absence d'une heure reste ambiguë, l'incident reste ouvert", () =>
+    assert.equal(shouldAutoClose("rss", hoursAgo(1)), false),
+  );
+  ok("rss : une absence de plusieurs jours ferme l'incident", () =>
+    assert.equal(shouldAutoClose("rss", hoursAgo(24 * 4)), true),
   );
 
   console.log("\nAdresse du site");

@@ -16,16 +16,28 @@ export async function rebuildUptime(windowDays = 90): Promise<number> {
     with days as (
       select generate_series(current_date - ${windowDays - 1}::integer, current_date, interval '1 day')::date as day
     ),
+    -- Un jour par service, même sans incident : sans cette base, un jour qui
+    -- n'a plus d'incident après la fermeture d'un incident resté bloqué ne
+    -- réapparaît dans aucune ligne, et la clause "on conflict do update"
+    -- ci-dessous n'a alors rien à réécrire — l'ancien temps d'arrêt gonflé
+    -- reste figé pour toujours dans service_daily_uptime.
+    base as (
+      select s.id as service_id, d.day
+        from services s
+        cross join days d
+    ),
     slices as (
-      select i.service_id,
-             d.day,
+      select b.service_id,
+             b.day,
+             i.id                                                                     as incident_id,
              i.impact,
-             greatest(i.started_at, d.day::timestamptz)                                as slice_start,
-             least(coalesce(i.resolved_at, now()), (d.day + 1)::timestamptz)           as slice_end
-        from incidents i
-        join days d
-          on i.started_at < (d.day + 1)::timestamptz
-         and coalesce(i.resolved_at, now()) > d.day::timestamptz
+             greatest(i.started_at, b.day::timestamptz)                                as slice_start,
+             least(coalesce(i.resolved_at, now()), (b.day + 1)::timestamptz)           as slice_end
+        from base b
+        left join incidents i
+          on i.service_id = b.service_id
+         and i.started_at < (b.day + 1)::timestamptz
+         and coalesce(i.resolved_at, now()) > b.day::timestamptz
     ),
     agg as (
       select service_id,
@@ -34,9 +46,9 @@ export async function rebuildUptime(windowDays = 90): Promise<number> {
                       then extract(epoch from (slice_end - slice_start)) / 60 else 0 end) as down,
              sum(case when impact = 'minor'
                       then extract(epoch from (slice_end - slice_start)) / 60 else 0 end) as degraded,
-             count(*) as incidents
+             count(incident_id) as incidents
         from slices
-       where slice_end > slice_start
+       where incident_id is null or slice_end > slice_start
        group by service_id, day
     )
     insert into service_daily_uptime (service_id, day, downtime_minutes, degraded_minutes, incident_count, uptime_pct)

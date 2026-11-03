@@ -168,7 +168,7 @@ export async function getRecentIncidents(limit = 12): Promise<
              s.name as service_name, s.slug as service_slug, s.logo_domain
         from incidents i
         join services s on s.id = i.service_id
-       where s.is_active and i.started_at > now() - interval '30 days'
+       where s.is_active and i.started_at > now() - interval '30 days' and i.started_at <= now()
        order by i.started_at desc
        limit ${limit}
     `,

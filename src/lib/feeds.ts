@@ -28,6 +28,13 @@ export interface RawIncident {
   state: IncidentState;
   startedAt: Date;
   resolvedAt: Date | null;
+  /**
+   * Fin de fenêtre annoncée pour une maintenance programmée. Volontairement
+   * absent de `hashIncident()` : `resolvedAt` capte déjà la transition utile,
+   * l'inclure ici déclencherait un diff à chaque relevé sans rien changer de
+   * visible.
+   */
+  scheduledUntil?: Date | null;
 }
 
 export interface FeedResult {
@@ -170,7 +177,12 @@ function parseStatuspage(body: string): { status: ServiceStatus; incidents: RawI
   });
 
   for (const m of data.scheduled_maintenances ?? []) {
-    const done = m.status === "completed";
+    // Certains fournisseurs laissent `status` à "scheduled" bien après la fin
+    // réelle de la fenêtre annoncée : on ne se fie pas qu'à cette chaîne, on
+    // compare aussi `scheduled_until` à l'heure courante.
+    const scheduledUntil = m.scheduled_until ? toDate(m.scheduled_until) : null;
+    const windowPast = scheduledUntil !== null && scheduledUntil.getTime() < Date.now();
+    const done = m.status === "completed" || windowPast;
     incidents.push({
       externalId: m.id,
       title: m.name,
@@ -179,7 +191,8 @@ function parseStatuspage(body: string): { status: ServiceStatus; incidents: RawI
       impact: "maintenance",
       state: done ? "completed" : "scheduled",
       startedAt: toDate(m.scheduled_for ?? m.created_at),
-      resolvedAt: done ? toDate(m.scheduled_until, new Date()) : null,
+      resolvedAt: done ? (scheduledUntil ?? toDate(m.scheduled_until, new Date())) : null,
+      scheduledUntil,
     });
   }
 
@@ -220,8 +233,33 @@ function asArray<T>(v: T | T[] | undefined): T[] {
 const RESOLVED_MARK =
   /^\s*\[?\s*(resolved|closed|completed)\s*\]?\b|\b(resolved|completed|restored|closed|operating normally|back to normal|fully recovered|service restored)\b/i;
 
-/** Au-delà de ce délai, une entrée non close est un événement passé. */
-const STALE_AFTER_MS = 3 * 24 * 3600_000;
+/**
+ * Au-delà de ce délai, une entrée non close est un événement passé.
+ *
+ * Exportée : `ingest.ts` réutilise le même seuil pour décider quand un
+ * incident RSS/Atom absent du relevé courant peut être considéré clos, par
+ * cohérence avec la politique déjà appliquée ici au contenu du flux.
+ */
+export const STALE_AFTER_MS = 3 * 24 * 3600_000;
+
+/**
+ * Un incident ouvert en base mais absent du relevé courant doit-il être
+ * fermé ?
+ *
+ * `statuspage_v2` : `summary.json` ne liste que les incidents non résolus
+ * côté fournisseur — l'absence EST le signal de résolution, sans délai.
+ * `atom`/`rss` : fenêtre glissante des dernières entrées — une absence
+ * ponctuelle ne prouve rien, on attend le même seuil d'ancienneté que
+ * `isResolvedEntry()` pour rester cohérent.
+ */
+export function shouldAutoClose(
+  feedKind: string,
+  lastSeenInFeedAt: Date,
+  now: Date = new Date(),
+): boolean {
+  if (feedKind === "statuspage_v2") return true;
+  return now.getTime() - lastSeenInFeedAt.getTime() > STALE_AFTER_MS;
+}
 
 export function isResolvedEntry(title: string, content: string, published: Date): boolean {
   if (RESOLVED_MARK.test(title) || RESOLVED_MARK.test(content)) return true;

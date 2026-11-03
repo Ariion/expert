@@ -1,6 +1,12 @@
 import { sql } from "./db";
 import { ops } from "./ops";
-import { fetchFeed, hashIncident, type RawIncident, type ServiceStatus } from "./feeds";
+import {
+  fetchFeed,
+  hashIncident,
+  shouldAutoClose,
+  type RawIncident,
+  type ServiceStatus,
+} from "./feeds";
 import { PLANS } from "./plans";
 import { SEED_SERVICES } from "@/data/services";
 import { discoverFeeds, feedKindOf } from "./discover";
@@ -187,6 +193,14 @@ export async function ingestService(service: ServiceRow): Promise<{
       queued += await enqueueAlerts(service, result.incident, result.kind);
     }
 
+    const closed = await reconcileMissingIncidents(
+      service,
+      new Set(feed.incidents.map((r) => r.externalId)),
+      isBackfill,
+    );
+    changed += closed.changed;
+    queued += closed.queued;
+
     const statusChanged = feed.status !== "unknown" && feed.status !== service.current_status;
     await sql`
       update services
@@ -267,15 +281,26 @@ async function upsertIncident(
      where service_id = ${serviceId} and external_id = ${raw.externalId} limit 1
   `;
 
-  const isResolved = raw.resolvedAt !== null || raw.state === "resolved" || raw.state === "completed";
+  // Certains fournisseurs laissent `status`/`state` en retard sur la réalité
+  // d'une maintenance programmée : on vérifie aussi sa fenêtre annoncée,
+  // redondant avec le même garde-fou déjà posé dans `feeds.ts` (ceinture et
+  // bretelles), sans effet sur les incidents hors maintenance.
+  const scheduledUntilPast =
+    raw.scheduledUntil != null && raw.scheduledUntil.getTime() < Date.now();
+  const isResolved =
+    raw.resolvedAt !== null ||
+    raw.state === "resolved" ||
+    raw.state === "completed" ||
+    (raw.impact === "maintenance" && scheduledUntilPast);
 
   if (!existing) {
     const [inserted] = await sql<any[]>`
       insert into incidents (service_id, external_id, title, body, url, impact, state,
-                             is_resolved, started_at, resolved_at, content_hash)
+                             is_resolved, started_at, resolved_at, content_hash,
+                             last_seen_in_feed_at)
       values (${serviceId}, ${raw.externalId}, ${raw.title}, ${raw.body}, ${raw.url},
               ${raw.impact}, ${raw.state}, ${isResolved}, ${raw.startedAt}, ${raw.resolvedAt},
-              ${hash})
+              ${hash}, now())
       on conflict (service_id, external_id) do nothing
       returning *
     `;
@@ -287,19 +312,72 @@ async function upsertIncident(
     return { kind: isResolved ? "resolved" : "opened", incident: inserted, firstSeen: true };
   }
 
-  if (existing.content_hash === hash) return null;
+  if (existing.content_hash === hash) {
+    // Contenu inchangé, mais toujours présent dans le relevé : on le note
+    // quand même, sinon `reconcileMissingIncidents` finirait par le fermer à
+    // tort pour un incident simplement stable.
+    await sql`update incidents set last_seen_in_feed_at = now() where id = ${existing.id}`;
+    return null;
+  }
 
   const [updated] = await sql<any[]>`
     update incidents
        set title = ${raw.title}, body = ${raw.body}, url = ${raw.url},
            impact = ${raw.impact}, state = ${raw.state}, is_resolved = ${isResolved},
-           resolved_at = ${raw.resolvedAt}, content_hash = ${hash}
+           resolved_at = ${raw.resolvedAt}, content_hash = ${hash}, last_seen_in_feed_at = now()
      where id = ${existing.id}
      returning *
   `;
 
   const kind: EventKind = isResolved && !existing.is_resolved ? "resolved" : "updated";
   return { kind, incident: updated, firstSeen: false };
+}
+
+/**
+ * Ferme les incidents ouverts en base qui ont disparu du relevé courant.
+ *
+ * C'est la pièce manquante de l'ingestion jusqu'ici : la boucle principale
+ * ne traite que ce qui est présent dans le flux, rien ne revisitait les
+ * incidents qui en sortent — ils restaient « en cours » indéfiniment, même
+ * longtemps après leur résolution réelle chez le fournisseur.
+ */
+async function reconcileMissingIncidents(
+  service: { id: string; slug: string; name: string; feed_kind: string },
+  feedExternalIds: Set<string>,
+  isBackfill: boolean,
+): Promise<{ changed: number; queued: number }> {
+  const open = await sql<
+    { id: string; external_id: string; title: string; body: string | null; url: string | null;
+      impact: string; state: string; started_at: Date; last_seen_in_feed_at: Date }[]
+  >`
+    select id, external_id, title, body, url, impact, state, started_at, last_seen_in_feed_at
+      from incidents
+     where service_id = ${service.id} and not is_resolved
+  `;
+
+  let changed = 0;
+  let queued = 0;
+
+  for (const incident of open) {
+    if (feedExternalIds.has(incident.external_id)) continue; // toujours présent, rien à faire
+
+    if (!shouldAutoClose(service.feed_kind, incident.last_seen_in_feed_at)) continue;
+
+    const resolvedAt = incident.last_seen_in_feed_at;
+    const state = incident.impact === "maintenance" ? "completed" : "resolved";
+    const [updated] = await sql<any[]>`
+      update incidents
+         set is_resolved = true, resolved_at = ${resolvedAt}, state = ${state}
+       where id = ${incident.id}
+       returning *
+    `;
+    changed++;
+    if (isBackfill) continue;
+
+    queued += await enqueueAlerts(service, updated, "resolved");
+  }
+
+  return { changed, queued };
 }
 
 /**
