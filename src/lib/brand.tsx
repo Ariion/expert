@@ -11,8 +11,8 @@ export const BRAND = {
   line: "#232c49",
   text: "#eef1f8",
   muted: "#97a1bd",
-  accent: "#6366f1",
-  accentSoft: "#818cf8",
+  accent: "#8b5cf6",
+  accentSoft: "#a78bfa",
   // Accent secondaire — réservé au motif de la marque et à quelques détails
   // de graphique, jamais aux couleurs de statut ci-dessous. Volontairement
   // différent du vert : chez nous, vert veut déjà dire « opérationnel ».
@@ -36,17 +36,26 @@ export function toneColor(status: string): string {
 }
 
 /**
- * Le tracé de marque — une ligne d'impulsion plate-pic-plat, lisible jusqu'à
- * 16 pixels. Source unique : `icon.tsx` (favicon) et `og.tsx` (aperçus de
- * partage) l'important plutôt que de le redupliquer, pour n'avoir qu'un
- * endroit à corriger le jour où le tracé change.
+ * Le tracé de marque — un U aux bords arrondis, lisible jusqu'à 16 pixels.
+ * Source unique : `icon.tsx` (favicon), `og.tsx` (aperçus de partage) et
+ * `badge/[slug]/route.tsx` l'importent plutôt que de le redupliquer, pour
+ * n'avoir qu'un endroit à corriger le jour où le tracé change.
  */
-export const MARK_PATH = "M4 26 H13 L18 12 L25 33 L30 24 H40";
+export const MARK_PATH = "M12 10 V24 A10 10 0 0 0 32 24 V10";
 
-export function Mark({ size = 44, stroke = BRAND.accentSoft }: { size?: number; stroke?: string }) {
+export function Mark({
+  size = 44,
+  stroke = BRAND.accentSoft,
+  dot = BRAND.accentSoft,
+}: {
+  size?: number;
+  stroke?: string;
+  dot?: string;
+}) {
   return (
     <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
       <path d={MARK_PATH} stroke={stroke} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="35" cy="4" r="2.8" fill={dot} />
     </svg>
   );
 }

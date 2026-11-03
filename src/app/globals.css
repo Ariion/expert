@@ -14,8 +14,8 @@
   --text: #eef1f8;
   --muted: #97a1bd;
   --dim: #6b7695;
-  --brand: #6366f1;
-  --brand-soft: #818cf8;
+  --brand: #8b5cf6;
+  --brand-soft: #a78bfa;
   --ok: #22c55e;
   --warn: #f59e0b;
   --bad: #ef4444;
@@ -263,7 +263,7 @@ td { padding: 11px 10px; border-top: 1px solid var(--line); }
   padding: 80px 0 40px;
   background:
     radial-gradient(700px 320px at 92% -20%, rgba(94, 234, 212, 0.08), transparent 60%),
-    linear-gradient(165deg, rgba(99, 102, 241, 0.06), transparent 55%);
+    linear-gradient(165deg, rgba(139, 92, 246, 0.06), transparent 55%);
 }
 @media (max-width: 640px) {
   .hero { padding: 48px 0 28px; }
@@ -340,7 +340,7 @@ footer a { color: var(--muted); }
   border-radius: 18px;
   background:
     radial-gradient(500px 220px at 85% 0%, rgba(94, 234, 212, 0.10), transparent 65%),
-    linear-gradient(165deg, rgba(99, 102, 241, 0.08), transparent 55%),
+    linear-gradient(165deg, rgba(139, 92, 246, 0.08), transparent 55%),
     var(--bg-soft);
   font-size: var(--text-md);
   font-weight: 600;
@@ -397,8 +397,8 @@ footer a { color: var(--muted); }
 .plan-card { position: relative; display: flex; flex-direction: column; }
 .plan-card.highlight {
   border-color: var(--brand);
-  background: linear-gradient(180deg, rgba(99,102,241,0.14) 0%, var(--card) 46%);
-  box-shadow: 0 18px 40px -22px rgba(99,102,241,0.55);
+  background: linear-gradient(180deg, rgba(139,92,246,0.14) 0%, var(--card) 46%);
+  box-shadow: 0 18px 40px -22px rgba(139,92,246,0.55);
 }
 .plan-badge {
   position: absolute;
@@ -566,7 +566,7 @@ footer a { color: var(--muted); }
   margin-bottom: 36px;
   background:
     radial-gradient(900px 420px at 88% -12%, rgba(94, 234, 212, 0.14), transparent 60%),
-    linear-gradient(165deg, rgba(99, 102, 241, 0.10), transparent 55%),
+    linear-gradient(165deg, rgba(139, 92, 246, 0.10), transparent 55%),
     var(--card-elevated-bg);
   border: 1px solid var(--card-elevated-border);
   border-radius: 20px;
@@ -576,13 +576,13 @@ footer a { color: var(--muted); }
   .status-hero { padding: 36px 24px 28px; border-radius: var(--radius); }
 }
 
-/* ----- Motif de marque : la ligne d'impulsion du hero -----
-   Extension du tracé du favicon (src/lib/brand.tsx), pas un nouveau motif :
-   le produit s'appelle Upstream, le pouls est déjà son identité. Un point
-   lumineux parcourt la ligne en boucle — la seule animation du site, et la
-   seule chose que `prefers-reduced-motion` doit geler. Coordonnées de
-   `.pulse-dot` en pixels CSS natifs (aucune mise à l'échelle du SVG) pour
-   que son `offset-path` reste calé sur le tracé dessiné. */
+/* ----- Motif de marque : les coupelles du hero -----
+   Extension du mark (src/lib/brand.tsx), pas un nouveau motif : le même U
+   répété, relié par des segments plats. Un point lumineux les parcourt en
+   boucle — la seule animation du site, et la seule chose que
+   `prefers-reduced-motion` doit geler. Coordonnées de `.pulse-dot` en
+   pixels CSS natifs (aucune mise à l'échelle du SVG) pour que son
+   `offset-path` reste calé sur le tracé dessiné. */
 .status-hero-pulse {
   position: absolute;
   top: -20px;
@@ -595,11 +595,11 @@ footer a { color: var(--muted); }
   display: block;
   width: 640px;
   height: 220px;
-  filter: drop-shadow(0 0 16px rgba(94, 234, 212, 0.18));
+  filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.18));
 }
 .status-hero-pulse path {
   fill: none;
-  stroke: var(--accent-2);
+  stroke: var(--brand);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -612,9 +612,9 @@ footer a { color: var(--muted); }
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--accent-2-soft);
-  box-shadow: 0 0 22px 5px var(--accent-2);
-  offset-path: path("M0 110 L70 110 L95 40 L130 170 L160 70 L190 110 L280 110 L305 45 L335 160 L365 110 L640 110");
+  background: var(--brand-soft);
+  box-shadow: 0 0 22px 5px var(--brand);
+  offset-path: path("M20 60 V140 A40 40 0 0 0 100 140 V60 H180 V140 A40 40 0 0 0 260 140 V60 H340 V140 A40 40 0 0 0 420 140 V60 H500 V140 A40 40 0 0 0 580 140 V60");
   offset-rotate: 0deg;
   animation: pulse-travel 4.2s linear infinite;
 }
