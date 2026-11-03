@@ -111,6 +111,35 @@ const RSS = `<?xml version="1.0"?>
   </item>
 </channel></rss>`;
 
+// Régression réelle : un flux RSS sans guid/lien stable (cas de Stripe)
+// faisait dépendre l'identifiant de secours de la position de l'entrée dans
+// le lot récupéré — la même entrée changeait d'ID dès que le flux réordonnait
+// ses éléments, et réapparaissait comme un « nouveau » événement.
+const NO_GUID_PUBDATE = new Date(Date.now() - 3600_000).toUTCString();
+const RSS_NO_GUID = `<?xml version="1.0"?>
+<rss version="2.0"><channel>
+  <title>No-guid feed</title>
+  <item>
+    <title>Recurring network maintenance</title>
+    <description>Planned maintenance window.</description>
+    <pubDate>${NO_GUID_PUBDATE}</pubDate>
+  </item>
+</channel></rss>`;
+const RSS_NO_GUID_SHIFTED = `<?xml version="1.0"?>
+<rss version="2.0"><channel>
+  <title>No-guid feed</title>
+  <item>
+    <title>A newer, unrelated item published since</title>
+    <description>Something else entirely.</description>
+    <pubDate>${new Date().toUTCString()}</pubDate>
+  </item>
+  <item>
+    <title>Recurring network maintenance</title>
+    <description>Planned maintenance window.</description>
+    <pubDate>${NO_GUID_PUBDATE}</pubDate>
+  </item>
+</channel></rss>`;
+
 let checks = 0;
 function ok(label: string, fn: () => void) {
   fn();
@@ -131,6 +160,14 @@ async function main() {
     if (req.url?.startsWith("/atom")) {
       res.writeHead(200, { "content-type": "application/atom+xml" });
       return res.end(ATOM);
+    }
+    if (req.url?.startsWith("/rss-no-guid-shifted")) {
+      res.writeHead(200, { "content-type": "application/rss+xml" });
+      return res.end(RSS_NO_GUID_SHIFTED);
+    }
+    if (req.url?.startsWith("/rss-no-guid")) {
+      res.writeHead(200, { "content-type": "application/rss+xml" });
+      return res.end(RSS_NO_GUID);
     }
     if (req.url?.startsWith("/rss")) {
       res.writeHead(200, { "content-type": "application/rss+xml" });
@@ -229,6 +266,25 @@ async function main() {
   ok("dégradation détectée depuis le titre", () => {
     assert.equal(rss.status, "partial_outage");
     assert.equal(rss.incidents[0].impact, "major");
+  });
+
+  const rssNoGuid = await fetchFeed({
+    feed_url: `${base}/rss-no-guid`,
+    feed_kind: "rss",
+    http_etag: null,
+    http_last_modified: null,
+  });
+  const rssNoGuidShifted = await fetchFeed({
+    feed_url: `${base}/rss-no-guid-shifted`,
+    feed_kind: "rss",
+    http_etag: null,
+    http_last_modified: null,
+  });
+  ok("une entrée sans id/guid/lien garde le même identifiant même si sa position change", () => {
+    const a = rssNoGuid.incidents.find((i) => i.title === "Recurring network maintenance")!;
+    const b = rssNoGuidShifted.incidents.find((i) => i.title === "Recurring network maintenance")!;
+    assert.ok(a && b);
+    assert.equal(a.externalId, b.externalId);
   });
 
   console.log("\nEmpreintes");

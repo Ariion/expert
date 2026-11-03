@@ -211,6 +211,9 @@ const fr = {
     byCategory: "Par catégorie",
     categoryCount: (count: number, degraded: number) =>
       `${count} fournisseur${count > 1 ? "s" : ""} · ${degraded} en incident`,
+    kpiIncidents24h: "Incidents (24 h)",
+    kpiMaintenance: "En maintenance",
+    kpiUnknown: "Statut inconnu",
   },
   statusIndex: {
     metaTitle: "Statut en direct de 140+ fournisseurs SaaS",
@@ -822,6 +825,9 @@ const en: typeof fr = {
     byCategory: "By category",
     categoryCount: (count: number, degraded: number) =>
       `${count} provider${count > 1 ? "s" : ""} · ${degraded} down`,
+    kpiIncidents24h: "Incidents (24h)",
+    kpiMaintenance: "In maintenance",
+    kpiUnknown: "Unknown status",
   },
   statusIndex: {
     metaTitle: "Live status of 140+ SaaS providers",

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ServiceBoard, type BoardRow } from "@/components/ServiceBoard";
-import { getAllServices, getRecentIncidents } from "@/lib/queries";
+import { getAllServices, getGlobalStats, getRecentIncidents } from "@/lib/queries";
 import { STATUS_TONE, faviconFor, isDown, statusLabel, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
 
@@ -16,9 +16,10 @@ import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
  */
 export async function Home({ locale }: { locale: Locale }) {
   const t = dict(locale);
-  const [services, recentIncidents] = await Promise.all([
+  const [services, recentIncidents, stats] = await Promise.all([
     getAllServices().catch(() => []),
     getRecentIncidents(6).catch(() => []),
+    getGlobalStats().catch(() => null),
   ]);
 
   const down = services.filter((s) => isDown(s.current_status));
@@ -81,6 +82,29 @@ export async function Home({ locale }: { locale: Locale }) {
           <span className="dim">{t.home.heroCaption}</span>
         </div>
       </section>
+
+      {stats && (
+        <section className="grid three" style={{ marginTop: 16, marginBottom: 8 }}>
+          <div className="card">
+            <div className="dim">{t.home.kpiIncidents24h}</div>
+            <strong className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
+              {stats.incidents_24h}
+            </strong>
+          </div>
+          <div className="card">
+            <div className="dim">{t.home.kpiMaintenance}</div>
+            <strong className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
+              {stats.maintenance_now}
+            </strong>
+          </div>
+          <div className="card">
+            <div className="dim">{t.home.kpiUnknown}</div>
+            <strong className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
+              {stats.unknown_now}
+            </strong>
+          </div>
+        </section>
+      )}
 
       {down.length > 0 && (
         <section style={{ marginBottom: 8 }}>

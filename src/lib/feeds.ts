@@ -287,7 +287,7 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
   const doc = xml.parse(body) as Record<string, any>;
   const entries = doc?.feed ? asArray(doc.feed.entry) : asArray(doc?.rss?.channel?.item);
 
-  const incidents: RawIncident[] = entries.slice(0, 50).map((e: any, idx: number) => {
+  const incidents: RawIncident[] = entries.slice(0, 50).map((e: any) => {
     const title = String(e?.title?.["#text"] ?? e?.title ?? "Incident").trim();
     const rawContent = String(
       e?.content?.["#text"] ?? e?.content ?? e?.description ?? e?.summary ?? "",
@@ -300,8 +300,18 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
     const published = toDate(e?.published ?? e?.pubDate ?? e?.updated);
     const resolved = isResolvedEntry(title, content, published);
 
+    // Dernier recours seulement : un identifiant dépendant de la position
+    // (idx) change dès que le flux réordonne ses entrées d'un relevé à
+    // l'autre, et une entrée sans id/guid/lien stable est alors traitée
+    // comme neuve à chaque fois — un même événement republié plusieurs fois.
+    // Un hash du couple titre+date de publication reste stable quelle que
+    // soit la position de l'entrée dans le lot récupéré.
+    const fallbackId = createHash("sha1")
+      .update(`${title}|${published.toISOString()}`)
+      .digest("hex")
+      .slice(0, 16);
     return {
-      externalId: String(e?.id ?? e?.guid?.["#text"] ?? e?.guid ?? link ?? `${published.getTime()}-${idx}`),
+      externalId: String(e?.id ?? e?.guid?.["#text"] ?? e?.guid ?? link ?? fallbackId),
       title: title.slice(0, 300),
       body: content ? content.slice(0, 4000) : null,
       url: link ? String(link) : null,

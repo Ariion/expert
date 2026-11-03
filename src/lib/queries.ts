@@ -178,14 +178,24 @@ export async function getRecentIncidents(limit = 12): Promise<
 
 export async function getGlobalStats(): Promise<{
   services: number;
-  incidents_30d: number;
+  incidents_24h: number;
+  maintenance_now: number;
+  unknown_now: number;
   degraded_now: number;
   watchers: number;
 }> {
-  if (isBuildPhase()) return { services: 0, incidents_30d: 0, degraded_now: 0, watchers: 0 };
+  if (isBuildPhase()) {
+    return { services: 0, incidents_24h: 0, maintenance_now: 0, unknown_now: 0, degraded_now: 0, watchers: 0 };
+  }
   const [row] = await sql<any[]>`
     select (select count(*)::int from services where is_active) as services,
-           (select count(*)::int from incidents where started_at > now() - interval '30 days') as incidents_30d,
+           -- Une maintenance programmée n'est pas un incident : exclue ici
+           -- comme dans isDown(), pour ne jamais présenter les deux chiffres
+           -- comme s'ils mesuraient la même chose.
+           (select count(*)::int from incidents
+             where started_at > now() - interval '24 hours' and impact <> 'maintenance') as incidents_24h,
+           (select count(*)::int from services where is_active and current_status = 'maintenance') as maintenance_now,
+           (select count(*)::int from services where is_active and current_status = 'unknown') as unknown_now,
            (select count(*)::int from services
              where is_active and current_status in ('degraded', 'partial_outage', 'major_outage')) as degraded_now,
            (select coalesce(sum(watcher_count),0)::int from services) as watchers
