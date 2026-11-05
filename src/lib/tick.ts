@@ -42,9 +42,9 @@ import { runIngestion } from "./ingest";
 const MIN_GAP_MS = 30_000;
 
 /** Assez pour progresser, assez peu pour ne jamais peser. */
-const BATCH = 8;
-const CONCURRENCY = 4;
-const BUDGET_MS = 6_000;
+const BATCH = 24;
+const CONCURRENCY = 6;
+const BUDGET_MS = 10_000;
 
 let lastRunAt = 0;
 
