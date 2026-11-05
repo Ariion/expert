@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { after } from "next/server";
 import { ServiceBoard, type BoardRow } from "@/components/ServiceBoard";
 import { getAllServices, getGlobalStats, getRecentIncidents } from "@/lib/queries";
 import { STATUS_TONE, faviconFor, isDown, statusLabel, timeAgo } from "@/lib/format";
 import { categoryLabel, dict, href, type Locale } from "@/lib/i18n";
-import { opportunisticIngest } from "@/lib/tick";
 
 /**
  * L'accueil est un tableau de bord, pas une plaquette — mais un inconnu qui
@@ -18,18 +16,6 @@ import { opportunisticIngest } from "@/lib/tick";
  */
 export async function Home({ locale }: { locale: Locale }) {
   const t = dict(locale);
-
-  /**
-   * Le planificateur externe ne tient pas la cadence annoncée : on profite du
-   * trafic. L'accueil est régénéré au plus toutes les 300 secondes, ce qui est
-   * exactement la fréquence promise ; `after` exécute le lot une fois la
-   * réponse partie, donc le visiteur ne l'attend jamais.
-   */
-  try {
-    after(() => opportunisticIngest());
-  } catch {
-    /* Hors requête (build, génération statique) : rien à planifier. */
-  }
 
   const [services, recentIncidents, stats] = await Promise.all([
     getAllServices().catch(() => []),
