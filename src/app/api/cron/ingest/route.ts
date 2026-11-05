@@ -17,21 +17,26 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) return unauthorizedCron();
 
-  // Budget de temps : 25 secondes. Les planificateurs externes gratuits coupent
+  // Budget de temps : 18 secondes. Les planificateurs externes gratuits coupent
   // la requête à 30 s ; au-delà, la tâche serait comptée en échec alors qu'elle
   // travaille encore. Ce qui n'a pas été traité est remis en tête de file et
   // repris au tick suivant, sans perte.
-  const deadline = Date.now() + 25_000;
+  //
+  // La valeur était à 25 s, avec un second lot autorisé jusqu'à 35 s. Ajoutés
+  // aux revalidations et au démarrage à froid, certains passages dépassaient
+  // les 60 s de la fonction : Vercel tuait la requête, le workflow recevait un
+  // non-200 et affichait « Failure » alors que la collecte avait bien avancé.
+  // Un lot unique, plus court, vaut mieux qu'un passage ambitieux qui échoue.
+  const deadline = Date.now() + 18_000;
 
   return runCron("ingest", async () => {
     // Base vide (première exécution) : le catalogue s'installe tout seul.
     const seeded = await ensureCatalog();
     const first = await runIngestion(40, 12, deadline);
-    // Second lot si le premier était plein et qu'il reste du temps : on
-    // rattrape sans attendre le tick suivant (utile après une panne ou un
-    // ajout massif de services).
+    // Second lot seulement s'il reste franchement du temps : la marge de 12 s
+    // couvre les revalidations qui suivent.
     const second =
-      first.services === 40 && Date.now() < deadline - 10_000
+      first.services === 40 && Date.now() < deadline - 12_000
         ? await runIngestion(40, 12, deadline)
         : { services: 0, changed: 0, queued: 0, deferred: 0 };
     // Rafraîchissement des pages d'ensemble — à chaque passage, sans condition.
