@@ -47,9 +47,24 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
       : t.service.noneYet;
 
   const open = incidents.filter((i) => !i.is_resolved);
+
+  /**
+   * Disponibilité sur 90 jours.
+   *
+   * Elle vient du rollup quotidien quand il existe. À défaut, on l'estime à
+   * partir du temps d'incident réellement publié par le fournisseur : la
+   * fenêtre, moins ce qui a été déclaré en panne. C'est une borne haute, un
+   * fournisseur qui tombe sans le publier ne s'y compte pas, mais elle vaut
+   * mieux qu'un tiret qui laisse croire qu'on ne sait rien.
+   */
+  const WINDOW_MINUTES = 90 * 24 * 60;
   const uptime90 =
     service.uptime_90d ??
-    (uptime.length ? uptime.reduce((acc, d) => acc + Number(d.uptime_pct), 0) / uptime.length : null);
+    (uptime.length
+      ? uptime.reduce((acc, d) => acc + Number(d.uptime_pct), 0) / uptime.length
+      : reliability.downtime_minutes > 0
+        ? Math.max(0, 100 * (1 - reliability.downtime_minutes / WINDOW_MINUTES))
+        : null);
 
   const catLabel = categoryLabel(service.category, locale);
   const status = statusLabel(service.current_status, locale);
@@ -83,7 +98,7 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
         acceptedAnswer: {
           "@type": "Answer",
           text: uptime90
-            ? t.service.faq.a2(service.name, uptime90.toFixed(2), service.incident_count_90d)
+            ? t.service.faq.a2(service.name, uptime90.toFixed(2), reliability.incidents)
             : t.service.faq.a2None(service.name, SITE_NAME),
         },
       },
@@ -155,7 +170,12 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
         {[
           [t.service.kpiStatus, status],
           [t.service.kpiUptime, uptime90 ? `${uptime90.toFixed(2)} %` : "—"],
-          [t.service.kpiIncidents, String(service.incident_count_90d)],
+          // Compté en direct sur la table des incidents, et non lu depuis la
+          // colonne dénormalisée : celle-ci n'est rafraîchie que par le rollup
+          // quotidien, et restait figée sur un état ancien tant que la collecte
+          // était en panne. Elle annonçait 4 incidents au-dessus d'une liste
+          // qui en affichait 28.
+          [t.service.kpiIncidents, String(reliability.incidents)],
           [t.service.kpiLast, timeAgo(service.last_incident_at, locale)],
         ].map(([k, v]) => (
           <div className="card elevated" key={k}>
