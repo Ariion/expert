@@ -163,7 +163,12 @@ const fr = {
     pitch: "Recevez un email dès qu'un de ces services tombe. Gratuit pour 3 services.",
     pitchCta: "Voir les tarifs",
     heroEyebrow: "En direct",
-    heroAllOk: "Tous les systèmes sont opérationnels",
+    heroAllOk: "Tous les services relevés sont opérationnels",
+    heroNoData: "Collecte en cours",
+    heroNoDataSub: (n: number) =>
+      `Aucun des ${n} fournisseur${n > 1 ? "s" : ""} n'a encore été relevé`,
+    heroVerified: (known: number, total: number) =>
+      `${known} fournisseur${known > 1 ? "s" : ""} relevé${known > 1 ? "s" : ""} sur ${total}`,
     heroOperational: (n: number) => `${n} opérationnel${n > 1 ? "s" : ""}`,
     heroOf: (n: number) => `sur ${n} fournisseur${n > 1 ? "s" : ""} surveillé${n > 1 ? "s" : ""}`,
     heroAffected: (n: number) => (n === 1 ? "1 fournisseur affecté" : `${n} fournisseurs affectés`),
@@ -214,7 +219,7 @@ const fr = {
     kpiIncidents24h: "Incidents (24 h)",
     kpiMaintenance: "En maintenance",
     kpiUnknown: "Statut inconnu",
-    kpiUnknownHint: "Flux cassé ou jamais interrogé avec succès",
+    kpiUnknownHint: "Jamais relevé, ou flux momentanément illisible",
   },
   statusIndex: {
     metaTitle: "Statut en direct de 140+ fournisseurs SaaS",
@@ -779,7 +784,11 @@ const en: typeof fr = {
     pitch: "Get an email the moment one of these goes down. Free for 3 services.",
     pitchCta: "See pricing",
     heroEyebrow: "Live",
-    heroAllOk: "All systems are operational",
+    heroAllOk: "All polled services are operational",
+    heroNoData: "Collecting data",
+    heroNoDataSub: (n: number) => `None of the ${n} providers has been polled yet`,
+    heroVerified: (known: number, total: number) =>
+      `${known} of ${total} provider${total > 1 ? "s" : ""} polled`,
     heroOperational: (n: number) => `${n} operational`,
     heroOf: (n: number) => `out of ${n} monitored provider${n > 1 ? "s" : ""}`,
     heroAffected: (n: number) => (n === 1 ? "1 provider affected" : `${n} providers affected`),
@@ -829,7 +838,7 @@ const en: typeof fr = {
     kpiIncidents24h: "Incidents (24h)",
     kpiMaintenance: "In maintenance",
     kpiUnknown: "Unknown status",
-    kpiUnknownHint: "Feed broken or never successfully polled",
+    kpiUnknownHint: "Never polled, or feed temporarily unreadable",
   },
   statusIndex: {
     metaTitle: "Live status of 140+ SaaS providers",
