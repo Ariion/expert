@@ -71,7 +71,26 @@ export async function GET(req: Request) {
       try {
         revalidatePath(path);
       } catch {
-        /* une revalidation qui échoue ne doit pas faire échouer la collecte */
+        /* une revalidation qui échouait ne doit pas faire échouer la collecte */
+      }
+    }
+
+    /*
+     * Les pages fournisseur, elles, n'étaient jamais revalidées par la
+     * collecte. Chaque page a bien son propre `revalidate`, mais il ne se
+     * déclenche qu'à la visite : une correction de données restait invisible
+     * tant que personne n'ouvrait la page, et quand quelqu'un l'ouvrait il
+     * recevait encore la version précédente.
+     *
+     * `type: "page"` sur un motif dynamique invalide toutes les pages qui y
+     * répondent. Elles se régénéreront à la première demande, pas avant : le
+     * coût reste donc à la visite, pas au passage de la collecte.
+     */
+    for (const pattern of ["/status/[slug]", "/en/status/[slug]"]) {
+      try {
+        revalidatePath(pattern, "page");
+      } catch {
+        /* idem */
       }
     }
 
