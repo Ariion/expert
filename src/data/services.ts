@@ -587,6 +587,24 @@ const withAlternates = (s: Omit<SeedService, "alt_feeds">): SeedService => ({
   ),
 });
 
+/**
+ * Correctifs d'adresse, vérifiés un par un contre le fournisseur lui-même.
+ *
+ * Ces fournisseurs publient bien un flux, mais pas à l'adresse que la
+ * déduction du catalogue fabrique. Chaque entrée ci-dessous a été contrôlée :
+ * réponse 200, corps JSON ou XML, structure de flux de statut reconnue.
+ *
+ * Ne jamais ajouter ici une adresse non vérifiée. Une entrée fausse ne se voit
+ * pas : elle produit un service « inconnu » de plus, et c'est exactement le
+ * symptôme qu'on cherche à supprimer.
+ */
+const FEED_OVERRIDES: Record<string, { url: string; kind: FeedKind }> = {
+  "cal-com": { url: "https://cal.statuspage.io/api/v2/summary.json", kind: "statuspage_v2" },
+  crisp: { url: "https://crisp.statuspage.io/api/v2/summary.json", kind: "statuspage_v2" },
+  hetzner: { url: "https://status.hetzner.com/de.atom", kind: "atom" },
+  pinterest: { url: "https://www.pintereststatus.com/api/v2/summary.json", kind: "statuspage_v2" },
+};
+
 export const SEED_SERVICES: SeedService[] = [
   ...STATUSPAGE.map(([slug, name, category, host, domain, description]) =>
     withAlternates({
@@ -602,4 +620,7 @@ export const SEED_SERVICES: SeedService[] = [
     }),
   ),
   ...FEEDS.map(withAlternates),
-];
+].map((s) => {
+  const override = FEED_OVERRIDES[s.slug];
+  return override ? { ...s, feed_url: override.url, feed_kind: override.kind } : s;
+});

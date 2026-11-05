@@ -14,3 +14,4 @@ npm-debug.log*
 # Générés par `next dev` à chaque démarrage, jamais édités à la main.
 AGENTS.md
 CLAUDE.md
+probe-feeds.csv
