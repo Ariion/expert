@@ -329,10 +329,24 @@ async function upsertIncident(
     return null;
   }
 
+  /**
+   * `started_at` était absent de cette mise à jour.
+   *
+   * Conséquence : un incident réécrit gardait sa date de début d'origine, même
+   * quand le parseur produisait désormais une meilleure estimation (heures
+   * lues dans la chronologie du flux). La date de résolution, elle, était bien
+   * rafraîchie, et la durée recalculée tombait à zéro : l'ancien début valait
+   * la nouvelle fin.
+   *
+   * Le hash de contenu inclut les dates, donc ce chemin s'exécute dès que le
+   * parseur rend une chronologie différente, et l'historique se répare tout
+   * seul au relevé suivant.
+   */
   const [updated] = await sql<any[]>`
     update incidents
        set title = ${raw.title}, body = ${raw.body}, url = ${raw.url},
            impact = ${raw.impact}, state = ${raw.state}, is_resolved = ${isResolved},
+           started_at = ${raw.startedAt},
            resolved_at = ${raw.resolvedAt}, content_hash = ${hash}, last_seen_in_feed_at = now()
      where id = ${existing.id}
      returning *

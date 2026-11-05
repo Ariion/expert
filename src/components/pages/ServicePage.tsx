@@ -58,8 +58,18 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
    * mieux qu'un tiret qui laisse croire qu'on ne sait rien.
    */
   const WINDOW_MINUTES = 90 * 24 * 60;
+
+  // Un zéro n'est pas une mesure, c'est une absence : le rollup écrit
+  // `coalesce(pct, 0)` quand aucune journée n'a été agrégée. Avec un simple
+  // `??`, ce zéro l'emportait sur l'estimation et la page affichait un tiret
+  // alors que le temps d'incident, lui, était connu.
+  const rollupUptime =
+    service.uptime_90d != null && Number(service.uptime_90d) > 0
+      ? Number(service.uptime_90d)
+      : null;
+
   const uptime90 =
-    service.uptime_90d ??
+    rollupUptime ??
     (uptime.length
       ? uptime.reduce((acc, d) => acc + Number(d.uptime_pct), 0) / uptime.length
       : reliability.downtime_minutes > 0
