@@ -284,7 +284,24 @@ export function guessImpact(text: string): Impact {
 }
 
 function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawIncident[] } {
-  const doc = xml.parse(body) as Record<string, any>;
+  let doc: Record<string, any>;
+  try {
+    doc = xml.parse(body) as Record<string, any>;
+  } catch (err) {
+    /**
+     * fast-xml-parser lève une TypeError interne (« Cannot read properties of
+     * undefined (reading 'tagName') ») sur certains flux mal formés, sans
+     * jamais dire lequel ni pourquoi. Non traduite, elle remontait telle quelle
+     * dans `services.last_error` et faisait passer un défaut de flux pour un
+     * bug de l'application.
+     *
+     * On la convertit en message lisible et actionnable. Le fournisseur
+     * concerné compte toujours comme un échec, mais l'échec est enfin
+     * diagnosticable.
+     */
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(`Flux XML illisible (${reason.slice(0, 120)})`);
+  }
   const entries = doc?.feed ? asArray(doc.feed.entry) : asArray(doc?.rss?.channel?.item);
 
   const incidents: RawIncident[] = entries.slice(0, 50).map((e: any) => {
