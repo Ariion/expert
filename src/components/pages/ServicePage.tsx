@@ -59,22 +59,26 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
    */
   const WINDOW_MINUTES = 90 * 24 * 60;
 
-  // Un zéro n'est pas une mesure, c'est une absence : le rollup écrit
-  // `coalesce(pct, 0)` quand aucune journée n'a été agrégée. Avec un simple
-  // `??`, ce zéro l'emportait sur l'estimation et la page affichait un tiret
-  // alors que le temps d'incident, lui, était connu.
+  /**
+   * La disponibilité doit s'accorder avec le temps d'incident affiché juste
+   * au-dessus. « 44 min d'interruption » et « 44,06 % de disponibilité » côte
+   * à côte, c'est une page qui se contredit elle-même.
+   *
+   * Elle est donc calculée sur les incidents publiés, la même source que le
+   * chiffre voisin. Le rollup quotidien ne sert plus que de repli quand aucun
+   * incident n'est publié mais que des journées ont été agrégées : il moyenne
+   * les seuls jours qu'il connaît, si bien qu'une journée mauvaise suffisait à
+   * faire toute la fenêtre.
+   */
   const rollupUptime =
     service.uptime_90d != null && Number(service.uptime_90d) > 0
       ? Number(service.uptime_90d)
       : null;
 
   const uptime90 =
-    rollupUptime ??
-    (uptime.length
-      ? uptime.reduce((acc, d) => acc + Number(d.uptime_pct), 0) / uptime.length
-      : reliability.downtime_minutes > 0
-        ? Math.max(0, 100 * (1 - reliability.downtime_minutes / WINDOW_MINUTES))
-        : null);
+    reliability.incidents > 0
+      ? Math.max(0, 100 * (1 - reliability.downtime_minutes / WINDOW_MINUTES))
+      : rollupUptime;
 
   const catLabel = categoryLabel(service.category, locale);
   const status = statusLabel(service.current_status, locale);
