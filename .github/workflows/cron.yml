@@ -28,7 +28,11 @@ on:
     inputs:
       job:
         description: "Job à déclencher manuellement"
-        required: true
+        # Non requis, avec une valeur par défaut : un champ requis dans
+        # `workflow_dispatch` fait échouer le déclenchement depuis l'interface
+        # (« Workflow could not be run »), parce que le formulaire peut envoyer
+        # une valeur vide si le champ n'a pas été touché.
+        required: false
         default: ingest
         type: choice
         options: [ingest, dispatch, rollup, reconcile]
