@@ -107,17 +107,34 @@ function toDate(value: unknown, fallback?: Date): Date {
   return d && !Number.isNaN(d.getTime()) ? d : (fallback ?? new Date());
 }
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+/** Décode les entités HTML les plus courantes, y compris numériques. */
+function decodeEntities(s: string): string {
+  return s
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)))
+    .replace(/&amp;/g, "&");
+}
+
+function stripHtml(html: string): string {
+  /**
+   * Décoder AVANT de retirer les balises.
+   *
+   * Un flux peut livrer du HTML déjà échappé (`&lt;p&gt;`). Dans ce cas le
+   * retrait des balises ne trouve rien à retirer, puis le décodage final
+   * ressuscite le balisage : le corps de l'incident s'affichait avec ses
+   * `<p>`, `<small>` et `<var data-var='date'>` en clair.
+   */
+  return decodeEntities(
+    decodeEntities(html)
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+      .replace(/<[^>]+>/g, ""),
+  )
+    .replace(/[ \t]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -159,7 +176,7 @@ function parseStatuspage(body: string): { status: ServiceStatus; incidents: RawI
     return {
       externalId: inc.id,
       title: inc.name,
-      body: inc.incident_updates?.[0]?.body?.slice(0, 4000) ?? null,
+      body: stripHtml(inc.incident_updates?.[0]?.body ?? "").slice(0, 4000) || null,
       url: inc.shortlink ?? null,
       impact: (["none", "minor", "major", "critical"].includes(inc.impact)
         ? inc.impact

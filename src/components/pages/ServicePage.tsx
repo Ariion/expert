@@ -262,8 +262,23 @@ export async function ServicePage({ locale, slug }: { locale: Locale; slug: stri
                 </div>
                 <h3 style={{ marginTop: 10 }}>{i.title}</h3>
                 <div className="dim">
-                  {t.service.duration} {fmtDuration(i.started_at, i.resolved_at, locale)}
-                  {i.resolved_at ? ` → ${fmtDate(i.resolved_at)}` : ""}
+                  {t.service.duration}{" "}
+                  {/*
+                   * N'afficher une durée que si elle veut dire quelque chose.
+                   * Quand `resolved_at` retombe sur `started_at` (cas fréquent
+                   * quand le fournisseur ne publie pas d'heure de résolution
+                   * distincte), on annonçait « Durée : 0 min → 21:43 », avec la
+                   * flèche pointant vers l'heure de début. Un tiret vaut mieux
+                   * qu'un chiffre faux.
+                   */}
+                  {i.resolved_at &&
+                  new Date(i.resolved_at).getTime() - new Date(i.started_at).getTime() > 60_000 ? (
+                    <>
+                      {fmtDuration(i.started_at, i.resolved_at, locale)} → {fmtDate(i.resolved_at)}
+                    </>
+                  ) : (
+                    "—"
+                  )}
                   {i.url ? (
                     <>
                       {" · "}
