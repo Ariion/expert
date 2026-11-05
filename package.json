@@ -12,6 +12,7 @@
     "start": "next start",
     "setup": "tsx scripts/setup.mts",
     "doctor": "tsx scripts/doctor.mts",
+    "catalog": "tsx scripts/sync-catalog.mts",
     "selftest": "tsx scripts/selftest.ts",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx scripts/seed-services.ts",

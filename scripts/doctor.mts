@@ -57,6 +57,48 @@ if (!process.env.DATABASE_URL) {
     line("ok", "Comptes", `${counts.comptes} inscrits, ${counts.verifies} vérifiés, ${C.b(String(counts.payants))} payants`);
     line(counts.abandonnees === 0 ? "ok" : "warn", "Alertes", `${counts.envoyees} envoyées, ${counts.en_file} en file, ${counts.abandonnees} abandonnées`);
 
+    // --- Schéma -------------------------------------------------------------
+    // Un fichier de schéma qui prend du retard ne casse pas bruyamment. Il
+    // casse à l'écriture, sur une colonne absente, et l'erreur est attribuée au
+    // fournisseur dont on était en train de lire le flux. C'est exactement
+    // ainsi que la collecte est restée morte des semaines : `incidents.
+    // last_seen_in_feed_at` manquait en production, et le symptôme visible
+    // était « 179 fournisseurs en panne ».
+    //
+    // Cette liste est celle des colonnes dont l'absence casse une écriture.
+    // Elle doit grandir en même temps que le schéma.
+    const requiredColumns: [string, string][] = [
+      ["services", "next_fetch_at"],
+      ["services", "last_fetched_at"],
+      ["services", "consecutive_failures"],
+      ["services", "last_error"],
+      ["services", "current_status"],
+      ["services", "current_status_since"],
+      ["services", "watcher_count"],
+      ["services", "is_active"],
+      ["services", "feed_url"],
+      ["services", "feed_kind"],
+      ["incidents", "last_seen_in_feed_at"],
+      ["incidents", "is_resolved"],
+      ["cron_runs", "stats"],
+      ["cron_runs", "finished_at"],
+      ["service_daily_uptime", "uptime_pct"],
+      ["alert_deliveries", "status"],
+    ];
+    const schemaRows = await sql<{ table_name: string; column_name: string }[]>`
+      select table_name, column_name from information_schema.columns
+       where table_schema = 'public'
+    `;
+    const present = new Set(schemaRows.map((r) => `${r.table_name}.${r.column_name}`));
+    const lacking = requiredColumns.filter(([t, c]) => !present.has(`${t}.${c}`));
+    line(
+      lacking.length === 0 ? "ok" : "err",
+      "Schéma",
+      lacking.length === 0
+        ? `${requiredColumns.length} colonnes critiques présentes`
+        : `manquant : ${lacking.map(([t, c]) => `${t}.${c}`).join(", ")} — rejouer supabase/schema.sql`,
+    );
+
     console.log(`\n${C.b("Automatisation")}`);
     const jobs = await sql<any[]>`
       select job, max(finished_at) filter (where ok) as last_ok,
