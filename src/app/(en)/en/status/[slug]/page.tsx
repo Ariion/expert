@@ -32,14 +32,24 @@ export async function generateMetadata({
   if (!service) return { title: t.service.notFound };
 
   const status = statusLabel(service.current_status, LOCALE);
-  const description = t.service.metaDescription(service.name, status);
+
+  /**
+   * A provider that was never polled must not be described as "checked less
+   * than 5 minutes ago", and "Unknown" has no business in a tag served to
+   * Google. Until the state is established, the page describes the service
+   * without claiming freshness or a status it cannot prove.
+   */
+  const notPolled = service.current_status === "unknown";
+  const description = notPolled
+    ? t.service.fallbackDescription(service.name)
+    : t.service.metaDescription(service.name, status);
 
   return {
     title: t.service.metaTitle(service.name),
     description,
     alternates: alternates(`/status/${service.slug}`, LOCALE),
     openGraph: {
-      title: `${service.name} : ${status}`,
+      title: notPolled ? t.service.metaTitle(service.name) : `${service.name} : ${status}`,
       description,
       url: absolute(`/status/${service.slug}`, LOCALE),
       type: "website",

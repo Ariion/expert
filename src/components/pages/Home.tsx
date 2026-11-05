@@ -23,8 +23,26 @@ export async function Home({ locale }: { locale: Locale }) {
   ]);
 
   const down = services.filter((s) => isDown(s.current_status));
-  const ok = services.length - down.length;
-  const pct = services.length > 0 ? Math.max(0, Math.min(100, (ok / services.length) * 100)) : 100;
+
+  /**
+   * « Non relevé » n'est pas « opérationnel ».
+   *
+   * Le hero comptait auparavant les services sains par soustraction
+   * (`services.length - down.length`), ce qui rangeait silencieusement tous les
+   * fournisseurs jamais interrogés dans le camp des services qui vont bien.
+   * Avec 179 flux muets sur 197, la page annonçait « 196 opérationnels » et
+   * affichait juste en dessous « 179 statuts inconnus » : deux chiffres
+   * contradictoires sur le même écran, et le plus flatteur mis en avant.
+   *
+   * On ne compte donc comme opérationnels que ceux dont l'état a réellement
+   * été lu, et le dénominateur du hero comme celui de la barre ne portent que
+   * sur les services relevés. Un chiffre qui ne peut pas être vérifié ne
+   * s'affiche pas.
+   */
+  const unknown = services.filter((s) => s.current_status === "unknown");
+  const operational = services.filter((s) => s.current_status === "operational");
+  const known = services.length - unknown.length;
+  const pct = known > 0 ? Math.max(0, Math.min(100, (operational.length / known) * 100)) : 0;
 
   // Ce qui ne va pas d'abord, puis l'ordre alphabétique : l'information rare
   // est celle qui compte, et elle ne doit pas se chercher.
@@ -62,12 +80,17 @@ export async function Home({ locale }: { locale: Locale }) {
           {t.home.heroEyebrow}
         </span>
 
-        {down.length === 0 ? (
+        {known === 0 ? (
+          <>
+            <h1 className="status-hero-figure">{t.home.heroNoData}</h1>
+            <p className="status-hero-sub">{t.home.heroNoDataSub(services.length)}</p>
+          </>
+        ) : down.length === 0 ? (
           <h1 className="status-hero-figure ok">{t.home.heroAllOk}</h1>
         ) : (
           <>
-            <h1 className="status-hero-figure">{t.home.heroOperational(ok)}</h1>
-            <p className="status-hero-sub">{t.home.heroOf(services.length)}</p>
+            <h1 className="status-hero-figure">{t.home.heroOperational(operational.length)}</h1>
+            <p className="status-hero-sub">{t.home.heroOf(known)}</p>
           </>
         )}
 
@@ -81,6 +104,12 @@ export async function Home({ locale }: { locale: Locale }) {
           </span>
           <span className="dim">{t.home.heroCaption}</span>
         </div>
+
+        {unknown.length > 0 && (
+          <p className="dim" style={{ margin: "10px 0 0", fontSize: 13 }}>
+            {t.home.heroVerified(known, services.length)}
+          </p>
+        )}
       </section>
 
       {stats && (
