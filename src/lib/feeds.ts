@@ -300,6 +300,58 @@ export function guessImpact(text: string): Impact {
   return "minor";
 }
 
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** Décalages en minutes des fuseaux qu'on rencontre dans les status pages. */
+const TZ_OFFSET: Record<string, number> = {
+  PDT: -420, PST: -480, MST: -420, MDT: -360, CST: -360, CDT: -300,
+  EST: -300, EDT: -240, UTC: 0, GMT: 0, CET: 60, CEST: 120, BST: 60,
+};
+
+/**
+ * Dates d'une chronologie Statuspage, extraites du corps de l'incident.
+ *
+ * Le flux RSS de Statuspage ne transporte pas d'heure de résolution : il n'a
+ * que `<pubDate>`, l'instant de création. Les seules heures fiables sont dans
+ * le texte, sous la forme « Oct 31, 14:43 PDT », éclatées par des balises
+ * `<var data-var='date'>` que `stripHtml` recolle.
+ *
+ * La chronologie est écrite du plus récent au plus ancien : la première date
+ * est donc la dernière mise à jour — celle qui porte le « Resolved » quand
+ * l'incident est clos — et la dernière date est son début.
+ *
+ * L'année n'est jamais écrite. On prend celle de la référence, en reculant
+ * d'un an si la date obtenue tombe après elle.
+ */
+function updateDates(content: string, reference: Date): Date[] {
+  const out: Date[] = [];
+  const re =
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{1,2}):(\d{2})\s*(AM|PM)?\s*([A-Z]{2,5})?/gi;
+
+  for (const m of content.matchAll(re)) {
+    const month = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase());
+    if (month < 0) continue;
+
+    const day = Number(m[2]);
+    let hour = Number(m[3]);
+    const minute = Number(m[4]);
+    const meridiem = m[5]?.toUpperCase();
+    if (meridiem === "PM" && hour < 12) hour += 12;
+    if (meridiem === "AM" && hour === 12) hour = 0;
+    if (day < 1 || day > 31 || hour > 23 || minute > 59) continue;
+
+    const offset = TZ_OFFSET[(m[6] ?? "").toUpperCase()] ?? 0;
+    let ms = Date.UTC(reference.getUTCFullYear(), month, day, hour, minute) - offset * 60_000;
+    // Fin décembre référencée, incident daté de janvier : c'est l'année d'avant.
+    if (ms - reference.getTime() > 24 * 3600_000) {
+      ms = Date.UTC(reference.getUTCFullYear() - 1, month, day, hour, minute) - offset * 60_000;
+    }
+    out.push(new Date(ms));
+  }
+
+  return out;
+}
+
 function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawIncident[] } {
   let doc: Record<string, any>;
   try {
@@ -334,6 +386,15 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
     const published = toDate(e?.published ?? e?.pubDate ?? e?.updated);
     const resolved = isResolvedEntry(title, content, published);
 
+    // Les heures réelles sont dans la chronologie du corps, pas dans les
+    // balises. `published` reste le repli : mieux vaut une date approximative
+    // qu'un incident clos qui repasserait pour ouvert.
+    const timeline = updateDates(content, published);
+    const startedAt = timeline.length ? timeline[timeline.length - 1] : published;
+    const resolvedAt = resolved
+      ? (timeline[0] ?? (e?.updated ? toDate(e.updated) : published))
+      : null;
+
     // Dernier recours seulement : un identifiant dépendant de la position
     // (idx) change dès que le flux réordonne ses entrées d'un relevé à
     // l'autre, et une entrée sans id/guid/lien stable est alors traitée
@@ -351,8 +412,8 @@ function parseXmlFeed(body: string): { status: ServiceStatus; incidents: RawInci
       url: link ? String(link) : null,
       impact: guessImpact(`${title} ${content}`),
       state: resolved ? "resolved" : "monitoring",
-      startedAt: published,
-      resolvedAt: resolved ? toDate(e?.updated, published) : null,
+      startedAt,
+      resolvedAt,
     };
   });
 
